@@ -11,6 +11,7 @@ import {
   type VisiblePluginSummary,
 } from '@cindy/plugin-protocol';
 import { app, dialog } from 'electron';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   GHOST_ICON_MAX_BYTES,
@@ -1129,7 +1130,7 @@ export class PluginMarketService {
         throwIpcError('NOT_FOUND', 'Plugin is unavailable to the active account');
       }
       if (!isGhostAvailableForActiveSession(selected.ghostId)) {
-        throwIpcError('PERMISSION_DENIED', 'This Plugin requires a Cindy account');
+        throwIpcError('PERMISSION_DENIED', `This Plugin requires a ${BRAND_NAME} account`);
       }
       const plugin = await this.api.detail(pluginId);
       requireSameMarketOwner(owner);

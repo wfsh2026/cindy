@@ -1,5 +1,6 @@
 import type { Theme } from '../types';
 import cindyLogoDark from '../../assets/cindy-logo-dark.png';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { CINDY_ACRYLIC_WINDOW_BACKING } from '../../../shared/windowBackdrop';
 
 /*
@@ -185,7 +186,7 @@ const overrides = {
 
 export const cindyDark: Theme = {
   id: 'cindy-dark',
-  name: 'CINDY Dark',
+  name: `${BRAND_NAME} Dark`,
   type: 'dark',
   colors: overrides,
   // U5 品牌版横向 logo：白字+红箭头，深底可见。

@@ -11,6 +11,7 @@ import os from 'node:os';
 import { app } from 'electron';
 
 import { CURRENT_CINDY_REGION } from '../../shared/brandRegion.js';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { activeOwnerScopeKey } from '../appSessionState.js';
 import { getCurrentMembershipDisplayName } from '../authManager';
 import { createLogger } from '../logger.js';
@@ -55,7 +56,7 @@ export async function submitGithubIssueForSession(
     return {
       ok: false,
       errorCode: 'AUTH_NOT_READY',
-      message: '提交官方反馈需要登录 Cindy 账号。',
+      message: `提交官方反馈需要登录 ${BRAND_NAME} 账号。`,
     };
   }
   const bridge = bridgeHolder;
@@ -64,7 +65,7 @@ export async function submitGithubIssueForSession(
     return {
       ok: false,
       errorCode: 'HOST_NOT_READY',
-      message: 'Cindy 主进程 issue 提交服务尚未就绪,请告知用户稍等几秒后重试。',
+      message: `${BRAND_NAME} 主进程 issue 提交服务尚未就绪,请告知用户稍等几秒后重试。`,
     };
   }
   const githubUserSubmitterDeps: GithubUserIssueSubmitterDeps = buildGithubUserSubmitterDeps();

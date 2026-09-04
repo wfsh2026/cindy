@@ -24,6 +24,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { sniffMediaMime, additionalMp3BytesNeeded } from '../cindy-media/sniffMediaMime.js';
 import { isCindyOfficialTrustInfo } from './GhostManager.js';
@@ -1249,7 +1250,7 @@ export class GhostNetworkSlot {
             if (!stillCurrent) {
               return {
                 ok: false,
-                message: 'Cindy 企业账号已切换，本次请求已取消，请重试',
+                message: `${BRAND_NAME} 企业账号已切换，本次请求已取消，请重试`,
               };
             }
           }
@@ -1675,7 +1676,7 @@ export class GhostNetworkSlot {
     if (secret.source === 'oidc-token') {
       const manager = this.deps.connectionTokens;
       if (!manager) {
-        return { error: 'Cindy 企业身份通道未就绪，请升级应用或反馈' };
+        return { error: `${BRAND_NAME} 企业身份通道未就绪，请升级应用或反馈` };
       }
       let resolution: {
         membershipId: string;
@@ -1686,21 +1687,21 @@ export class GhostNetworkSlot {
         resolution = manager.resolve(ghostId);
       } catch {
         this.deps.log?.warn('ghost Connection audience resolver unavailable', { ghostId });
-        return { error: 'Cindy 企业身份暂时不可用，请稍后重试或反馈' };
+        return { error: `${BRAND_NAME} 企业身份暂时不可用，请稍后重试或反馈` };
       }
       if (!resolution) {
         this.deps.log?.warn('ghost Connection audience resolution returned no result', {
           ghostId,
           host: hostname,
         });
-        return { error: '当前 Cindy 企业身份不可用于此插件，请确认已登录正确的企业账号' };
+        return { error: `当前 ${BRAND_NAME} 企业身份不可用于此插件，请确认已登录正确的企业账号` };
       }
       if (!resolution.allowedHosts.includes(hostname)) {
         this.deps.log?.warn('ghost Connection audience host rejected', {
           ghostId,
           host: hostname,
         });
-        return { error: '当前 Cindy 企业身份不可用于此服务地址' };
+        return { error: `当前 ${BRAND_NAME} 企业身份不可用于此服务地址` };
       }
       const tokenInput = {
         membershipId: resolution.membershipId,
@@ -1718,7 +1719,7 @@ export class GhostNetworkSlot {
           host: hostname,
           error: error instanceof Error ? error.message : String(error),
         });
-        return { error: '暂时无法获取 Cindy 企业身份，请检查网络后重试' };
+        return { error: `暂时无法获取 ${BRAND_NAME} 企业身份，请检查网络后重试` };
       }
     }
     // source:'oauth':令牌管理器现取新鲜 access token(缓存 + 单飞刷新在

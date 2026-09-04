@@ -22,6 +22,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { app } from 'electron';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   PiAgent,
@@ -820,7 +821,7 @@ class DesktopPiAuthAdapter implements AuthAdapter {
     if (!key) {
       return { authenticated: false, errorReason: 'cindy_gateway_key_unavailable' };
     }
-    return { authenticated: true, identity: 'Cindy AI', authSource: 'api-key' };
+    return { authenticated: true, identity: `${BRAND_NAME} AI`, authSource: 'api-key' };
   }
 
   async triggerLogin(): Promise<AuthState> {

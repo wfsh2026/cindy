@@ -23,6 +23,7 @@ import {
   type DeviceLinkDeviceView,
   type DeviceLinkState,
 } from '../../shared/deviceLinkIpc';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import {
   getDeviceLinkStatus,
   getDeviceLinkConnectionIssue,
@@ -90,7 +91,7 @@ const log = createLogger('device-link:ipc');
 
 function requireDeviceLinkCapability(): void {
   if (!getAppCapabilities().canUseDeviceLink) {
-    throwIpcError('PERMISSION_DENIED', 'Device Link requires a Cindy account.');
+    throwIpcError('PERMISSION_DENIED', `Device Link requires a ${BRAND_NAME} account.`);
   }
 }
 

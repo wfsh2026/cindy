@@ -11,6 +11,7 @@ import {
 const actions: ComposerSuggestionAction[] = [
   { id: 'attach-files', label: 'Add files', run: vi.fn() },
   { id: 'new-goal', label: 'New goal', run: vi.fn() },
+  { id: 'composer-mode', label: 'Cartethyia battle mode', checked: true, run: vi.fn() },
   { id: 'plan-mode', label: 'Plan mode', checked: false, run: vi.fn() },
   { id: 'add-extra-dir', label: 'Add directory', run: vi.fn() },
 ];
@@ -58,6 +59,7 @@ describe('composerSuggestion', () => {
     )).toEqual([
       'attach-files',
       'new-goal',
+      'composer-mode',
       'plan-mode',
       'browser-tab:Docs',
       'agent:reviewer',

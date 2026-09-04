@@ -20,6 +20,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import fs from 'node:fs';
 import { machineIdSync } from 'node-machine-id';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import {
   AuthApiError,
   CindyAuthClient,
@@ -1948,7 +1949,7 @@ function getRefreshErrorCode(result: { data: unknown }): string | undefined {
 function mapMembershipToAuthUser(membership: AuthMembership, passportId?: string): CurrentUser {
   return {
     id: membership.id,
-    name: membership.displayName || membership.email || 'Cindy',
+    name: membership.displayName || membership.email || BRAND_NAME,
     membershipDisplayName: membership.displayName,
     // auth-server 自助头像(PATCH /api/me/profile);null = 未设置(UI 首字母兜底)。
     // 产品资料头像回落已随 /api/user/me 退役(2026-07)。
@@ -3493,7 +3494,7 @@ function accountSummaryFromMetadata(
 ): DesktopSavedAccount {
   return {
     accountKey,
-    displayName: metadata.displayName || metadata.email || 'Cindy',
+    displayName: metadata.displayName || metadata.email || BRAND_NAME,
     email: metadata.email,
     avatarUrl: metadata.avatarUrl,
     kind: metadata.kind,

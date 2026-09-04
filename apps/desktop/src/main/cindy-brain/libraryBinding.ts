@@ -21,6 +21,7 @@
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 /** 单个插件的自定义位置记录。 */
 export interface LibraryBindingRecord {
@@ -125,7 +126,7 @@ export async function validateLibraryCandidateLocation(req: {
         /* 受管根本身不存在(未登录早期)按词法比较 */
       }
       if (isInsideDir(realManaged, path.join(realCandidate, ghostId)) || isInsideDir(managed, libraryRoot)) {
-        return { ok: false, errorCode: 'PATH_INVALID', message: '所选目录位于 Cindy 管理的数据区内;请选择其它位置' };
+        return { ok: false, errorCode: 'PATH_INVALID', message: `所选目录位于 ${BRAND_NAME} 管理的数据区内;请选择其它位置` };
       }
     }
   }

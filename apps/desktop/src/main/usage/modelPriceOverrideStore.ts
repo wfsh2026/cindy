@@ -7,6 +7,7 @@
  */
 
 import type { AgentKind, ModelRegistry } from '@cindy/model-providers';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { modelPricingKey, providerReferencePriceQuote } from '../../shared/modelPriceQuote.js';
 import type {
@@ -451,7 +452,7 @@ export function setModelPriceOverride(
   registry: ModelRegistry | null | undefined,
 ): void {
   if (target.providerId === 'xd') {
-    throw new Error('Cindy AI Gateway pricing cannot be overridden');
+    throw new Error(`${BRAND_NAME} AI Gateway pricing cannot be overridden`);
   }
   const reference = providerReferencePriceQuote(target.providerId, target.modelId, registry, {
     agent: target.agent,

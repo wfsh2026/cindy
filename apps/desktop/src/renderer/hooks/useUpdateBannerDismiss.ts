@@ -152,11 +152,11 @@ export function isUpdateBannerDecidedFor(currentVersion: string | null): boolean
  *
  * Guards against transient 'idle': useUpdateStatus() starts at 'idle' before
  * getUpdateStatus() resolves on remount, so we must not treat idle/error as a
- * new-update signal — only 'ready' and 'superseding' represent active updates.
+ * new-update signal — 'available', 'ready' and 'superseding' represent active updates.
  */
 export function isNewUpdateAfterDismiss(currentStatus: string, currentVersion: string | null): boolean {
   if (!state.dismissed) return false;
-  if (currentStatus !== 'ready' && currentStatus !== 'superseding') return false;
+  if (currentStatus !== 'available' && currentStatus !== 'ready' && currentStatus !== 'superseding') return false;
   return currentStatus !== state.dismissedStatus || currentVersion !== state.dismissedVersion;
 }
 

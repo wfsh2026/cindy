@@ -2,6 +2,7 @@ import {
   MODEL_ACCESS_CATALOG_V5_SCHEMA_VERSION,
   parseListModelsResponse,
 } from '@cindy/model-providers';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import type {
   ModelAccessAccountTier,
   ModelAccessGatewayModel,
@@ -63,7 +64,7 @@ export function withModelsSyncOverallDeadline<T>(
   let timeout: ReturnType<typeof setTimeout> | null = null;
   const deadline = new Promise<never>((_, reject) => {
     timeout = setTimeout(
-      () => reject(new Error(`Cindy AI model list refresh timed out after ${timeoutMs}ms`)),
+      () => reject(new Error(`${BRAND_NAME} AI model list refresh timed out after ${timeoutMs}ms`)),
       timeoutMs,
     );
     timeout.unref?.();

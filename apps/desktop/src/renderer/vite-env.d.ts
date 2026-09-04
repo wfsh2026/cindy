@@ -952,7 +952,7 @@ interface UpdateStatusPayload {
    * 防止用户重启后装的是旧的。下载成功 → status 切回 'ready' + 新 version;
    * 失败 → 静默回到 'ready' + 旧 version,下次轮询再试。
    */
-  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'superseding' | 'error';
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'superseding' | 'error';
   version?: string;
   progress?: number;
   /** Machine-readable error subtype. `windows_vc_runtime_missing` keeps a
@@ -3643,7 +3643,7 @@ interface ElectronAPI {
    */
   checkForUpdate: () => Promise<{
     result:
-      'ready' | 'idle' | 'downloading' | 'manifest_failed' | 'download_failed' | 'manual_download';
+      'available' | 'ready' | 'idle' | 'downloading' | 'manifest_failed' | 'download_failed' | 'manual_download';
   }>;
   /**
    * 现在重启会不会打断正在跑的活(逻辑 turn / Claude 后台活动 / Ghost card-action 后台活动

@@ -6,6 +6,7 @@ import { outboundFetch } from '../maker-host/outbound-fetch.js';
 import { ServerApiError, serverApiFetch } from '../serverApiClient.js';
 import { getAppCapabilities, requireAppCapability } from '../appCapabilities.js';
 import { createLogger } from '../logger.js';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 const log = createLogger('voice-input:cindy-voice-session');
 
@@ -117,7 +118,7 @@ export class CindyVoiceRunContext {
     authorization: string;
   }> {
     if (this.refinerUnavailableOnServer) {
-      throw new Error('Cindy voice service on this server does not support managed refinement yet.');
+      throw new Error(`${BRAND_NAME} voice service on this server does not support managed refinement yet.`);
     }
     const sessionId = this.latestSessionId;
     if (!sessionId) throw new Error('Voice ASR session is not connected yet.');
@@ -126,9 +127,9 @@ export class CindyVoiceRunContext {
       await authManager.refresh();
       token = authManager.getAccessToken();
     }
-    if (!token) throw new Error('Cindy login is required for voice refinement.');
+    if (!token) throw new Error(`${BRAND_NAME} login is required for voice refinement.`);
     const baseUrl = getClientEndpoint('voiceApiBaseUrl');
-    if (!baseUrl) throw new Error('Cindy voice service is unavailable in this region.');
+    if (!baseUrl) throw new Error(`${BRAND_NAME} voice service is unavailable in this region.`);
     return {
       url: `${baseUrl}/api/voice/sessions/${encodeURIComponent(sessionId)}/refine?provider=${encodeURIComponent(refinerProvider)}`,
       authorization: `Bearer ${token}`,
@@ -148,14 +149,14 @@ export class CindyVoiceRunContext {
     promptCacheKey: string;
   }): Promise<void> {
     if (this.refinerUnavailableOnServer) {
-      throw new Error('Cindy voice service on this server does not support managed refinement yet.');
+      throw new Error(`${BRAND_NAME} voice service on this server does not support managed refinement yet.`);
     }
     const sessionId = this.latestSessionId;
     if (!sessionId) throw new Error('Voice ASR session is not connected yet.');
     const token = authManager.getAccessToken();
-    if (!token) throw new Error('Cindy login is required for voice refinement.');
+    if (!token) throw new Error(`${BRAND_NAME} login is required for voice refinement.`);
     const baseUrl = getClientEndpoint('voiceApiBaseUrl');
-    if (!baseUrl) throw new Error('Cindy voice service is unavailable in this region.');
+    if (!baseUrl) throw new Error(`${BRAND_NAME} voice service is unavailable in this region.`);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), VOICE_REFINE_WARMUP_TIMEOUT_MS);
     try {
@@ -198,9 +199,10 @@ async function createCindyVoiceSession(input: {
   refinerProvider?: string;
   sourceLanguage?: string;
 }): Promise<CindyVoiceAsrSession> {
-  requireAppCapability('canUseCindyAccountServices', 'Cindy voice requires a Cindy account.');
+  const accountRequiredMessage = `${BRAND_NAME} voice requires a ${BRAND_NAME} account.`;
+  requireAppCapability('canUseCindyAccountServices', accountRequiredMessage);
   if (!getClientEndpoint('voiceApiBaseUrl')) {
-    throw new Error('Cindy voice service is unavailable in this region.');
+    throw new Error(`${BRAND_NAME} voice service is unavailable in this region.`);
   }
   const request = {
     baseUrl: () => getClientEndpoint('voiceApiBaseUrl'),
@@ -234,7 +236,7 @@ async function createCindyVoiceSession(input: {
     || !session.sessionId
     || !/^wss?:\/\//.test(session.asr.websocketUrl)
   ) {
-    throw new Error('Cindy voice service returned an invalid session.');
+    throw new Error(`${BRAND_NAME} voice service returned an invalid session.`);
   }
   return session;
 }

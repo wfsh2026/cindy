@@ -21,6 +21,7 @@ import {
 export type ComposerSuggestionActionId =
   | 'attach-files'
   | 'new-goal'
+  | 'composer-mode'
   | 'plan-mode'
   | 'collaboration'
   | 'add-extra-dir'
@@ -32,7 +33,7 @@ export interface ComposerSuggestionAction {
   label: string;
   /** Extra text matched by the query besides the label (e.g. English alias). */
   searchText?: string;
-  /** menuitemcheckbox state (plan mode / collaboration). Absent = plain action. */
+  /** menuitemcheckbox state (composer mode / plan mode / collaboration). Absent = plain action. */
   checked?: boolean;
   disabled?: boolean;
   /** Shown as a row tooltip when the action is disabled (e.g. collab policy). */

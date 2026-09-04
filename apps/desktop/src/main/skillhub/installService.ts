@@ -28,6 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { app, net } from 'electron';
 import JSZip from 'jszip';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { skillhubApiFetch } from './hubApi';
 import { getCurrentDataOwnerId, getCurrentUserId } from '../authManager';
 import { getAppCapabilities } from '../appCapabilities.js';
@@ -967,7 +968,7 @@ export async function uninstall(
         return {
           success: false,
           errorCode: 'AUTH_REQUIRED',
-          message: 'SkillHub 卸载需要 Cindy 云端账号',
+          message: `SkillHub 卸载需要 ${BRAND_NAME} 云端账号`,
         };
       }
     }

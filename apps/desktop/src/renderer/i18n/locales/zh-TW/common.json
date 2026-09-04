@@ -13,9 +13,9 @@
     "DEVICE_LINK_DEVICE_UNRESPONSIVE": "目標裝置長時間無響應，請檢查遠端裝置後重試",
     "INTERNAL": "操作失敗，請稍後重試。",
     "SSH_CONFIG_CONCURRENT_MODIFICATION": "SSH 設定已在磁碟上變更，請重新載入後再試。",
-    "SSH_CONFIG_RELOAD_REQUIRED": "SSH 設定已儲存，但 Cindy 重新整理失敗。請重新載入 SSH 設定。",
-    "SSH_CONFIG_OWNERSHIP_REQUIRED": "Cindy 無法安全管理此 SSH 設定。請重新載入，並確認 Cindy 所有權標記存在且主機別名唯一。",
-    "SSH_CONFIG_AUTH_UNSUPPORTED": "Cindy 無法安全重現此主機的部分 SSH 設定規則。終端 SSH 仍可能成功；請檢查 Match、條件式 Include、IdentityAgent、IdentitiesOnly 與公開金鑰設定。",
+    "SSH_CONFIG_RELOAD_REQUIRED": "SSH 設定已儲存，但 Cartethyia 重新整理失敗。請重新載入 SSH 設定。",
+    "SSH_CONFIG_OWNERSHIP_REQUIRED": "Cartethyia 無法安全管理此 SSH 設定。請重新載入，並確認 Cartethyia 所有權標記存在且主機別名唯一。",
+    "SSH_CONFIG_AUTH_UNSUPPORTED": "Cartethyia 無法安全重現此主機的部分 SSH 設定規則。終端 SSH 仍可能成功；請檢查 Match、條件式 Include、IdentityAgent、IdentitiesOnly 與公開金鑰設定。",
     "SSH_AGENT_UNAVAILABLE": "SSH Agent 目前無法使用。請啟動 SSH Agent，並用 ssh-add 載入對應私密金鑰後再試。",
     "SSH_HOST_PREFS_WRITE_FAILED": "主機仍已儲存，但顯示名稱或 Agent Proxy 設定未能儲存。請檢查本機儲存權限後再試。",
     "REMOTE_WORKDIR_INVALID": "遠端專案目錄無效，請重新選擇專案目錄。",
@@ -51,17 +51,17 @@
   "localDbFatal": {
     "databaseCleanup": {
       "interruptedTitle": "資料庫清理中斷",
-      "interruptedDescription": "資料庫清理異常中斷。請重新啟動 Cindy，系統會根據維護記錄安全復原。",
+      "interruptedDescription": "資料庫清理異常中斷。請重新啟動 Cartethyia，系統會根據維護記錄安全復原。",
       "recoveryFailedTitle": "無法安全復原本地資料庫",
-      "recoveryFailedDescription": "資料庫清理復原失敗，Cindy 已停止開啟本地資料庫，以避免覆寫原始資料。"
+      "recoveryFailedDescription": "資料庫清理復原失敗，Cartethyia 已停止開啟本地資料庫，以避免覆寫原始資料。"
     },
     "updateReady": {
       "title": "需要更新後才能繼續",
-      "description": "本地資料已由更新版本的 Cindy 升級，當前版本無法開啟。新版本已下載就緒，重啟安裝後即可恢復使用。",
+      "description": "本地資料已由更新版本的 Cartethyia 升級，當前版本無法開啟。新版本已下載就緒，重啟安裝後即可恢復使用。",
       "confirm": "重啟並安裝更新"
     },
     "preparing": {
-      "description": "本地資料已由更新版本的 Cindy 升級，當前版本無法開啟。正在獲取新版本，請稍候…",
+      "description": "本地資料已由更新版本的 Cartethyia 升級，當前版本無法開啟。正在獲取新版本，請稍候…",
       "progress": "已下載 {{progress}}%"
     },
     "noUpdate": {
@@ -175,11 +175,11 @@
       "footnote": "第一版僅支援 SSH 連線管理。在遠端執行 Agent 的能力將在後續版本中加入。",
       "viaAuth": "透過 {{label}} 認證",
       "readOnlyFromSshConfig": "連線資訊來自 SSH 設定",
-      "configWarning": "部分 SSH 設定規則 Cindy 無法解析，主機列表或連線資訊可能與終端 SSH 不一致。",
+      "configWarning": "部分 SSH 設定規則 Cartethyia 無法解析，主機列表或連線資訊可能與終端 SSH 不一致。",
       "configDiagnostic": {
-        "io": "Cindy 無法讀取 SSH 設定。這裡仍顯示上次成功讀取的主機；請檢查檔案權限，然後重新載入。",
-        "syntax": "Cindy 無法解析 SSH 設定。這裡仍顯示上次成功讀取的主機；請修正設定，然後重新載入。",
-        "limit": "SSH 設定的巢狀層級過深或內容過大，Cindy 無法安全讀取。這裡仍顯示上次成功讀取的主機。"
+        "io": "Cartethyia 無法讀取 SSH 設定。這裡仍顯示上次成功讀取的主機；請檢查檔案權限，然後重新載入。",
+        "syntax": "Cartethyia 無法解析 SSH 設定。這裡仍顯示上次成功讀取的主機；請修正設定，然後重新載入。",
+        "limit": "SSH 設定的巢狀層級過深或內容過大，Cartethyia 無法安全讀取。這裡仍顯示上次成功讀取的主機。"
       },
       "empty": {
         "title": "還沒有遠端機器。",
@@ -292,7 +292,7 @@
         "title": "新增一臺遠端機器",
         "alias": "別名",
         "displayName": "顯示名稱",
-        "displayNamePlaceholder": "選填，僅在 Cindy 中顯示",
+        "displayNamePlaceholder": "選填，僅在 Cartethyia 中顯示",
         "hostname": "主機名",
         "user": "使用者",
         "port": "埠",
@@ -315,13 +315,13 @@
         "cancel": "取消",
         "submit": "新增機器",
         "agentProxy": "Agent 流量走 Proxy",
-        "agentProxyTip": "讓遠端 codex / Claude Code 的模型流量經 Proxy 流出：由 Cindy 代建 SSH 隧道回本機 Proxy，或直接注入你自備的遠端可達 Proxy 地址",
-        "agentProxyModeTunnel": "Cindy 代建隧道",
+        "agentProxyTip": "讓遠端 codex / Claude Code 的模型流量經 Proxy 流出：由 Cartethyia 代建 SSH 隧道回本機 Proxy，或直接注入你自備的遠端可達 Proxy 地址",
+        "agentProxyModeTunnel": "Cartethyia 代建隧道",
         "agentProxyModeTunnelDesc": "獨立 SSH 隧道轉回本機 Proxy，固定遠端埠，斷線自動重連保活",
         "agentProxyModeEnv": "自備 Proxy（僅注入環境變數）",
         "agentProxyModeEnvDesc": "填一個在遠端可達的 Proxy 地址，隧道與可達性由你自行維護",
         "agentProxyAddr": "本地 Proxy 地址",
-        "agentProxyHint": "遠端 127.0.0.1 的固定埠經 Cindy 維護的獨立 SSH 隧道轉回本機 Proxy（如 Clash 的 7890）。{{appName}} 不提供 Proxy，只建隧道；遠端 agent 的 HTTPS_PROXY 寫死這個固定埠，重連不漂移。修改配置後遠端 codex daemon 會重啟一次以生效。",
+        "agentProxyHint": "遠端 127.0.0.1 的固定埠經 Cartethyia 維護的獨立 SSH 隧道轉回本機 Proxy（如 Clash 的 7890）。{{appName}} 不提供 Proxy，只建隧道；遠端 agent 的 HTTPS_PROXY 寫死這個固定埠，重連不漂移。修改配置後遠端 codex daemon 會重啟一次以生效。",
         "agentProxyAddrInvalid": "格式應為 host:port，例如 127.0.0.1:7890",
         "agentProxyRemotePort": "遠端固定埠",
         "agentProxyRemotePortInvalid": "埠應為 1-65535 的整數",
@@ -376,9 +376,9 @@
         "confirmTitle": "推送 Codex 憑證到遠端？",
         "confirmPush": "推送",
         "confirmOverwrite": "覆蓋",
-        "descFirstPush": "這會把本機的 Codex 憑證裝到 {{hostId}} 的 Cindy Codex home（~/.xdt-server/v1/codex-home/auth.json）。",
-        "descOverwrite": "這會覆蓋 {{hostId}} 的 Cindy Codex home 中已有的 Codex 登入態。",
-        "descOverwriteWithAge": "這會覆蓋 {{hostId}} 的 Cindy Codex home 中已有的 Codex 登入態(上次更新於 {{when}})。",
+        "descFirstPush": "這會把本機的 Codex 憑證裝到 {{hostId}} 的 Cartethyia Codex home（~/.xdt-server/v1/codex-home/auth.json）。",
+        "descOverwrite": "這會覆蓋 {{hostId}} 的 Cartethyia Codex home 中已有的 Codex 登入態。",
+        "descOverwriteWithAge": "這會覆蓋 {{hostId}} 的 Cartethyia Codex home 中已有的 Codex 登入態(上次更新於 {{when}})。",
         "warnOverwrite": "遠端原有的登入會被替換。如果當下有人正在那臺機器上用 Codex，他們會被踢下線。",
         "warnShared": "任何能 SSH 進 {{hostId}} 的人都可以讀這個檔案，用你的 OpenAI 帳號。",
         "daysAgo": "{{n}} 天前",
@@ -537,9 +537,9 @@
         "done": "已完成 ✓",
         "error": "執行失敗",
         "needsReply": "需要你回覆",
-        "externalDone": "Cindy · 任務「{{title}}」已完成 ✓",
-        "externalError": "Cindy · 任務「{{title}}」執行失敗",
-        "externalNeedsReply": "Cindy · 任務「{{title}}」需要你回覆"
+        "externalDone": "Cartethyia · 任務「{{title}}」已完成 ✓",
+        "externalError": "Cartethyia · 任務「{{title}}」執行失敗",
+        "externalNeedsReply": "Cartethyia · 任務「{{title}}」需要你回覆"
       },
       "wecomGroupLabel": "企業微信群通知",
       "wecomGroupHint": "用於自動操作的完成通知。貼上企微群機器人的 Webhook URL，URL 會加密儲存在本機。",
@@ -550,7 +550,7 @@
       "wecomGroupSaveSuccess": "Webhook 已儲存，測試訊息已傳送",
       "wecomGroupSaveFailed": "Webhook 儲存或測試失敗",
       "wecomGroupTest": "傳送測試",
-      "wecomGroupTestMessage": "Cindy 企業微信群通知測試成功",
+      "wecomGroupTestMessage": "Cartethyia 企業微信群通知測試成功",
       "wecomGroupTestSuccess": "測試訊息已傳送",
       "wecomGroupTestFailed": "測試訊息傳送失敗",
       "wecomGroupToggleFailed": "企業微信群通知開關更新失敗",
@@ -566,17 +566,17 @@
         "aria": "選擇關閉主視窗時的行為",
         "tray": "收起到系統匣",
         "minimize": "最小化視窗",
-        "quit": "退出 Cindy"
+        "quit": "退出 Cartethyia"
       },
       "closePrompt": {
-        "title": "關閉 Cindy",
+        "title": "關閉 Cartethyia",
         "message": "關閉主視窗時要執行什麼操作？",
         "detail": "收起到系統匣後，任務會繼續執行；右鍵系統匣圖示可以退出。你可以稍後在設定中修改。",
-        "linuxDetail": "最小化視窗後，任務會繼續執行；你可以從工作列或視窗概覽恢復 Cindy，也可以稍後在設定中修改。"
+        "linuxDetail": "最小化視窗後，任務會繼續執行；你可以從工作列或視窗概覽恢復 Cartethyia，也可以稍後在設定中修改。"
       },
       "trayMenu": {
-        "show": "開啟 Cindy",
-        "quit": "退出 Cindy"
+        "show": "開啟 Cartethyia",
+        "quit": "退出 Cartethyia"
       },
       "trayError": {
         "title": "無法收起到系統匣",
@@ -612,8 +612,8 @@
       "skinAnimationAria": "切換{{skin}}的預覽動畫",
       "skins": {
         "cindy": {
-          "name": "Cindy",
-          "description": "Cindy 本人出鏡，陪你盯著每一次執行。"
+          "name": "Cartethyia",
+          "description": "Cartethyia 本人出鏡，陪你盯著每一次執行。"
         },
         "blackcat": {
           "name": "黑貓",
@@ -693,8 +693,8 @@
       "local": {
         "exitFailed": "退出未登入狀態失敗，請重試",
         "name": "未登入",
-        "description": "資料僅儲存在本機，不使用 Cindy 帳號服務",
-        "signIn": "登入 Cindy",
+        "description": "資料僅儲存在本機，不使用 Cartethyia 帳號服務",
+        "signIn": "登入 Cartethyia",
         "exit": "退出未登入狀態"
       },
       "copyUserId": {
@@ -792,7 +792,7 @@
       "openLogsDirTooltip": "在系統檔案管理器中開啟日誌目錄",
       "logUpload": {
         "crashAutoLabel": "崩潰時自動上傳日誌",
-        "crashAutoDescription": "開啟後，Cindy 崩潰時會自動把崩潰前後的執行記錄送到我們的後臺，你不用再手動上傳。預設關閉，隨時可關；關閉後已經排隊等待上傳的崩潰記錄會被立即清除。",
+        "crashAutoDescription": "開啟後，Cartethyia 崩潰時會自動把崩潰前後的執行記錄送到我們的後臺，你不用再手動上傳。預設關閉，隨時可關；關閉後已經排隊等待上傳的崩潰記錄會被立即清除。",
         "crashAutoEnabledToast": "已開啟崩潰時自動上傳日誌",
         "crashAutoDisabledToast": "已關閉崩潰時自動上傳日誌",
         "saveFailed": "儲存日誌上傳設定失敗",
@@ -801,7 +801,7 @@
         "uploading": "上傳中",
         "uploadTooltip": "把最近的執行記錄上傳到我們的後臺，並得到一個可報的上傳編號",
         "uploadDescription": "遇到問題時點一下，把最近的執行記錄送到我們的後臺。上傳成功後會給出一個上傳編號，報障時把編號發給我們即可，不用自己找檔案。",
-        "scopeDescription": "上傳內容：Cindy 自身的執行記錄（啟動與退出、崩潰、網路、更新、資料庫、登入）和裝置環境資訊（系統版本、應用版本、裝置識別符號），登入後還包含你的帳號 ID。不上傳：對話內容、檔案內容、提示詞、工作目錄路徑。憑證與電子郵件地址會在上傳前自動抹除。",
+        "scopeDescription": "上傳內容：Cartethyia 自身的執行記錄（啟動與退出、崩潰、網路、更新、資料庫、登入）和裝置環境資訊（系統版本、應用版本、裝置識別符號），登入後還包含你的帳號 ID。不上傳：對話內容、檔案內容、提示詞、工作目錄路徑。憑證與電子郵件地址會在上傳前自動抹除。",
         "successToast": "日誌已上傳，上傳編號 {{code}}（已複製，報障時發給我們）",
         "errorUnavailable": "當前版本未配置日誌上傳，暫時無法使用",
         "errorConsentRequired": "需要先同意《隱私政策》才能上傳日誌",
@@ -812,6 +812,8 @@
         "unavailableNoConsent": "需要先同意《隱私政策》。"
       },
       "openLogsDirError": "開啟日誌目錄失敗",
+      "updateNotificationLabel": "有新版本時提醒我",
+      "windowsUpdateNotificationDescription": "Cartethyia 僅顯示更新提示，不會自動下載或安裝更新。",
       "autoUpdateLabel": "空閒時自動安裝更新",
       "autoUpdateDescription": "更新下載完成後，當這臺電腦 10 分鐘無操作且沒有任務執行時，自動重啟應用完成安裝。",
       "linuxUpdateDescription": "有新版本時會在應用程式內下載 .deb。點更新後需要輸入系統密碼完成安裝，因此不會在空閒時自動安裝。",
@@ -819,7 +821,7 @@
       "autoUpdateDisabledToast": "已關閉空閒時自動安裝更新",
       "autoUpdateSaveFailed": "儲存自動更新設定失敗",
       "analyticsLabel": "使用統計",
-      "analyticsDescription": "幫助我們瞭解 Cindy 的啟動與留存情況。上報裝置型號、系統版本、應用版本、裝置識別符號等裝置與使用環境資訊，登入後還包含你的帳號 ID；不包含任何對話內容、檔案或提示詞。關閉後立即停止上報。",
+      "analyticsDescription": "幫助我們瞭解 Cartethyia 的啟動與留存情況。上報裝置型號、系統版本、應用版本、裝置識別符號等裝置與使用環境資訊，登入後還包含你的帳號 ID；不包含任何對話內容、檔案或提示詞。關閉後立即停止上報。",
       "analyticsEnabledToast": "已開啟使用統計",
       "analyticsDisabledToast": "已關閉使用統計",
       "analyticsSaveFailed": "儲存使用統計設定失敗",
@@ -832,7 +834,7 @@
         "openFailed": "無法開啟文件，請檢查系統瀏覽器設定"
       },
       "social": {
-        "title": "和 Cindy 聯絡",
+        "title": "和 Cartethyia 聯絡",
         "discordLabel": "Discord",
         "discordDescription": "加入社群",
         "xLabel": "X",
@@ -853,7 +855,7 @@
         "statsFailed": "統計暫不可用",
         "legacyUsage": "舊版本資料(只讀，不參與清理)：{{size}}",
         "legacyImagesLabel": "圖片快取目錄",
-        "legacyImagesDescription": "Cindy 不會自動掃描或清理此目錄。刪除檔案後，歷史訊息中的圖片可能無法顯示，請自行確認後操作。",
+        "legacyImagesDescription": "Cartethyia 不會自動掃描或清理此目錄。刪除檔案後，歷史訊息中的圖片可能無法顯示，請自行確認後操作。",
         "legacyImagesOpenButton": "開啟目錄",
         "legacyImagesClearButton": "清理圖片快取",
         "legacyImagesDirectoryMissing": "找不到圖片快取目錄",
@@ -864,7 +866,7 @@
         "legacyImagesCleared": "圖片快取已清理",
         "legacyImagesClearFailed": "無法清理圖片快取，請重試",
         "chatAttachmentsLabel": "訊息附件快取目錄",
-        "chatAttachmentsDescription": "傳送的部分附件會儲存在這裡。Cindy 不會自動掃描或清理此目錄；刪除檔案後，歷史訊息中的附件可能無法開啟。",
+        "chatAttachmentsDescription": "傳送的部分附件會儲存在這裡。Cartethyia 不會自動掃描或清理此目錄；刪除檔案後，歷史訊息中的附件可能無法開啟。",
         "chatAttachmentsOpenButton": "開啟目錄",
         "chatAttachmentsClearButton": "清理附件快取",
         "chatAttachmentsDirectoryMissing": "找不到訊息附件快取目錄",
@@ -876,11 +878,11 @@
         "chatAttachmentsClearFailed": "無法清理訊息附件快取，請重試",
         "dbSlimmingBackupDirectoryDialogTitle": "選擇資料庫清理備份目錄",
         "dbSlimmingLabel": "資料庫清理",
-        "dbSlimmingDescription": "掃描超過所選時間未更新的軟刪除和已封存任務歷史，可選擇同時納入活躍任務。確認後重新啟動 Cindy，在資料庫開啟前清理並壓縮。不會刪除磁碟附件或生成媒體。",
+        "dbSlimmingDescription": "掃描超過所選時間未更新的軟刪除和已封存任務歷史，可選擇同時納入活躍任務。確認後重新啟動 Cartethyia，在資料庫開啟前清理並壓縮。不會刪除磁碟附件或生成媒體。",
         "dbSlimmingScanButton": "掃描資料庫",
         "dbSlimmingScanLoading": "正在掃描資料庫，請稍候…",
         "dbSlimmingScanResultTitle": "資料庫掃描結果",
-        "dbSlimmingExecutionLoading": "正在準備資料庫清理，Cindy 即將重新啟動…",
+        "dbSlimmingExecutionLoading": "正在準備資料庫清理，Cartethyia 即將重新啟動…",
         "dbSlimmingArchiveAgeLabel": "清理未更新時間超過",
         "dbSlimmingArchiveAgeOption7Days": "7 天",
         "dbSlimmingArchiveAgeOption1": "1 個月",
@@ -909,8 +911,8 @@
         "dbSlimmingInsufficientSpace": "目前磁碟空間不足，無法安全建立工作副本並壓縮資料庫。",
         "dbSlimmingConfirmButton": "確認資料庫清理",
         "dbSlimmingConfirmTitle": "重新啟動並清理資料庫？",
-        "dbSlimmingConfirmDescriptionWithBackup": "Cindy 將正常重新啟動，並在下次啟動、資料庫開啟前完成備份、歷史清理、壓縮和完整性檢查。備份寫入並通過檢查後才會清理資料。",
-        "dbSlimmingConfirmDescriptionWithoutBackup": "Cindy 將正常重新啟動，並在下次啟動、資料庫開啟前清理和壓縮。本次不建立備份，清除的歷史內容無法復原。",
+        "dbSlimmingConfirmDescriptionWithBackup": "Cartethyia 將正常重新啟動，並在下次啟動、資料庫開啟前完成備份、歷史清理、壓縮和完整性檢查。備份寫入並通過檢查後才會清理資料。",
+        "dbSlimmingConfirmDescriptionWithoutBackup": "Cartethyia 將正常重新啟動，並在下次啟動、資料庫開啟前清理和壓縮。本次不建立備份，清除的歷史內容無法復原。",
         "dbSlimmingRestartButton": "重新啟動並清理資料庫",
         "dbSlimmingResultCompleted": "已清除 {{tasks}} 個任務中的 {{messages}} 則訊息，資料庫縮小 {{size}}。",
         "dbSlimmingOpenBackupButton": "開啟清理備份",
@@ -923,7 +925,7 @@
           "insufficient-space": "磁碟空間不足，未執行資料庫清理。",
           "integrity-check-failed": "資料庫完整性檢查未通過，已復原原資料庫。",
           "replacement-failed": "無法安裝壓縮後的資料庫，已復原原資料庫。",
-          "recovery-failed": "資料庫復原失敗，Cindy 已停止開啟資料庫以保護原始資料。",
+          "recovery-failed": "資料庫復原失敗，Cartethyia 已停止開啟資料庫以保護原始資料。",
           "unknown": "資料庫清理未完成，請重試。"
         },
         "cleanupLabel": "磁碟清理",
@@ -967,15 +969,15 @@
       },
       "serviceSource": {
         "label": "語音服務",
-        "hint": "預設使用 Cindy 語音服務；也可以連線支援即時 ASR 的服務，並使用獨立的語音憑證。",
-        "localHint": "未登入狀態不使用 Cindy 帳號服務；請連線支援即時 ASR 的服務並配置獨立語音憑證。",
+        "hint": "預設使用 Cartethyia 語音服務；也可以連線支援即時 ASR 的服務，並使用獨立的語音憑證。",
+        "localHint": "未登入狀態不使用 Cartethyia 帳號服務；請連線支援即時 ASR 的服務並配置獨立語音憑證。",
         "ariaLabel": "語音服務來源選擇",
         "options": {
-          "cindy": "Cindy 官方服務",
+          "cindy": "Cartethyia 官方服務",
           "byok": "自定義語音服務"
         },
         "optionDescriptions": {
-          "cindy": "使用 Cindy 帳號登入態，無需配置任何金鑰",
+          "cindy": "使用 Cartethyia 帳號登入態，無需配置任何金鑰",
           "byok": "使用具備 ASR 能力的服務及其獨立語音憑證"
         },
         "asr": {
@@ -1014,7 +1016,7 @@
         "customAsr": {
           "optionLabel": "自定義即時 ASR",
           "optionDescription": "使用獨立的語音識別 WebSocket 和 API Key",
-          "notice": "請填寫 ASR 服務提供的完整 WebSocket 地址。Cindy 不會複用對話模型地址，也不會自動拼接語音路徑。",
+          "notice": "請填寫 ASR 服務提供的完整 WebSocket 地址。Cartethyia 不會複用對話模型地址，也不會自動拼接語音路徑。",
           "protocol": {
             "label": "即時協議",
             "hint": "請選擇 ASR 服務實際實現的訊息格式。",
@@ -1097,7 +1099,7 @@
           "systemReserved": "這個快捷鍵會和系統或常用編輯快捷鍵衝突",
           "registrationFailed": "無法註冊此快捷鍵：{{error}}",
           "recordingFailed": "無法開始錄製快捷鍵：{{error}}",
-          "listenerUnavailable": "無法啟動快捷鍵監聽器，請重啟 Cindy 後再試",
+          "listenerUnavailable": "無法啟動快捷鍵監聽器，請重啟 Cartethyia 後再試",
           "pendingInputMonitoring": "快捷鍵已儲存，授權監聽權限後生效"
         }
       },
@@ -1321,12 +1323,12 @@
           "binaryMissing": "Codex 元件不可用，請重啟應用"
         },
         "apiMode": {
-          "label": "API 模式（走 Cindy AI）",
-          "description": "開啟後 Codex 不走訂閱，複用「模型供應商」裡的 Cindy AI Key。",
-          "noKey": "未配置 Cindy AI Key，請在「模型供應商」裡連線 Cindy AI",
+          "label": "API 模式（走 Cartethyia AI）",
+          "description": "開啟後 Codex 不走訂閱，複用「模型供應商」裡的 Cartethyia AI Key。",
+          "noKey": "未配置 Cartethyia AI Key，請在「模型供應商」裡連線 Cartethyia AI",
           "noKeyDialog": {
             "title": "尚未配置 API Key",
-            "description": "API 模式需要複用 Cindy AI Key，當前還沒有配置。前往「模型供應商」連線 Cindy AI 後即可開啟。"
+            "description": "API 模式需要複用 Cartethyia AI Key，當前還沒有配置。前往「模型供應商」連線 Cartethyia AI 後即可開啟。"
           },
           "badge": {
             "api": "● API",
@@ -1334,7 +1336,7 @@
           },
           "expandAria": "展開 / 收起 Codex API 模式設定",
           "toggleAria": "切換 Codex API 模式",
-          "sharedKeyWarning": "和 Cindy AI 共用一把 Key，刪除/修改會同時影響 Claude",
+          "sharedKeyWarning": "和 Cartethyia AI 共用一把 Key，刪除/修改會同時影響 Claude",
           "toast": {
             "toggleFailed": "切換 API 模式失敗，請重試"
           }
@@ -1369,7 +1371,7 @@
         },
         "logoutConfirm": {
           "title": "斷開 Claude.ai 訂閱？",
-          "description": "斷開會清除本機 Claude Code 的登入憑證（本地 `claude` 命令列也會一起登出）；若當前在訂閱模式會自動切回 Cindy AI。需要重新授權才能恢復。",
+          "description": "斷開會清除本機 Claude Code 的登入憑證（本地 `claude` 命令列也會一起登出）；若當前在訂閱模式會自動切回 Cartethyia AI。需要重新授權才能恢復。",
           "confirm": "斷開",
           "cancel": "取消"
         },
@@ -1382,13 +1384,13 @@
           "needAuth": "請先授權登入 Claude.ai"
         },
         "apiMode": {
-          "label": "API 模式（走 Cindy AI）",
-          "description": "開啟後 Claude 走 Cindy AI 共享 Key（預設）；關閉後 Anthropic 原生模型（Claude）直連 api.anthropic.com 走你的訂閱，其餘模型仍走 Cindy AI。",
+          "label": "API 模式（走 Cartethyia AI）",
+          "description": "開啟後 Claude 走 Cartethyia AI 共享 Key（預設）；關閉後 Anthropic 原生模型（Claude）直連 api.anthropic.com 走你的訂閱，其餘模型仍走 Cartethyia AI。",
           "toggleAria": "切換 Claude API 模式",
-          "sharedKeyWarning": "和 Cindy AI 共用一把 Key，關閉 API 模式後非 Claude 模型仍需 Cindy AI",
+          "sharedKeyWarning": "和 Cartethyia AI 共用一把 Key，關閉 API 模式後非 Claude 模型仍需 Cartethyia AI",
           "noKeyDialog": {
             "title": "尚未配置 API Key",
-            "description": "關閉 API 模式（走訂閱）後，非 Claude 模型（gpt / deepseek 等）仍需複用 Cindy AI Key，當前還沒有配置。前往「模型供應商」連線 Cindy AI 後即可。"
+            "description": "關閉 API 模式（走訂閱）後，非 Claude 模型（gpt / deepseek 等）仍需複用 Cartethyia AI Key，當前還沒有配置。前往「模型供應商」連線 Cartethyia AI 後即可。"
           },
           "toast": {
             "toggleFailed": "切換 API 模式失敗，請重試"
@@ -1447,7 +1449,7 @@
         }
       },
       "xd": {
-        "title": "Cindy AI",
+        "title": "Cartethyia AI",
         "subtitle": "全部模型 · Claude Code / Codex 通用 · 按 token 從餘額扣費",
         "modelLabel": "全部模型",
         "billingLabel": "按 token 從餘額扣費",
@@ -1455,8 +1457,8 @@
           "free": "免費版"
         },
         "disconnectConfirm": {
-          "title": "斷開 Cindy AI？",
-          "description": "斷開後將清除本地儲存的 Cindy AI Key，需要重新連線才能繼續使用 Cindy AI 提供的模型。"
+          "title": "斷開 Cartethyia AI？",
+          "description": "斷開後將清除本地儲存的 Cartethyia AI Key，需要重新連線才能繼續使用 Cartethyia AI 提供的模型。"
         },
         "sync": {
           "syncing": "獲取憑據中…",
@@ -1470,14 +1472,14 @@
           "modelsFetchFailed": "拉取模型列表失敗，請檢查網路後重試"
         },
         "rotateConfirm": {
-          "title": "輪換 Cindy AI 金鑰？",
+          "title": "輪換 Cartethyia AI 金鑰？",
           "description": "將撤銷當前金鑰並簽發新金鑰。舊金鑰立即失效：使用舊金鑰的進行中任務、遠端任務與手機語音需要重新發起。",
           "confirm": "輪換"
         },
         "rotateSuccess": "金鑰已輪換",
         "rotateFailed": "輪換失敗，請稍後重試",
-        "copyKeyAria": "複製 Cindy AI Key",
-        "copyKeySuccess": "已複製 Cindy AI Key",
+        "copyKeyAria": "複製 Cartethyia AI Key",
+        "copyKeySuccess": "已複製 Cartethyia AI Key",
         "copyKeyFailed": "複製失敗，請稍後重試",
         "asset": {
           "viewUsage": "檢視用量",
@@ -1546,11 +1548,11 @@
         },
         "wireProtocol": {
           "responses": "OpenAI Responses（原生）",
-          "chat": "Chat Completions（Cindy 橋接）",
-          "anthropic": "Anthropic Messages（Cindy 橋接）",
-          "responsesHelp": "供應商原生支援 Responses API，Cindy 透明轉發完整事件。",
-          "chatHelp": "適用於僅提供 Chat Completions 的供應商。Cindy 轉換流式文字和函式工具呼叫；部分高階 Responses 能力不可用。",
-          "anthropicHelp": "適用於提供 Anthropic Messages API 的供應商。Cindy 轉換 Responses 訊息、圖片、工具、推理內容與流式事件。",
+          "chat": "Chat Completions（Cartethyia 橋接）",
+          "anthropic": "Anthropic Messages（Cartethyia 橋接）",
+          "responsesHelp": "供應商原生支援 Responses API，Cartethyia 透明轉發完整事件。",
+          "chatHelp": "適用於僅提供 Chat Completions 的供應商。Cartethyia 轉換流式文字和函式工具呼叫；部分高階 Responses 能力不可用。",
+          "anthropicHelp": "適用於提供 Anthropic Messages API 的供應商。Cartethyia 轉換 Responses 訊息、圖片、工具、推理內容與流式事件。",
           "piResponses": "OpenAI Responses",
           "piChat": "OpenAI Chat Completions",
           "piAnthropic": "Anthropic Messages",
@@ -1572,9 +1574,9 @@
           "claude": "Claude Code",
           "claudeDesc": "Claude Code 遵循 Anthropic 協議(用 x-api-key 鑑權)。填該來源用於 Claude Code 的 baseURL、金鑰與模型，留空則此來源不提供 Claude Code。",
           "codex": "Codex",
-          "codexDesc": "Codex 使用 OpenAI Responses 協議。上游可選擇原生 Responses，或由 Cindy 橋接 Chat Completions、Anthropic Messages。填該來源用於 Codex 的 baseURL、金鑰與模型，留空則此來源不提供 Codex。",
+          "codexDesc": "Codex 使用 OpenAI Responses 協議。上游可選擇原生 Responses，或由 Cartethyia 橋接 Chat Completions、Anthropic Messages。填該來源用於 Codex 的 baseURL、金鑰與模型，留空則此來源不提供 Codex。",
           "pi": "Pi",
-          "piDesc": "Pi 是多協議 harness：你的自定義或本地模型（Ollama、vLLM、自建端點）原生直連，不經 Cindy 的相容 Proxy。先在下方選 API 型別，再填該來源給 Pi 用的 base URL、金鑰與模型；留空則本來源不配置 Pi。"
+          "piDesc": "Pi 是多協議 harness：你的自定義或本地模型（Ollama、vLLM、自建端點）原生直連，不經 Cartethyia 的相容 Proxy。先在下方選 API 型別，再填該來源給 Pi 用的 base URL、金鑰與模型；留空則本來源不配置 Pi。"
         },
         "errors": {
           "nameRequired": "請填寫顯示名稱",
@@ -1627,7 +1629,7 @@
           "apiKey": "API 金鑰",
           "oauth": "OAuth 訂閱授權",
           "none": "無需鑑權",
-          "noneHelp": "適用於本機或受信任的自託管 Proxy。Cindy 會移除 CLI 自帶的訂閱憑證和帳號頭，再把請求發往該端點。",
+          "noneHelp": "適用於本機或受信任的自託管 Proxy。Cartethyia 會移除 CLI 自帶的訂閱憑證和帳號頭，再把請求發往該端點。",
           "oauthHelp": "適用於提供 OAuth 登入的供應商。可選擇瀏覽器回撥或裝置碼流程，儲存後從供應商列表發起授權。憑證僅加密儲存在本機。",
           "flowLabel": "OAuth 流程",
           "flow": {
@@ -1739,7 +1741,7 @@
         "enableModel": "啟用此模型",
         "capabilityGroupHint": "不會出現在對話模型選擇中，僅供影像生成等功能使用",
         "accessWriteFailed": "停用設定未能儲存，請重試",
-        "visibilityWriteFailed": "模型顯示設定未能儲存，請重試；如果仍然失敗，請重新啟動 Cindy。",
+        "visibilityWriteFailed": "模型顯示設定未能儲存，請重試；如果仍然失敗，請重新啟動 Cartethyia。",
         "disabledGroup": "已停用",
         "enableAllModels": "全部啟用",
         "priceOverride": {
@@ -1856,8 +1858,8 @@
         "nameLabel": "顯示名稱",
         "onlyAgentNote": "此供應商僅支援 {{agent}}",
         "endpointLabel": "{{agent}} 基礎 URL",
-        "noAuthNote": "此 Proxy 無需客戶端金鑰；Cindy 會在轉發前移除 CLI 的訂閱憑證。",
-        "bridgedNote": "Cindy 橋接（Chat Completions）",
+        "noAuthNote": "此 Proxy 無需客戶端金鑰；Cartethyia 會在轉發前移除 CLI 的訂閱憑證。",
+        "bridgedNote": "Cartethyia 橋接（Chat Completions）",
         "docsLink": "檢視接入文件",
         "fetching": "正在驗證連線並獲取模型列表…",
         "fetchFailed": "模型列表獲取失敗——可先按預設推薦模型完成新增，稍後在詳情裡重新整理",
@@ -1881,7 +1883,7 @@
           "note": "此來源提供影像生成模型，不參與對話。API key 僅儲存在本機（系統鑰匙串加密），不會上傳。"
         },
         "groupLocal": "本機模型",
-        "metaLocalRecommended": "推薦 · 在 Cindy 內下載",
+        "metaLocalRecommended": "推薦 · 在 Cartethyia 內下載",
         "metaLocalConnect": "連接已執行的本機服務",
         "moreLocal": "更多本機服務"
       },
@@ -1948,9 +1950,9 @@
           }
         },
         "onboardingTitle": "先安裝 Ollama 執行環境",
-        "onboardingBody": "安裝 Ollama 後，即可在 Cindy 中下載和使用本機模型，無需開啟 Ollama App。Ollama 是免費開源的第三方執行環境。",
-        "installInCindy": "在 Cindy 裡安裝",
-        "installConsent": "Cindy 會下載官方 Ollama 執行時（約 {{size}}）到本機 Cindy 資料目錄並啟動，不會寫入系統應用目錄。Ollama 是免費開源的第三方軟體。",
+        "onboardingBody": "安裝 Ollama 後，即可在 Cartethyia 中下載和使用本機模型，無需開啟 Ollama App。Ollama 是免費開源的第三方執行環境。",
+        "installInCindy": "在 Cartethyia 裡安裝",
+        "installConsent": "Cartethyia 會下載官方 Ollama 執行時（約 {{size}}）到本機 Cartethyia 資料目錄並啟動，不會寫入系統應用目錄。Ollama 是免費開源的第三方軟體。",
         "installCancel": "取消安裝",
         "installFailed": "Ollama 安裝失敗",
         "installPhase": {
@@ -1977,7 +1979,7 @@
           "refused": "本機模型服務連不上，請確認 Ollama 已啟動。",
           "generic": "模型下載失敗"
         },
-        "added": "已加入 Cindy",
+        "added": "已加入 Cartethyia",
         "status": {
           "absent": "尚未安裝 Ollama",
           "stopped": "已安裝 · 未執行",
@@ -2017,12 +2019,12 @@
         "sizeHint": "約 {{size}} · 需要 {{memory}} GB 統一記憶體",
         "sizeHintApple": "約 {{size}} · 需要 {{memory}} GB 統一記憶體",
         "sizeHintGeneric": "約 {{size}} · 需要 {{memory}} GB 記憶體",
-        "deleteFromCindy": "從 Cindy 移除",
-        "deleteConfirmTitle": "從 Cindy 移除 Ollama？",
-        "deleteConfirmBody": "只會移除 Cindy 中的連線。Ollama 裡已下載的模型仍在磁碟上，服務也不會停止。",
+        "deleteFromCindy": "從 Cartethyia 移除",
+        "deleteConfirmTitle": "從 Cartethyia 移除 Ollama？",
+        "deleteConfirmBody": "只會移除 Cartethyia 中的連線。Ollama 裡已下載的模型仍在磁碟上，服務也不會停止。",
         "deleteModel": "刪除此模型",
         "deleteModelConfirmTitle": "刪除 {{name}}？",
-        "deleteModelConfirmBody": "會從這台電腦刪除已下載的模型檔案，Cindy 裡也會一併移除。需要時可以重新下載。",
+        "deleteModelConfirmBody": "會從這台電腦刪除已下載的模型檔案，Cartethyia 裡也會一併移除。需要時可以重新下載。",
         "deleteModelConfirm": "刪除",
         "deleteModelDone": "已刪除 {{name}}",
         "deleteModelFailed": "刪除失敗，請確認 Ollama 正在執行後重試"
@@ -2031,7 +2033,7 @@
         "badge": "推薦",
         "desc": "官方服務，全部模型開箱即用，無需管理任何 Key。",
         "grantBadge": "新使用者含贈送餘額",
-        "cta": "登入 Cindy"
+        "cta": "登入 Cartethyia"
       },
       "menu": {
         "disableProvider": "停用此供應商",
@@ -2186,26 +2188,26 @@
         "disabled": "暫不可用",
         "error": "連線失敗"
       },
-      "intro": "連線後，你發給該微信連線的私聊訊息會進入本機 Cindy。授權網頁由騰訊提供，頁面中可能顯示 OpenClaw。",
-      "errorNote": "本次連線未完成。請確認網路正常後重新掃碼；Cindy 不會在連線失敗時儲存明文憑證。",
+      "intro": "連線後，你發給該微信連線的私聊訊息會進入本機 Cartethyia。授權網頁由騰訊提供，頁面中可能顯示 OpenClaw。",
+      "errorNote": "本次連線未完成。請確認網路正常後重新掃碼；Cartethyia 不會在連線失敗時儲存明文憑證。",
       "disabledNote": "此版本的個人微信連線已因相容性策略暫停。已儲存的任務和設定不會被刪除。",
       "permission": {
         "label": "權限模式",
-        "hint": "僅影響 /new 後的新上下文。高風險操作仍會要求你回到 Cindy 桌面端確認。",
+        "hint": "僅影響 /new 後的新上下文。高風險操作仍會要求你回到 Cartethyia 桌面端確認。",
         "fullAccessDisabled": "個人微信首版不支援 Full Access，避免無法在微信內確認的操作被直接執行。",
-        "permissionModeDisabled": "個人微信始終使用 Cindy 桌面端的確認策略，因此該權限模式不可用。"
+        "permissionModeDisabled": "個人微信始終使用 Cartethyia 桌面端的確認策略，因此該權限模式不可用。"
       },
       "authorization": {
         "title": "微信授權",
-        "rebindTitle": "將新的 Cindy 連線到微信",
-        "description": "即將跳轉到騰訊提供的網頁完成授權。掃碼繫結後，即可在微信中與 Cindy 對話。",
-        "rebindDescription": "當前微信已有連線。繼續掃碼可能解除該微信原有的 Cindy 或 OpenClaw 連線。",
+        "rebindTitle": "將新的 Cartethyia 連線到微信",
+        "description": "即將跳轉到騰訊提供的網頁完成授權。掃碼繫結後，即可在微信中與 Cartethyia 對話。",
+        "rebindDescription": "當前微信已有連線。繼續掃碼可能解除該微信原有的 Cartethyia 或 OpenClaw 連線。",
         "confirm": "去授權",
         "cancel": "取消",
         "steps": {
           "1": "點選「去授權」，在系統瀏覽器開啟微信繫結頁。",
           "2": "使用微信 App 掃碼，並在微信頁面確認連線。",
-          "3": "繫結成功後回到 Cindy，連線狀態會自動更新。",
+          "3": "繫結成功後回到 Cartethyia，連線狀態會自動更新。",
           "4": "授權頁由騰訊提供，頁面中可能顯示 OpenClaw。"
         }
       },
@@ -2221,7 +2223,7 @@
           "disconnected": "連線已儲存，當前尚未啟動。",
           "authorizing": "正在準備新的微信授權。",
           "waiting_confirmation": "正在等待微信掃碼確認。",
-          "connected": "微信私聊訊息會直接進入本機 Cindy，訊息不經過 Cindy 服務端轉發。",
+          "connected": "微信私聊訊息會直接進入本機 Cartethyia，訊息不經過 Cartethyia 服務端轉發。",
           "reconnecting": "本機正在恢復與微信的連線，無需重新掃碼。",
           "needs_reauth": "微信授權已失效或被新的連線替換，請重新掃碼。",
           "disabled_by_policy": "連線因當前版本的相容性策略暫停；憑證和任務仍保留。",
@@ -2236,13 +2238,13 @@
       "workingDir": {
         "title": "新對話工作目錄",
         "hint": "微信首次對話或傳送 /new 後使用。更改不會移動當前上下文。",
-        "managed": "使用 Cindy 管理的專用目錄",
+        "managed": "使用 Cartethyia 管理的專用目錄",
         "reset": "恢復預設",
-        "unavailable": "已選目錄當前不可訪問；新對話將暫時使用 Cindy 管理的專用目錄。"
+        "unavailable": "已選目錄當前不可訪問；新對話將暫時使用 Cartethyia 管理的專用目錄。"
       },
       "unbind": {
         "title": "解綁個人微信？",
-        "description": "解綁會停止收發、刪除本機微信憑證並清理未完成的執行。已建立的 Cindy 任務、歷史訊息和已儲存附件會保留。",
+        "description": "解綁會停止收發、刪除本機微信憑證並清理未完成的執行。已建立的 Cartethyia 任務、歷史訊息和已儲存附件會保留。",
         "confirm": "解綁",
         "cancel": "取消"
       },
@@ -2604,24 +2606,24 @@
       "title": "記憶",
       "description": "用於幫助使用者實現基於工作區的記憶，改變設定之後理論上需要新建 Agent 會話才會生效，如果覺得記憶系統出現問題可以點選 Reset 或者關閉。",
       "maker": {
-        "label": "Cindy",
+        "label": "Cartethyia",
         "description": "記憶按 Agent 入口管理，而不是按具體模型管理；同一工作目錄下，Claude Code 和 Codex 入口的任務可以共享記憶",
-        "toggleAria": "切換 Cindy 記憶",
-        "resetAria": "重置 Cindy 記憶",
+        "toggleAria": "切換 Cartethyia 記憶",
+        "resetAria": "重置 Cartethyia 記憶",
         "resetConfirm": {
-          "title": "重置 Cindy 記憶？",
-          "description": "將永久刪除所有專案下的 Cindy 記憶（存放在 user-data 目錄下，不在你的程式碼倉庫裡）。此操作不可撤銷。",
+          "title": "重置 Cartethyia 記憶？",
+          "description": "將永久刪除所有專案下的 Cartethyia 記憶（存放在 user-data 目錄下，不在你的程式碼倉庫裡）。此操作不可撤銷。",
           "confirm": "重置",
           "cancel": "取消"
         },
         "toast": {
-          "enabled": "Cindy 記憶已啟用",
-          "disabled": "Cindy 記憶已停用",
+          "enabled": "Cartethyia 記憶已啟用",
+          "disabled": "Cartethyia 記憶已停用",
           "deferredSuffix": " — 執行中的 Codex 任務將在當前執行結束後應用",
-          "toggleFailed": "切換 Cindy 記憶失敗",
-          "resetSuccess_one": "Cindy 記憶已重置 — 已移除 {{count}} 個工作目錄",
-          "resetSuccess_other": "Cindy 記憶已重置 — 已移除 {{count}} 個工作目錄",
-          "resetFailed": "重置 Cindy 記憶失敗"
+          "toggleFailed": "切換 Cartethyia 記憶失敗",
+          "resetSuccess_one": "Cartethyia 記憶已重置 — 已移除 {{count}} 個工作目錄",
+          "resetSuccess_other": "Cartethyia 記憶已重置 — 已移除 {{count}} 個工作目錄",
+          "resetFailed": "重置 Cartethyia 記憶失敗"
         }
       },
       "agents": {
@@ -2635,7 +2637,7 @@
         },
         "pi": {
           "label": "Pi",
-          "description": "將長任務的壓縮摘要儲存到 Cindy 記憶，供後續 Pi 任務繼續使用"
+          "description": "將長任務的壓縮摘要儲存到 Cartethyia 記憶，供後續 Pi 任務繼續使用"
         }
       },
       "agent": {
@@ -2665,15 +2667,15 @@
       "unspecified": "跟隨預設設定",
       "hint": "Claude Code 的設定從新任務開始生效；Codex 的設定會在閒置後自動套用。",
       "codexV2ModelHint": "Claude Code 使用所選模型作為預設值。Codex 的所有本機 Subagent 都固定使用所選模型和推理強度。",
-      "codexOauthCompatibilityHint": "固定 Subagent 路由與 ChatGPT OAuth 無法安全共用。主任務使用 ChatGPT OAuth，或非 OAuth 主任務指定 ChatGPT OAuth Subagent 時，Cindy 會忽略這裡的模型、來源和推理強度，改用主任務的 Codex 預設 Subagent。",
+      "codexOauthCompatibilityHint": "固定 Subagent 路由與 ChatGPT OAuth 無法安全共用。主任務使用 ChatGPT OAuth，或非 OAuth 主任務指定 ChatGPT OAuth Subagent 時，Cartethyia 會忽略這裡的模型、來源和推理強度，改用主任務的 Codex 預設 Subagent。",
       "saveFailed": "儲存 Subagent 設定失敗",
       "guardrails": {
         "title": "Codex Subagent 護欄",
         "enableHint": "允許 Codex 在執行任務時建立一次性 Subagent。關閉後對舊版（V1）和 Sol / Terra（V2）都生效。",
         "enableAria": "允許 Codex 使用 Subagent",
-        "cindyPolicyLabel": "使用 Cindy 自訂 Subagent 策略",
-        "cindyPolicyHint": "開啟後，Cindy 會注入策略，引導 Codex 在探索型任務中主動使用 Subagent。對於本身已擅長規劃與委派的模型，額外引導可能適得其反；關閉後不再注入，改用 Codex 的原生預設行為。",
-        "cindyPolicyAria": "使用 Cindy 自訂 Subagent 策略",
+        "cindyPolicyLabel": "使用 Cartethyia 自訂 Subagent 策略",
+        "cindyPolicyHint": "開啟後，Cartethyia 會注入策略，引導 Codex 在探索型任務中主動使用 Subagent。對於本身已擅長規劃與委派的模型，額外引導可能適得其反；關閉後不再注入，改用 Codex 的原生預設行為。",
+        "cindyPolicyAria": "使用 Cartethyia 自訂 Subagent 策略",
         "concurrencyLabel": "Subagent 併發上限",
         "concurrencyHint": "同時執行的 Subagent 數量上限。每個 Subagent 都會消耗模型配額，調低更省；Ultra 檔位下併發達到 8 時 Codex 會發出用量警告。",
         "concurrencyFollowDefault": "跟隨 Codex 預設（舊版 V1 為 6，Sol / Terra 為 3）",
@@ -2908,19 +2910,19 @@
     "piPackages": {
       "title": "Pi 擴充功能",
       "entryTitle": "Pi 擴充功能設定",
-      "entryDescription": "安裝、啟用或解除安裝 Cindy 的 Pi 擴充功能",
+      "entryDescription": "安裝、啟用或解除安裝 Cartethyia 的 Pi 擴充功能",
       "backToGeneral": "返回一般",
-      "description": "擴充功能安裝在這台裝置的 Cindy 中。無論任務由本機、手機或其他已連線用戶端發起，只要由這台裝置的普通 Pi 執行都會生效；Review 不載入。",
+      "description": "擴充功能安裝在這台裝置的 Cartethyia 中。無論任務由本機、手機或其他已連線用戶端發起，只要由這台裝置的普通 Pi 執行都會生效；Review 不載入。",
       "installSectionTitle": "安裝擴充功能",
       "installSectionDescription": "貼上 pi.dev 頁面提供的安裝來源，或輸入 npm 套件名稱、Git 位址、本機絕對路徑。",
       "installedSectionTitle": "已安裝",
       "sourcePlaceholder": "npm 套件名稱、Git 位址或本機絕對路徑",
-      "inspectionHint": "Pi 套件由 Pi 原生套件系統安裝和載入。Cindy 只顯示建議性的相容性詳情；未知、不支援或分析失敗都不會阻止安裝或啟用。",
+      "inspectionHint": "Pi 套件由 Pi 原生套件系統安裝和載入。Cartethyia 只顯示建議性的相容性詳情；未知、不支援或分析失敗都不會阻止安裝或啟用。",
       "install": "安裝",
       "update": "更新",
       "remove": "解除安裝",
-      "empty": "還沒有替 Cindy 的 Pi 安裝擴充功能。",
-      "piUnavailable": "Cindy 的 Pi 尚未安裝，暫時不能管理擴充功能。",
+      "empty": "還沒有替 Cartethyia 的 Pi 安裝擴充功能。",
+      "piUnavailable": "Cartethyia 的 Pi 尚未安裝，暫時不能管理擴充功能。",
       "toggleAria": "啟用或停用 {{name}}",
       "updateAria": "更新 {{name}}",
       "removeAria": "解除安裝 {{name}}",
@@ -2950,20 +2952,20 @@
         "theme": "主題"
       },
       "status": {
-        "supported": "Cindy 完整支援",
+        "supported": "Cartethyia 完整支援",
         "extensionSupported": "未發現已知 Pi TUI 依賴",
         "partial": "發現相容限制",
-        "unsupported": "已安裝，但不會在 Cindy 中載入",
+        "unsupported": "已安裝，但不會在 Cartethyia 中載入",
         "unknown": "無法完成相容檢查"
       },
       "compatibility": {
         "supported": "技能和提示範本完整支援；擴充程式碼會在安裝後解析實際原始碼，不再只按資源類型推測。",
         "partial": "偵測到 Pi TUI API 時會列出具體限制；擴充功能仍可安裝並由你決定是否繼續啟用。",
-        "unsupported": "主題：會保留在擴充功能中，但 Cindy 不使用 Pi 的 TUI 主題。"
+        "unsupported": "主題：會保留在擴充功能中，但 Cartethyia 不使用 Pi 的 TUI 主題。"
       },
       "issues": {
-        "interactive-dialogs": "選擇、確認、輸入與多行編輯會顯示為 Cindy 選擇卡；只有設定計時的對話框會取消。",
-        "notifications": "Pi 通知會寫入 Cindy 任務訊息流，不會顯示為 Pi TUI 浮層提示。",
+        "interactive-dialogs": "選擇、確認、輸入與多行編輯會顯示為 Cartethyia 選擇卡；只有設定計時的對話框會取消。",
+        "notifications": "Pi 通知會寫入 Cartethyia 任務訊息流，不會顯示為 Pi TUI 浮層提示。",
         "status-display": "Pi 的工作提示和狀態列內容不會顯示。",
         "widgets": "Pi 的編輯器掛件不會顯示。",
         "terminal-title": "修改終端視窗標題不會生效。",
@@ -2971,29 +2973,29 @@
         "tui-layout": "Pi 的頁首、底欄和工具面板配置不可用。",
         "custom-ui": "自訂 Pi TUI 介面不可用。",
         "theme-control": "Pi TUI 主題的讀取或切換不可用。",
-        "terminal-input": "終端按鍵輸入監聽在 Cindy 的 RPC 介面中不可用。",
-        "tui-rendering": "快捷鍵或自訂訊息、Markdown、項目渲染只適用於 Pi TUI，Cindy 不會顯示。",
-        "cli-flags": "擴充功能註冊的 Pi 命令列參數無法在 Cindy 的固定啟動設定中指定。",
+        "terminal-input": "終端按鍵輸入監聽在 Cartethyia 的 RPC 介面中不可用。",
+        "tui-rendering": "快捷鍵或自訂訊息、Markdown、項目渲染只適用於 Pi TUI，Cartethyia 不會顯示。",
+        "cli-flags": "擴充功能註冊的 Pi 命令列參數無法在 Cartethyia 的固定啟動設定中指定。",
         "analysis-incomplete": "未能檢查完所有可達的本機原始碼，可能還有其他相容限制。"
       },
       "detectedApis": "偵測到的 Pi API：{{apis}}",
       "runtimeRequirementTitle": "Pi 版本需求",
-      "runtimeMismatch": "{{packageName}} 需要 Pi {{range}}，Cindy 目前使用的是 {{currentVersion}}。",
-      "runtimeLegacyPackage": "{{packageName}} 屬於 Pi 的舊版執行階段命名空間；以它建置的擴充功能可能無法在 Cindy 目前的 Pi 中載入。",
-      "runtimeUnknown": "{{packageName}} 需要 Pi {{range}}，但 Cindy 無法判斷目前的 Pi 版本是否符合需求。",
+      "runtimeMismatch": "{{packageName}} 需要 Pi {{range}}，Cartethyia 目前使用的是 {{currentVersion}}。",
+      "runtimeLegacyPackage": "{{packageName}} 屬於 Pi 的舊版執行階段命名空間；以它建置的擴充功能可能無法在 Cartethyia 目前的 Pi 中載入。",
+      "runtimeUnknown": "{{packageName}} 需要 Pi {{range}}，但 Cartethyia 無法判斷目前的 Pi 版本是否符合需求。",
       "warning": {
         "no-resources": "這個擴充功能沒有發現 Pi 資源。",
-        "inspection-failed": "Cindy 無法檢查已安裝內容，但不會因此停用；仍由 Pi 原生處理。",
-        "inspection-limit": "Cindy 已達到詳細分析上限並停止顯示更多結果；套件仍透過 Pi 原生載入。",
-        "unsupported-filter": "Cindy 暫時無法顯示這個 Pi 資源篩選設定；套件與篩選仍由 Pi 原生處理。",
-        "unsafe-source": "儲存的來源包含憑證或私密 URL 參數。Cindy 僅在此處隱藏敏感欄位，不會阻擋 Pi 的套件行為。"
+        "inspection-failed": "Cartethyia 無法檢查已安裝內容，但不會因此停用；仍由 Pi 原生處理。",
+        "inspection-limit": "Cartethyia 已達到詳細分析上限並停止顯示更多結果；套件仍透過 Pi 原生載入。",
+        "unsupported-filter": "Cartethyia 暫時無法顯示這個 Pi 資源篩選設定；套件與篩選仍由 Pi 原生處理。",
+        "unsafe-source": "儲存的來源包含憑證或私密 URL 參數。Cartethyia 僅在此處隱藏敏感欄位，不會阻擋 Pi 的套件行為。"
       },
       "failure": {
         "sourceUnavailable": "無法存取這個來源。請檢查網路或網址，也可以改用其他來源重試。",
         "packageNotFound": "找不到這個套件。請檢查套件名稱或儲存庫網址。",
         "versionNotFound": "找不到這個版本。請選擇可用版本後重試。",
-        "stateUnavailable": "Cindy 無法讀取 Pi 擴充功能狀態。請重新啟動 Cindy 後重試。",
-        "runtimeConvergencePartial": "Pi 擴充功能變更已儲存，但部分本機 Pi 任務可能仍在執行舊擴充功能。請重新啟動 Cindy 後再使用 Pi。",
+        "stateUnavailable": "Cartethyia 無法讀取 Pi 擴充功能狀態。請重新啟動 Cartethyia 後重試。",
+        "runtimeConvergencePartial": "Pi 擴充功能變更已儲存，但部分本機 Pi 任務可能仍在執行舊擴充功能。請重新啟動 Cartethyia 後再使用 Pi。",
         "nativeCommandFailed": "Pi 原生套件命令失敗。請檢查來源或版本後重試。"
       },
       "success": {
@@ -3025,17 +3027,17 @@
           "toggleFailed": "切換瀏覽器自動化失敗",
           "openedForLogin": "已開啟自動化瀏覽器，請在其中登入需要的網站",
           "openForLoginFailed": "開啟瀏覽器失敗",
-          "foreignInstance": "本機已有另一個 Cindy 占用了 Agent 專用瀏覽器。請先退出其它 Cindy 視窗再試。",
+          "foreignInstance": "本機已有另一個 Cartethyia 占用了 Agent 專用瀏覽器。請先退出其它 Cartethyia 視窗再試。",
           "profileLocked": "請完全結束 Chrome、Edge 或 Brave（包括系統匣中的程序），然後再試。",
           "noChromium": "在這台電腦上找不到 Chrome、Edge、Brave 或 Chromium。",
           "noAuthDb": "找不到可複製的瀏覽器登入資料。請先在日常瀏覽器中登入，或關閉「使用我的瀏覽器登入狀態」後在 Agent 專用瀏覽器中登入。",
           "copyFailed": "無法複製瀏覽器登入狀態。請完全結束日常瀏覽器後再試，或關閉「使用我的瀏覽器登入狀態」。",
           "headlessForbidden": "Agent 專用瀏覽器以無介面模式執行時，無法使用你的瀏覽器登入狀態。",
           "stopFailed": "請完全關閉 Agent 專用瀏覽器，然後再試。",
-          "appBoundEncryptionUnsupported": "Windows 已使用應用程式繫結加密保護這些瀏覽器登入狀態，Cindy 無法複製。請關閉「使用我的瀏覽器登入狀態」，開啟 Agent 專用瀏覽器並在其中登入一次。"
+          "appBoundEncryptionUnsupported": "Windows 已使用應用程式繫結加密保護這些瀏覽器登入狀態，Cartethyia 無法複製。請關閉「使用我的瀏覽器登入狀態」，開啟 Agent 專用瀏覽器並在其中登入一次。"
         },
         "openForLogin": "開啟 Agent 專用瀏覽器",
-        "openForLoginHint": "這是 Agent 專用的獨立瀏覽器：基於你本機的 Chrome，但用一份獨立配置（右上角顯示為 Cindy），不會動你日常 Chrome 的標籤頁、書籤和登入態。Agent 會在這裡替你開啟網頁、閱讀內容、點選和截圖。需要登入的網站，點上面「開啟 Agent 專用瀏覽器」手動登入一次即可——登入態會長期保留，之後 Agent 就能以你的身份繼續操作。"
+        "openForLoginHint": "這是 Agent 專用的獨立瀏覽器：基於你本機的 Chrome，但用一份獨立配置（右上角顯示為 Cartethyia），不會動你日常 Chrome 的標籤頁、書籤和登入態。Agent 會在這裡替你開啟網頁、閱讀內容、點選和截圖。需要登入的網站，點上面「開啟 Agent 專用瀏覽器」手動登入一次即可——登入態會長期保留，之後 Agent 就能以你的身份繼續操作。"
       },
       "realProfile": {
         "title": "使用我的瀏覽器登入態",
@@ -3047,7 +3049,7 @@
         "confirmDescriptionMac": "Agent 將能以你已登入的身分開啟網頁，包括信箱、雲端硬碟和公司後台。讀取 Chrome 登入檔還需要「完全磁碟存取權」。可以隨時關掉，拷貝會被刪除。",
         "confirm": "使用我的登入態",
         "readDeniedTitle": "需要完全磁碟存取權",
-        "readDeniedDescription": "讀取 Chrome 登入檔需要系統允許 Cindy。請在「隱私權與安全性 → 完全磁碟存取權」中打開 Cindy，然後回到這裡再試。",
+        "readDeniedDescription": "讀取 Chrome 登入檔需要系統允許 Cartethyia。請在「隱私權與安全性 → 完全磁碟存取權」中打開 Cartethyia，然後回到這裡再試。",
         "openFullDiskAccess": "打開系統設定",
         "readDeniedLater": "稍後再說",
         "toast": {
@@ -3111,19 +3113,19 @@
         "connectionGuide": {
           "connect": {
             "title": "如何連線 Android 手機",
-            "adbNote": "Cindy 會自動準備 ADB，無需安裝 Android SDK；自定義 ADB 路徑僅供進階設定使用。",
+            "adbNote": "Cartethyia 會自動準備 ADB，無需安裝 Android SDK；自定義 ADB 路徑僅供進階設定使用。",
             "step1": "使用支援資料傳輸的 USB 資料線連線手機和電腦。",
             "step2": "在手機「設定 → 關於手機」中連續點選版本號，開啟開發者選項。",
             "step3": "在「開發者選項」中開啟「USB 除錯」。",
-            "step4": "保持手機解鎖，回到 Cindy 點選「重新檢查」。"
+            "step4": "保持手機解鎖，回到 Cartethyia 點選「重新檢查」。"
           },
           "unauthorized": {
             "title": "請允許 USB 除錯",
-            "body": "請在手機彈出的「允許 USB 除錯」視窗中點選「允許」，建議勾選「始終允許使用這臺電腦」，然後回到 Cindy 點選「重新檢查」。"
+            "body": "請在手機彈出的「允許 USB 除錯」視窗中點選「允許」，建議勾選「始終允許使用這臺電腦」，然後回到 Cartethyia 點選「重新檢查」。"
           },
           "offline": {
             "title": "裝置處於 offline 狀態",
-            "body": "請重新插拔 USB 資料線，保持手機解鎖，然後回到 Cindy 點選「重新檢查」。"
+            "body": "請重新插拔 USB 資料線，保持手機解鎖，然後回到 Cartethyia 點選「重新檢查」。"
           }
         },
         "device": {
@@ -3205,9 +3207,9 @@
           "draggingHint": "放入「{{permission}}」列表",
           "appName": "CuaDriver",
           "turnOnTitle": "開啟「{{permission}}」",
-          "turnOnDescription": "請在系統設定中開啟這項權限。開啟後，Cindy 會自動繼續。",
+          "turnOnDescription": "請在系統設定中開啟這項權限。開啟後，Cartethyia 會自動繼續。",
           "readyTitle": "Computer Use 已就緒",
-          "readyDescription": "現在可以讓 Cindy 操作這臺電腦。"
+          "readyDescription": "現在可以讓 Cartethyia 操作這臺電腦。"
         },
         "permissions": {
           "title": "系統授權",
@@ -3275,7 +3277,7 @@
         "user": "使用者預設",
         "userTooltip": "沿用 Agent 會話預設值",
         "product": "產品預設",
-        "productTooltip": "沿用 Cindy 產品預設值"
+        "productTooltip": "沿用 Cartethyia 產品預設值"
       },
       "toast": {
         "enabled": "{{name}} 已啟用 — 下次 Agent 會話生效",
@@ -3301,7 +3303,7 @@
           "description": "任務排程 —— cron 週期任務 + 一次性提醒"
         },
         "memory": {
-          "name": "Cindy 記憶",
+          "name": "Cartethyia 記憶",
           "description": "跨 Agent 的長期記憶，讓上下文在任務之間持續"
         },
         "docs": {
@@ -3309,7 +3311,7 @@
           "description": "把內容做成真檔案 —— PDF、Word、Excel、PPT，並能回讀核對產出。不需要另裝任何軟體。"
         },
         "xdt_helper": {
-          "name": "Cindy Helper",
+          "name": "Cartethyia Helper",
           "description": "宿主能力自省 —— 告訴 Agent 當前可用的工具與模型"
         },
         "collab": {
@@ -3368,11 +3370,11 @@
       "sections": {
         "myDevices": "我的裝置",
         "ssh": "SSH 遠端主機",
-        "hook": "Cindy IM 機器人"
+        "hook": "Cartethyia IM 機器人"
       },
       "hook": {
-        "description": "把 Slack 和 Telegram 接入同一個 Cindy：訊息都會派發到這臺裝置，共享專案清單與 session 執行鏈；帳號繫結和執行偏好按渠道隔離。",
-        "slackDescription": "繫結 Slack workspace，在 Slack 裡 @Cindy 派發任務。",
+        "description": "把 Slack 和 Telegram 接入同一個 Cartethyia：訊息都會派發到這臺裝置，共享專案清單與 session 執行鏈；帳號繫結和執行偏好按渠道隔離。",
+        "slackDescription": "繫結 Slack workspace，在 Slack 裡 @Cartethyia 派發任務。",
         "slackDisabledHint": "開啟開關即發起 Slack 授權，繫結完成後即可在 Slack 裡派活。",
         "slackBoundHint": "已完成繫結。關閉開關將解除繫結，重新開啟需再次授權。",
         "lifecycleAnnouncement": {
@@ -3436,7 +3438,7 @@
           "actionFailed": "操作失敗"
         },
         "loginRequired": "需要先登入 {{appName}} 帳號，連線會在登入後自動恢復。",
-        "standbyHint": "本機另一 Cindy 例項正在使用 Slack 連線。關閉它後，重新開啟此開關即可接管。",
+        "standbyHint": "本機另一 Cartethyia 例項正在使用 Slack 連線。關閉它後，重新開啟此開關即可接管。",
         "authorizing": "授權中…",
         "transportStatus": "傳輸連線：{{status}}",
         "accountStatus": "Slack 帳號：{{status}}",
@@ -3444,11 +3446,11 @@
         "statusBoundTeam": "已繫結 {{team}} @{{name}}",
         "statusUnbound": "未繫結",
         "notInstalled": {
-          "title": "你授權的 Slack 工作區還沒有安裝 Cindy App",
-          "hint": "需要先把 Cindy App 安裝到工作區，bot 才能收發訊息、派發任務；安裝完成後重新開啟開關即可完成繫結。",
+          "title": "你授權的 Slack 工作區還沒有安裝 Cartethyia App",
+          "hint": "需要先把 Cartethyia App 安裝到工作區，bot 才能收發訊息、派發任務；安裝完成後重新開啟開關即可完成繫結。",
           "status": "待安裝 App",
-          "confirmTitle": "安裝 Cindy App 到 Slack 工作區",
-          "confirmDescription": "你授權的 Slack 工作區還沒有安裝 Cindy App，bot 需要安裝後才能收發訊息、派發任務。現在安裝嗎？安裝完成後會自動完成繫結。",
+          "confirmTitle": "安裝 Cartethyia App 到 Slack 工作區",
+          "confirmDescription": "你授權的 Slack 工作區還沒有安裝 Cartethyia App，bot 需要安裝後才能收發訊息、派發任務。現在安裝嗎？安裝完成後會自動完成繫結。",
           "confirmInstall": "安裝",
           "confirmCancel": "取消",
           "waitingHint": "等待安裝完成…裝好後會自動完成繫結，無需再次授權。"
@@ -3473,14 +3475,14 @@
           "alreadyBound": "授權的是已繫結的 {{team}}。要新增其它 workspace，請在 Slack 授權頁右上角先切換到目標 workspace 再點允許。"
         },
         "telegram": {
-          "description": "關聯 Telegram 帳號，透過官方 bot 給 Cindy 派發任務。",
+          "description": "關聯 Telegram 帳號，透過官方 bot 給 Cartethyia 派發任務。",
           "disabledHint": "開啟開關後，按提示在 Telegram 裡完成帳號關聯。",
           "toggleAria": "切換 Telegram 連線",
           "connect": "關聯 Telegram",
           "openApp": "開啟 Telegram",
           "cancel": "取消關聯",
           "retry": "重新關聯",
-          "openBot": "開啟 Cindy bot",
+          "openBot": "開啟 Cartethyia bot",
           "addToGroup": "新增到群組",
           "unlink": "解綁 Telegram",
           "unlinkConfirmTitle": "解綁 Telegram？",
@@ -3553,7 +3555,7 @@
           }
         },
         "x": {
-          "description": "關聯 X (Twitter) 帳號，在 X 上 @提及 Cindy bot 即可派發任務。",
+          "description": "關聯 X (Twitter) 帳號，在 X 上 @提及 Cartethyia bot 即可派發任務。",
           "disabledHint": "開啟開關後，按提示完成 X 帳號授權。",
           "toggleAria": "切換 X 連線",
           "guide": {
@@ -3645,7 +3647,7 @@
         "replaced": "連線被另一處相同裝置頂替",
         "too-many-connections": "同帳號連線數已達上限",
         "version-mismatch": "協議版本不一致，請升級應用",
-        "unstable": "連線反覆斷開又重連，請檢查網路；若持續如此，重啟 Cindy"
+        "unstable": "連線反覆斷開又重連，請檢查網路；若持續如此，重啟 Cartethyia"
       },
       "refresh": "重新整理",
       "empty": "暫無其它裝置。在另一臺電腦上用同一帳號登入 {{appName}} 後，這裡會顯示該裝置。",
@@ -3687,7 +3689,7 @@
         "remoteSessionEnded": "被控裝置已結束該遠端任務"
       },
       "control": "控制",
-      "standbyHint": "本機另一 Cindy 例項正在使用遠端連線。關閉它後，本例項會自動接管。"
+      "standbyHint": "本機另一 Cartethyia 例項正在使用遠端連線。關閉它後，本例項會自動接管。"
     },
     "imBot": {
       "beta": "Beta",
@@ -3696,7 +3698,7 @@
         "personal": "個人"
       },
       "tips": {
-        "cindy": "由 Cindy 提供並維護。無需自行建立機器人或準備憑證，按引導連線後即可使用。",
+        "cindy": "由 Cartethyia 提供並維護。無需自行建立機器人或準備憑證，按引導連線後即可使用。",
         "personal": "使用你自己的帳號或機器人，由你提供並管理所需憑證；每個渠道的帳號、權限和設定獨立儲存。"
       },
       "defaults": {
@@ -3755,11 +3757,11 @@
           },
           "descriptions": {
             "unsupported": "此保護僅可在 macOS 上使用。",
-            "disabled": "Cindy 執行期間會阻止 Codex 連線至 Codex Micro；不會限制 Cindy 本身。",
+            "disabled": "Cartethyia 執行期間會阻止 Codex 連線至 Codex Micro；不會限制 Cartethyia 本身。",
             "protecting": "保護已就緒。請完全結束後重新開啟 Codex；已在執行的 Codex 不受影響。",
-            "intercepted": "已阻止 Codex 的 Work Louder 服務，Cindy 可以繼續使用裝置。",
+            "intercepted": "已阻止 Codex 的 Work Louder 服務，Cartethyia 可以繼續使用裝置。",
             "recovery-required": "保護已停止，但 NODE_OPTIONS 尚未安全還原。請先重試還原，再重新開啟。",
-            "error": "Cindy 無法更新 Codex 保護；原有 NODE_OPTIONS 已保留或等待還原。"
+            "error": "Cartethyia 無法更新 Codex 保護；原有 NODE_OPTIONS 已保留或等待還原。"
           }
         },
         "commands": {
@@ -3797,7 +3799,7 @@
           },
           "feedback": {
             "name": "傳送意見回饋",
-            "description": "將產品意見回饋傳送給 Cindy 團隊"
+            "description": "將產品意見回饋傳送給 Cartethyia 團隊"
           },
           "toggleTerminal": {
             "name": "開啟終端機",
@@ -3836,7 +3838,7 @@
           },
           "settings": {
             "name": "設定",
-            "description": "開啟 Cindy 設定"
+            "description": "開啟 Cartethyia 設定"
           },
           "manageTasks": {
             "name": "管理排程任務",
@@ -3852,7 +3854,7 @@
           },
           "openFolder": {
             "name": "開啟資料夾",
-            "description": "將本機專案新增至 Cindy"
+            "description": "將本機專案新增至 Cartethyia"
           },
           "composer.addFiles": {
             "name": "附加檔案和資料夾",
@@ -3909,9 +3911,9 @@
           "firmware": "韌體 {{version}}",
           "inputMonitoring": {
             "label": "輸入監控權限",
-            "granted": "macOS 允許 Cindy 接收鍵盤輸入。",
-            "denied": "macOS 正在阻擋鍵盤輸入，請在系統設定中允許 Cindy。",
-            "unknown": "Cindy 尚未檢查 macOS 的輸入監控權限。",
+            "granted": "macOS 允許 Cartethyia 接收鍵盤輸入。",
+            "denied": "macOS 正在阻擋鍵盤輸入，請在系統設定中允許 Cartethyia。",
+            "unknown": "Cartethyia 尚未檢查 macOS 的輸入監控權限。",
             "not-required": "此平台不需要輸入監控權限。",
             "open": "開啟系統設定"
           }
@@ -3924,7 +3926,7 @@
           "label": "連線",
           "toggle": {
             "label": "啟用",
-            "aria": "讓這個 Cindy 占用 Codex Micro"
+            "aria": "讓這個 Cartethyia 占用 Codex Micro"
           },
           "status": {
             "connecting": "正在連線",
@@ -3936,17 +3938,17 @@
             "unavailable": "SDK 無法使用"
           },
           "descriptions": {
-            "connecting": "Cindy 正在啟動 Work Louder 裝置服務。",
-            "connected": "USB 已連線，Cindy 正在監聽按鍵並同步任務燈效。",
-            "disabled": "啟用後，Cindy 會監聽按鍵，並用燈光顯示任務狀態。",
-            "present": "啟用後，Cindy 會監聽按鍵，並用燈光顯示任務狀態。",
+            "connecting": "Cartethyia 正在啟動 Work Louder 裝置服務。",
+            "connected": "USB 已連線，Cartethyia 正在監聽按鍵並同步任務燈效。",
+            "disabled": "啟用後，Cartethyia 會監聽按鍵，並用燈光顯示任務狀態。",
+            "present": "啟用後，Cartethyia 會監聽按鍵，並用燈光顯示任務狀態。",
             "not-detected": "請用支援資料傳輸的 USB 線連接鍵盤；如果 ChatGPT 正在占用裝置，請先關閉。",
-            "error": "Cindy 暫時無法與鍵盤通訊，正在自動重試。",
-            "unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cindy 後再試。",
-            "connection-timeout": "Work Louder 服務未在期限內回應，Cindy 會自動重試。",
-            "connection-failed": "Work Louder 服務啟動失敗，Cindy 會自動重試。",
-            "permission-required": "macOS 拒絕鍵盤存取，請在輸入監控中允許 Cindy 後重試。",
-            "sdk-unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cindy 後再試。"
+            "error": "Cartethyia 暫時無法與鍵盤通訊，正在自動重試。",
+            "unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cartethyia 後再試。",
+            "connection-timeout": "Work Louder 服務未在期限內回應，Cartethyia 會自動重試。",
+            "connection-failed": "Work Louder 服務啟動失敗，Cartethyia 會自動重試。",
+            "permission-required": "macOS 拒絕鍵盤存取，請在輸入監控中允許 Cartethyia 後重試。",
+            "sdk-unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cartethyia 後再試。"
           }
         },
         "lighting": {
@@ -3992,9 +3994,9 @@
             }
           },
           "singleTap": {
-            "label": "按一下啟用 Cindy",
-            "description": "開啟後按一下就開啟任務並啟用 Cindy。關閉後按一下仍會在背景切換任務；350 毫秒內再按同一個鍵才會啟用 Cindy。",
-            "aria": "按一下 Agent 鍵啟用 Cindy"
+            "label": "按一下啟用 Cartethyia",
+            "description": "開啟後按一下就開啟任務並啟用 Cartethyia。關閉後按一下仍會在背景切換任務；350 毫秒內再按同一個鍵才會啟用 Cartethyia。",
+            "aria": "按一下 Agent 鍵啟用 Cartethyia"
           },
           "newTask": "新任務",
           "slot": "最近第 {{position}} 個",
@@ -4104,20 +4106,20 @@
             "openAria": "開啟 Work Louder Creator Micro 2 設定",
             "connection": {
               "toggle": {
-                "aria": "讓這台 Cindy 使用 Creator Micro 2"
+                "aria": "讓這台 Cartethyia 使用 Creator Micro 2"
               },
               "descriptions": {
-                "connecting": "Cindy 正在啟動 Work Louder 裝置服務。",
-                "connected": "USB 已連線，Cindy 正在監聽按鍵並同步任務燈效。",
-                "disabled": "開啟後，Cindy 會改寫目前圖層、監聽按鍵，並用燈光顯示任務狀態。",
-                "present": "開啟後，Cindy 會改寫目前圖層、監聽按鍵，並用燈光顯示任務狀態。",
+                "connecting": "Cartethyia 正在啟動 Work Louder 裝置服務。",
+                "connected": "USB 已連線，Cartethyia 正在監聽按鍵並同步任務燈效。",
+                "disabled": "開啟後，Cartethyia 會改寫目前圖層、監聽按鍵，並用燈光顯示任務狀態。",
+                "present": "開啟後，Cartethyia 會改寫目前圖層、監聽按鍵，並用燈光顯示任務狀態。",
                 "not-detected": "請用支援資料傳輸的 USB 線連接鍵盤；如果 ChatGPT 正在占用裝置，請先關閉。",
-                "error": "Cindy 暫時無法與鍵盤通訊，正在自動重試。",
-                "unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cindy 後再試。",
-                "connection-timeout": "Work Louder 服務未在期限內回應，Cindy 會自動重試。",
-                "connection-failed": "Work Louder 服務啟動失敗，Cindy 會自動重試。",
-                "permission-required": "macOS 拒絕鍵盤存取，請在輸入監控中允許 Cindy 後重試。",
-                "sdk-unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cindy 後再試。",
+                "error": "Cartethyia 暫時無法與鍵盤通訊，正在自動重試。",
+                "unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cartethyia 後再試。",
+                "connection-timeout": "Work Louder 服務未在期限內回應，Cartethyia 會自動重試。",
+                "connection-failed": "Work Louder 服務啟動失敗，Cartethyia 會自動重試。",
+                "permission-required": "macOS 拒絕鍵盤存取，請在輸入監控中允許 Cartethyia 後重試。",
+                "sdk-unavailable": "找不到官方 Work Louder SDK。請保留支援 Codex Micro 的 ChatGPT 或 Codex 應用程式，重新啟動 Cartethyia 後再試。",
                 "device-in-use": "其他應用程式正在佔用這塊鍵盤。請先關閉 ChatGPT 或 Input，然後再試。"
               }
             },
@@ -4265,7 +4267,7 @@
       "xboxGamepad": {
         "title": "Xbox 手把",
         "openAria": "打開 Xbox 手把設定",
-        "entryDescription": "Cindy 在前景時，用手把捲動、說話、傳送和切換任務",
+        "entryDescription": "Cartethyia 在前景時，用手把捲動、說話、傳送和切換任務",
         "back": "返回鍵盤快捷鍵",
         "retry": "重試",
         "layout": {
@@ -4274,7 +4276,7 @@
           "clickToEdit": "點按即可設定",
           "editor": {
             "title": "按鍵",
-            "description": "給這個按鍵選一個 Cindy 功能。未設定的按鍵不會做任何事。",
+            "description": "給這個按鍵選一個 Cartethyia 功能。未設定的按鍵不會做任何事。",
             "done": "完成",
             "assigned": "功能",
             "assignedDescription": "按下時觸發。按住說話會在鬆開時結束。"
@@ -4426,7 +4428,7 @@
           "label": "連線",
           "toggle": {
             "label": "啟用",
-            "aria": "讓這個 Cindy 在前景時使用 Xbox 手把"
+            "aria": "讓這個 Cartethyia 在前景時使用 Xbox 手把"
           },
           "status": {
             "connecting": "正在連線",
@@ -4438,12 +4440,12 @@
             "unavailable": "目前系統暫不支援"
           },
           "descriptions": {
-            "connecting": "Cindy 正在尋找 Xbox 手把。",
-            "connected": "Cindy 在前景時會監聽這只手把。",
-            "disabled": "啟用後，Cindy 在前景時會監聽手把。",
-            "present": "啟用後，Cindy 在前景時會監聽手把。",
+            "connecting": "Cartethyia 正在尋找 Xbox 手把。",
+            "connected": "Cartethyia 在前景時會監聽這只手把。",
+            "disabled": "啟用後，Cartethyia 在前景時會監聽手把。",
+            "present": "啟用後，Cartethyia 在前景時會監聽手把。",
             "not-detected": "請用 USB 或藍牙連接 Xbox 手把。",
-            "error": "Cindy 暫時無法讀取手把，正在重試。",
+            "error": "Cartethyia 暫時無法讀取手把，正在重試。",
             "unavailable": "這台電腦還不能讀取 Xbox 手把。"
           }
         },
@@ -4457,18 +4459,18 @@
       "playstationGamepad": {
         "title": "PlayStation 手把",
         "openAria": "打開 PlayStation 手把設定",
-        "entryDescription": "Cindy 在前景時，用手把捲動、說話、傳送和切換任務",
+        "entryDescription": "Cartethyia 在前景時，用手把捲動、說話、傳送和切換任務",
         "connection": {
           "toggle": {
-            "aria": "讓這個 Cindy 在前景時使用 PlayStation 手把"
+            "aria": "讓這個 Cartethyia 在前景時使用 PlayStation 手把"
           },
           "descriptions": {
-            "connecting": "Cindy 正在尋找 PlayStation 手把。",
-            "connected": "Cindy 在前景時會監聽這只手把。",
-            "disabled": "啟用後，Cindy 在前景時會監聽手把。",
-            "present": "啟用後，Cindy 在前景時會監聽手把。",
+            "connecting": "Cartethyia 正在尋找 PlayStation 手把。",
+            "connected": "Cartethyia 在前景時會監聽這只手把。",
+            "disabled": "啟用後，Cartethyia 在前景時會監聽手把。",
+            "present": "啟用後，Cartethyia 在前景時會監聽手把。",
             "not-detected": "請用 USB 或藍牙連接 DualSense 或 DualShock。",
-            "error": "Cindy 暫時無法讀取手把，正在重試。",
+            "error": "Cartethyia 暫時無法讀取手把，正在重試。",
             "unavailable": "這台電腦還不能讀取 PlayStation 手把。"
           }
         }
@@ -4476,18 +4478,18 @@
       "nintendoGamepad": {
         "title": "Switch 手把",
         "openAria": "打開 Switch 手把設定",
-        "entryDescription": "Cindy 在前景時，用手把捲動、說話、傳送和切換任務",
+        "entryDescription": "Cartethyia 在前景時，用手把捲動、說話、傳送和切換任務",
         "connection": {
           "toggle": {
-            "aria": "讓這個 Cindy 在前景時使用 Switch 手把"
+            "aria": "讓這個 Cartethyia 在前景時使用 Switch 手把"
           },
           "descriptions": {
-            "connecting": "Cindy 正在尋找 Switch 手把。",
-            "connected": "Cindy 在前景時會監聽這只手把。",
-            "disabled": "啟用後，Cindy 在前景時會監聽手把。",
-            "present": "啟用後，Cindy 在前景時會監聽手把。",
+            "connecting": "Cartethyia 正在尋找 Switch 手把。",
+            "connected": "Cartethyia 在前景時會監聽這只手把。",
+            "disabled": "啟用後，Cartethyia 在前景時會監聽手把。",
+            "present": "啟用後，Cartethyia 在前景時會監聽手把。",
             "not-detected": "請用 USB 或藍牙連接 Switch Pro 或 Joy-Con。",
-            "error": "Cindy 暫時無法讀取手把，正在重試。",
+            "error": "Cartethyia 暫時無法讀取手把，正在重試。",
             "unavailable": "這台電腦還不能讀取 Switch 手把。"
           }
         }
@@ -4495,18 +4497,18 @@
       "genericGamepad": {
         "title": "通用手把",
         "openAria": "打開通用手把設定",
-        "entryDescription": "Cindy 在前景時，用手把捲動、說話、傳送和切換任務",
+        "entryDescription": "Cartethyia 在前景時，用手把捲動、說話、傳送和切換任務",
         "connection": {
           "toggle": {
-            "aria": "讓這個 Cindy 在前景時使用通用手把"
+            "aria": "讓這個 Cartethyia 在前景時使用通用手把"
           },
           "descriptions": {
-            "connecting": "Cindy 正在尋找手把。",
-            "connected": "Cindy 在前景時會監聽這只手把。",
-            "disabled": "啟用後，Cindy 在前景時會監聽手把。",
-            "present": "啟用後，Cindy 在前景時會監聽手把。",
+            "connecting": "Cartethyia 正在尋找手把。",
+            "connected": "Cartethyia 在前景時會監聽這只手把。",
+            "disabled": "啟用後，Cartethyia 在前景時會監聽手把。",
+            "present": "啟用後，Cartethyia 在前景時會監聽手把。",
             "not-detected": "請用 USB 或藍牙連接手把。",
-            "error": "Cindy 暫時無法讀取手把，正在重試。",
+            "error": "Cartethyia 暫時無法讀取手把，正在重試。",
             "unavailable": "這台電腦還不能讀取手把。"
           }
         }
@@ -4514,7 +4516,7 @@
     },
     "ghosts": {
       "title": "插件",
-      "description": "擴充套件 Cindy 能力的工具與整合。",
+      "description": "擴充套件 Cartethyia 能力的工具與整合。",
       "page": {
         "search": "搜尋插件",
         "clearSearch": "清除插件搜尋",
@@ -4531,8 +4533,8 @@
         "ignoreRound": "忽略本輪",
         "updateTo": "更新到 v{{version}}",
         "updateAria": "將 {{name}} 更新到 v{{version}}",
-        "createWithCindy": "使用 Cindy 建立",
-        "createPrompt": "我要建立一個 Cindy 插件。請先呼叫 ghost_forge_guide 獲取手冊目錄，先讀第 0 章「設計對齊」，再用 section 引數讀透相關章節（動手前至少讀完能力總覽、沙箱紅線與打包流程），不要直接開始實現。先從提問開始：優先用帶選項的提問卡片，每張卡片聚焦一個關鍵決策並標註你的推薦項，把我可能不知道的設計選項主動擺出來讓我選——比如介面形態（停靠面板、插件頁內面板、對話卡片還是無介面）、$ 點名詞、啟動模式、後台能力（旁聽事件、應用內輕提示、未讀角標、確認彈窗）、是否聯網、是否需要設定頁、要不要隨包 Node 行程跑重活、要不要圖片影片等媒體能力；並逐步確認插件要解決的問題、目標使用者、互動流程、所需工具與連線、權限邊界和驗收標準。設計確認後，再按規範實現並自檢；最後呼叫 ghost_forge_pack 校驗並產生 .cindy 產物，不要聲稱已安裝。",
+        "createWithCindy": "使用 Cartethyia 建立",
+        "createPrompt": "我要建立一個 Cartethyia 插件。請先呼叫 ghost_forge_guide 獲取手冊目錄，先讀第 0 章「設計對齊」，再用 section 引數讀透相關章節（動手前至少讀完能力總覽、沙箱紅線與打包流程），不要直接開始實現。先從提問開始：優先用帶選項的提問卡片，每張卡片聚焦一個關鍵決策並標註你的推薦項，把我可能不知道的設計選項主動擺出來讓我選——比如介面形態（停靠面板、插件頁內面板、對話卡片還是無介面）、$ 點名詞、啟動模式、後台能力（旁聽事件、應用內輕提示、未讀角標、確認彈窗）、是否聯網、是否需要設定頁、要不要隨包 Node 行程跑重活、要不要圖片影片等媒體能力；並逐步確認插件要解決的問題、目標使用者、互動流程、所需工具與連線、權限邊界和驗收標準。設計確認後，再按規範實現並自檢；最後呼叫 ghost_forge_pack 校驗並產生 .cindy 產物，不要聲稱已安裝。",
         "filterAll": "全部",
         "filtersAria": "按來源篩選插件",
         "origin": {
@@ -4573,7 +4575,7 @@
         "conflictAria": "{{name}} 存在插件標識衝突",
         "conflictDescription": "插件標識已被佔用，當前無法安裝",
         "unavailable": "插件市場暫時不可用；已安裝插件仍可正常管理和使用。",
-        "authenticationRequired": "登入 Cindy 後才能檢視插件市場。",
+        "authenticationRequired": "登入 Cartethyia 後才能檢視插件市場。",
         "notConfigured": "當前環境未配置插件市場；已安裝插件仍可正常管理和使用。",
         "removalNotice": {
           "single": "插件“{{name}}”已被組織移除，本機副本與資料已清理",
@@ -4588,12 +4590,12 @@
           "stateChanged": "操作期間帳號、插件或版本已發生變化，請確認最新狀態後重試。",
           "accessDenied": "當前插件操作不被允許，或操作已取消。",
           "notConfigured": "當前環境未提供插件市場。",
-          "invalidPackage": "該插件包無效，或當前 Cindy 版本不支援它。",
+          "invalidPackage": "該插件包無效，或當前 Cartethyia 版本不支援它。",
           "brokerRedirectPortRequired": "此插件宣告了授權 broker，但同一項 OAuth 設定缺少 redirectPort，無法從插件市場安裝。請聯絡釋出者補上該欄位並重新釋出。"
         },
         "securityTitle": "安裝與權限",
-        "securityDescription": "安裝包會在主處理程序中校驗大小與 SHA-256，再經 Cindy 插件清單校驗後原子安裝。首次安裝完成後即自動開啟，可隨時在插件頁停用；更新會保留當前生效狀態。",
-        "customSecurityDescription": "該插件來自你新增的自定義市場，未經 Cindy 服務端完整性校驗。安裝前會在主處理程序校驗插件清單；首次安裝完成後即自動開啟，可隨時在插件頁停用。",
+        "securityDescription": "安裝包會在主處理程序中校驗大小與 SHA-256，再經 Cartethyia 插件清單校驗後原子安裝。首次安裝完成後即自動開啟，可隨時在插件頁停用；更新會保留當前生效狀態。",
+        "customSecurityDescription": "該插件來自你新增的自定義市場，未經 Cartethyia 服務端完整性校驗。安裝前會在主處理程序校驗插件清單；首次安裝完成後即自動開啟，可隨時在插件頁停用。",
         "noPermissions": "此插件未宣告額外能力。",
         "sources": {
           "addMarketplace": "新增插件市場…",
@@ -4638,7 +4640,7 @@
           },
           "guide": {
             "title": "自定義插件市場指南",
-            "intro": "插件市場是一個帶有清單檔案的 Git 倉庫或本地資料夾，用來分發一組 Cindy 插件。",
+            "intro": "插件市場是一個帶有清單檔案的 Git 倉庫或本地資料夾，用來分發一組 Cartethyia 插件。",
             "structureTitle": "目錄結構",
             "structureBody": "市場倉庫需要一份清單檔案，以及若干插件目錄。每個插件目錄必須包含合法的 ghost.json（插件身份卡）。",
             "structureLabelManifest": "清單",
@@ -4650,7 +4652,7 @@
             "sourceTitle": "來源格式",
             "sourceBody": "支援 GitHub 簡寫 owner/repo、完整 Git URL（https / ssh / git@）和本地資料夾路徑（含 ~）。Git 引用可填分支、標籤或 commit，不填則用預設分支。稀疏路徑每行一個，只檢出倉庫的指定子目錄，適合大型倉庫。",
             "authTitle": "私有倉庫",
-            "authBody": "認證完全依賴系統的 Git 配置，Cindy 不儲存任何 Git 憑證。SSH 方式：本機已配置可用的 key；若組織開啟了 SAML SSO，還需在 GitHub 的 SSH key 設定裡為該組織點 Configure SSO 授權。HTTPS 方式：使用 Personal Access Token，並由系統 credential helper 儲存。",
+            "authBody": "認證完全依賴系統的 Git 配置，Cartethyia 不儲存任何 Git 憑證。SSH 方式：本機已配置可用的 key；若組織開啟了 SAML SSO，還需在 GitHub 的 SSH key 設定裡為該組織點 Configure SSO 授權。HTTPS 方式：使用 Personal Access Token，並由系統 credential helper 儲存。",
             "rulesTitle": "安裝規則",
             "rulesBody": "插件 id 全域性唯一、先裝先得——與已安裝插件衝突時會明確提示。id 使用官方保留字首（{{reservedGhostIdPrefixes}}）的插件，無法透過拖入、選取檔案或自訂插件市場安裝。插件宣告的權限會在詳情頁展示；點擊安裝後直接完成安裝並自動開啟，不再額外彈窗確認權限。",
             "copy": "複製指南",
@@ -4671,21 +4673,21 @@
         "action": "重新安裝",
         "actionAria": "重新安裝插件「{{name}}」",
         "noticeTitle": "需要恢復安裝",
-        "bodyLegacy": "Cindy 無法驗證這個插件的完整安裝記錄，因此已暫停執行。請重新安裝原市場版本，或重新選擇對應的 .cindy 套件。",
+        "bodyLegacy": "Cartethyia 無法驗證這個插件的完整安裝記錄，因此已暫停執行。請重新安裝原市場版本，或重新選擇對應的 .cindy 套件。",
         "bodyInvalid": "這個插件的安裝驗證記錄已損壞，因此已暫停執行。請重新安裝原市場版本，或重新選擇對應的 .cindy 套件。",
-        "bodyBuiltinRestart": "這個內建插件的安裝驗證記錄出了問題。重新啟動 Cindy 即可自動恢復，不需要其他操作。"
+        "bodyBuiltinRestart": "這個內建插件的安裝驗證記錄出了問題。重新啟動 Cartethyia 即可自動恢復，不需要其他操作。"
       },
       "legacyRecovery": {
         "title": "舊版本插件正在等待恢復",
-        "deferred": "檢測到 {{count}} 箇舊插件目錄。為避免其它例項仍在使用這些資料，Cindy 暫緩了自動恢復。",
-        "deferred_one": "檢測到 {{count}} 箇舊插件目錄。為避免其它例項仍在使用這些資料，Cindy 暫緩了自動恢復。",
-        "deferred_other": "檢測到 {{count}} 箇舊插件目錄。為避免其它例項仍在使用這些資料，Cindy 暫緩了自動恢復。",
+        "deferred": "檢測到 {{count}} 箇舊插件目錄。為避免其它例項仍在使用這些資料，Cartethyia 暫緩了自動恢復。",
+        "deferred_one": "檢測到 {{count}} 箇舊插件目錄。為避免其它例項仍在使用這些資料，Cartethyia 暫緩了自動恢復。",
+        "deferred_other": "檢測到 {{count}} 箇舊插件目錄。為避免其它例項仍在使用這些資料，Cartethyia 暫緩了自動恢復。",
         "partial": "檢測到 {{count}} 箇舊插件目錄。部分資料未能自動恢復，可以現在重試。",
         "partial_one": "檢測到 {{count}} 箇舊插件目錄。部分資料未能自動恢復，可以現在重試。",
         "partial_other": "檢測到 {{count}} 箇舊插件目錄。部分資料未能自動恢復，可以現在重試。",
-        "partialBlocked": "檢測到 {{count}} 箇舊插件目錄，但 Cindy 無法安全地自動恢復。相關資料已原樣保留。",
-        "partialBlocked_one": "檢測到 {{count}} 箇舊插件目錄，但 Cindy 無法安全地自動恢復。相關資料已原樣保留。",
-        "partialBlocked_other": "檢測到 {{count}} 箇舊插件目錄，但 Cindy 無法安全地自動恢復。相關資料已原樣保留。",
+        "partialBlocked": "檢測到 {{count}} 箇舊插件目錄，但 Cartethyia 無法安全地自動恢復。相關資料已原樣保留。",
+        "partialBlocked_one": "檢測到 {{count}} 箇舊插件目錄，但 Cartethyia 無法安全地自動恢復。相關資料已原樣保留。",
+        "partialBlocked_other": "檢測到 {{count}} 箇舊插件目錄，但 Cartethyia 無法安全地自動恢復。相關資料已原樣保留。",
         "claimedByOtherOwner": "檢測到 {{count}} 箇舊插件目錄，但這批資料已歸屬於最先認領它的帳號。請切回原身份恢復。",
         "claimedByOtherOwner_one": "檢測到 {{count}} 箇舊插件目錄，但這批資料已歸屬於最先認領它的帳號。請切回原身份恢復。",
         "claimedByOtherOwner_other": "檢測到 {{count}} 箇舊插件目錄，但這批資料已歸屬於最先認領它的帳號。請切回原身份恢復。",
@@ -4756,57 +4758,57 @@
         "cancel": "取消"
       },
       "trust": {
-        "official": "Cindy 官方插件",
-        "officialDetail": "由 Cindy 隨應用提供。",
+        "official": "Cartethyia 官方插件",
+        "officialDetail": "由 Cartethyia 隨應用提供。",
         "reviewed": "釋出者已驗證 · 此版本已稽核",
-        "reviewedDetail": "簽名有效，而且 Cindy 稽核簽名準確對應這個版本的全部檔案。",
+        "reviewedDetail": "簽名有效，而且 Cartethyia 稽核簽名準確對應這個版本的全部檔案。",
         "verifiedPublisher": "釋出者已驗證：{{publisher}}",
-        "verifiedPublisherDetail": "簽名有效，檔案未被修改；但這個準確版本沒有 Cindy 稽核簽名。",
+        "verifiedPublisherDetail": "簽名有效，檔案未被修改；但這個準確版本沒有 Cartethyia 稽核簽名。",
         "signedUnverified": "有簽名，但釋出者身份未驗證：{{publisher}}",
-        "signedUnverifiedDetail": "簽名可證明檔案未被修改，但當前 Cindy 不認識這把釋出者公鑰。",
+        "signedUnverifiedDetail": "簽名可證明檔案未被修改，但當前 Cartethyia 不認識這把釋出者公鑰。",
         "unsigned": "未驗證 / 無簽名",
         "unsignedDetail": "無法證明來源，也無法證明分發後是否被修改。",
         "unknownPublisher": "未知釋出者",
-        "unknownReviewerDetail": "包裡帶有稽核宣告，但當前 Cindy 不認識這把稽核公鑰，因此不會顯示為已稽核。"
+        "unknownReviewerDetail": "包裡帶有稽核宣告，但當前 Cartethyia 不認識這把稽核公鑰，因此不會顯示為已稽核。"
       },
       "perm": {
         "grantsTitle": "安裝後它將擁有：",
         "toolsGroup": "註冊工具",
         "toolsDiffGroup": "註冊工具變化",
         "itemCount": "{{count}} 項",
-        "cindyImageGenerate": "影像生成(請 Cindy 代辦)",
-        "cindyImageEdit": "影像編輯(請 Cindy 代辦，僅限它自己生成的圖)",
-        "cindyVideoGenerate": "影片生成(請 Cindy 代辦)",
-        "cindyVideoEdit": "圖生影片(請 Cindy 代辦，參考圖僅限它名下的圖)",
+        "cindyImageGenerate": "影像生成(請 Cartethyia 代辦)",
+        "cindyImageEdit": "影像編輯(請 Cartethyia 代辦，僅限它自己生成的圖)",
+        "cindyVideoGenerate": "影片生成(請 Cartethyia 代辦)",
+        "cindyVideoEdit": "圖生影片(請 Cartethyia 代辦，參考圖僅限它名下的圖)",
         "cindyMediaDeposit": "可將它手中的圖片、影片或音訊存入你的媒體庫",
         "cindyMediaDepositDetail": "用於讓你在插件裡貼上或拖入的素材也能被 AI 加工。存入的內容記在這個插件名下，最多佔用 {{quota}}，解除安裝插件時一併清理。",
-        "cindyTextOneshot": "可向 Cindy 的快速通道提問並獲得文字回答",
+        "cindyTextOneshot": "可向 Cartethyia 的快速通道提問並獲得文字回答",
         "cindyTextOneshotDetail": "走系統的輕量任務模型鏈(與自動起標題同一條通道)，不動用 Agent、碰不到你的檔案，可能產生模型費用。",
         "cindyEmbedText": "可把文字送去算成向量（用於語義檢索）",
         "cindyEmbedTextDetail": "文字會送到系統的向量模型算成一串數字，單次最多 {{max}} 條，可能產生模型費用。算出的向量只交給插件自己保管，不寫入你的資料庫。",
-        "cindySearchWeb": "可使用 Cindy AI 搜尋公網",
-        "cindySearchWebDetail": "查詢會訪問公網，並可能消耗 Cindy AI 配額。",
+        "cindySearchWeb": "可使用 Cartethyia AI 搜尋公網",
+        "cindySearchWebDetail": "查詢會訪問公網，並可能消耗 Cartethyia AI 配額。",
         "cindyTextOneshotModelDetail": "走系統的輕量任務模型鏈(與自動起標題同一條通道)，不動用 Agent、碰不到你的檔案，可能產生模型費用。插件聲明瞭偏好模型：{{model}}(當前目錄可用時生效；你的釘檔優先)。",
         "agentUserAction": "使用者點選插件卡片後，可讓 Agent 開始新一輪工作",
         "agentUserActionDetail": "每次點選只允許啟動一次，並且只能使用這張卡所屬的任務。",
         "agentBackground": "可在後臺自動讓 Agent 開始新一輪工作",
         "agentBackgroundDetail": "不需要當次點選，但只能使用你曾為這個插件建立過關聯的任務，可能產生模型費用。",
-        "agentErrand": "可把任務交給 Cindy Agent 代辦並取回結果",
+        "agentErrand": "可把任務交給 Cartethyia Agent 代辦並取回結果",
         "agentErrandDetail": "這些代辦會在這個插件的專屬任務裡進行，你隨時可以在側邊欄看到並叫停；預設只能讀不能改，要放開需你在插件配置裡親手調整，可能產生模型費用。",
         "agentSchedule": "可以請你新建自動化",
-        "agentScheduleDetail": "它只能為你開啟新建自動化的面板並把內容填好，是否建立由你在面板上選好模型後親手儲存決定。建立後由 Cindy 按你設定的時間執行，可能產生模型費用。",
+        "agentScheduleDetail": "它只能為你開啟新建自動化的面板並把內容填好，是否建立由你在面板上選好模型後親手儲存決定。建立後由 Cartethyia 按你設定的時間執行，可能產生模型費用。",
         "nodeRuntime": "可在本機執行隨插件附帶的 Node 程式",
         "nodeMcp": "可在本機執行隨插件附帶的 stdio MCP",
-        "nodeRuntimeDetail": "高風險：它和你本人一樣，可以讀取或修改你帳號能訪問的本機檔案、訪問網路並啟動其它程式。Cindy 不能用瀏覽器沙箱限制它。",
+        "nodeRuntimeDetail": "高風險：它和你本人一樣，可以讀取或修改你帳號能訪問的本機檔案、訪問網路並啟動其它程式。Cartethyia 不能用瀏覽器沙箱限制它。",
         "nodeSecret": "可將已儲存憑證「{{name}}」提供給本機 Node 程式",
-        "nodeSecretDetail": "Cindy 加密保管，僅在下列已宣告 Worker 方法執行時臨時注入。Node 程式會收到明文，也可以將其回傳、記錄、儲存或暴露給瀏覽器側插件程式碼及 Agent 引數；請只安裝可信插件。",
+        "nodeSecretDetail": "Cartethyia 加密保管，僅在下列已宣告 Worker 方法執行時臨時注入。Node 程式會收到明文，也可以將其回傳、記錄、儲存或暴露給瀏覽器側插件程式碼及 Agent 引數；請只安裝可信插件。",
         "nodeResident": "Node 程式可常駐後臺",
-        "nodeResidentDetail": "插件啟用期間會一直執行；停用、更新、解除安裝或退出 Cindy 時關閉。",
+        "nodeResidentDetail": "插件啟用期間會一直執行；停用、更新、解除安裝或退出 Cartethyia 時關閉。",
         "tool": "工具「{{name}}」",
         "command": "對話指令 ${{command}}",
         "panelLeft": "面板「{{title}}」· 停靠主對話區左側",
         "panelTab": "面板「{{title}}」· 插件頁內開啟",
-        "mainView": "可在 Cindy 側邊欄新增「{{title}}」入口",
+        "mainView": "可在 Cartethyia 側邊欄新增「{{title}}」入口",
         "mainViewDetail": "點擊後將在插件沙箱中開啟主視圖，不會因此取得檔案、網路或憑證存取權限。",
         "code": "可執行程式碼",
         "codeDetail": "在獨立沙箱中執行，無法訪問你的檔案與網路。",
@@ -4827,11 +4829,11 @@
         "badge": "可在插件入口點亮未讀提醒",
         "badgeDetail": "有新內容時，它可以在側欄插件入口和自己的卡片上點亮一個綠點，並附一句話摘要；你開啟它的面板即清零。綠點不出聲、不震動，也不會進入系統通知中心，和上面的系統提示是兩項獨立權限。",
         "confirm": "可彈出確認框徵求你同意",
-        "confirmDetail": "它動手前可以彈一個和 Cindy 同款的確認框來問你，問句由它提供、框上會標註它的名字；同意還是取消都由你親手點，它自己點不了。同時最多一個確認框，彈得太頻會被攔下。",
+        "confirmDetail": "它動手前可以彈一個和 Cartethyia 同款的確認框來問你，問句由它提供、框上會標註它的名字；同意還是取消都由你親手點，它自己點不了。同時最多一個確認框，彈得太頻會被攔下。",
         "fsWrite": "可寫入檔案(建立/修改)",
         "fsWriteDetail": "它自己的專屬資料目錄隨時可寫；當前任務的工作目錄跟隨任務的權限模式(免批模式直接寫，逐條確認模式先徵求你同意)；其它目錄每次都需要你確認。檔案始終由主機代寫，插件本身無法直接訪問你的檔案系統。",
         "libraryPersist": "可使用持久作品庫(大量檔案與資料庫)",
-        "libraryPersistDetail": "它會取得一個由 Cindy 管理的獨立儲存區，用來保存你的作品資料(如畫布、圖片、資料庫)，不受一般插件資料配額限制。檔案與資料庫操作全部由主機代執行，插件只能使用庫內相對路徑，無法觸碰你的其它檔案。它還可以讓 Cindy 在系統資料夾中顯示庫內檔案，或彈出系統另存為視窗由你選擇拷貝位置；取消則不會拷出任何檔案。解除安裝插件不會刪除這些資料；刪除必須在 Cindy 設定中單獨確認。",
+        "libraryPersistDetail": "它會取得一個由 Cartethyia 管理的獨立儲存區，用來保存你的作品資料(如畫布、圖片、資料庫)，不受一般插件資料配額限制。檔案與資料庫操作全部由主機代執行，插件只能使用庫內相對路徑，無法觸碰你的其它檔案。它還可以讓 Cartethyia 在系統資料夾中顯示庫內檔案，或彈出系統另存為視窗由你選擇拷貝位置；取消則不會拷出任何檔案。解除安裝插件不會刪除這些資料；刪除必須在 Cartethyia 設定中單獨確認。",
         "networkHost": "訪問網路域名 {{host}}",
         "networkSecret": "需要你提供憑證「{{name}}」",
         "networkSecretGhostInputDetail": "憑證由這個插件自己的設定介面收集，錄入時會經過插件頁面；隨後一次性交給主機加密保管，存入後插件無法讀回，主機只在請求它宣告的域名時注入。",
@@ -4839,8 +4841,8 @@
         "networkSecretIdentityDetail": "值取自當前登入帳號的電子郵件，請求時由主機自動派生注入；無需填寫。插件可讀取該電子郵件，用於在它的設定介面裡展示當前身份。",
         "networkSecretGhCli": "將優先使用本機 GitHub CLI 登入作為憑證「{{name}}」",
         "networkSecretGhCliDetail": "主機按需讀取本機 gh 登入令牌，並且只注入 GitHub API 請求；插件程式碼無法讀取或儲存令牌。若 gh 不可用，可在插件設定中配置備用 Personal Access Token。",
-        "networkSecretOrganizationIdentity": "將使用你的 Cindy 企業身份作為憑證「{{name}}」",
-        "networkSecretOrganizationIdentityDetail": "Cindy 會按需簽發短時身份斷言，僅由主機傳送給明確列出的服務域名；插件程式碼無法讀取或儲存令牌。",
+        "networkSecretOrganizationIdentity": "將使用你的 Cartethyia 企業身份作為憑證「{{name}}」",
+        "networkSecretOrganizationIdentityDetail": "Cartethyia 會按需簽發短時身份斷言，僅由主機傳送給明確列出的服務域名；插件程式碼無法讀取或儲存令牌。",
         "networkSecretOauth": "將引導你在 {{host}} 完成 OAuth 授權({{name}})",
         "networkSecretOauthDetail": "授權流程與全部令牌由主機代管，插件程式碼無法讀取；客戶端憑證由你在本插件詳情頁自填。下方為其申請的權限範圍(scopes)原文，請確認後再放行。",
         "networkConnections": "可連線你新增的 {{label}}",
@@ -4853,7 +4855,7 @@
         "unchanged": "其餘 {{count}} 項權限不變",
         "noChange": "權限無變化。",
         "pick": "可請求你選擇一個資料夾交給它",
-        "pickDetail": "它發起請求時，Cindy 會彈出系統的選擇資料夾視窗；選哪個、給不給，都由你親手決定，取消則它什麼都拿不到。",
+        "pickDetail": "它發起請求時，Cartethyia 會彈出系統的選擇資料夾視窗；選哪個、給不給，都由你親手決定，取消則它什麼都拿不到。",
         "workspace": "可請求為專案資料夾在側邊欄建立任務入口",
         "workspaceDetail": "它發起請求時，由你親手選擇資料夾，或在確認卡上看到完整路徑後再決定；它正在處理你發起的呼叫時，當前任務工作目錄內的子資料夾可直接使用，不再單獨確認。資料夾已有任務時直接複用，不重複建立。建立的只是空任務，不會自動開始執行。",
         "sessionContext": "可獲知當前任務正在使用的專案資料夾位置",
@@ -4861,7 +4863,7 @@
         "preview": "可在右側欄瀏覽器中開啟以下網站的預覽頁面",
         "previewDetail": "只能開啟下方列出的網站；每次開啟都會提示是哪個插件開啟的。",
         "iosSimulator": "可查看當前任務的內建 iOS 模擬器狀態並開啟控制面板",
-        "iosSimulatorDetail": "模擬器生命週期、WDA、Native Sidecar、畫面與輸入仍由 Cindy 主機管理；插件無法取得畫面位元組、輸入權限、原生 Helper 或其他任務的 ID。",
+        "iosSimulatorDetail": "模擬器生命週期、WDA、Native Sidecar、畫面與輸入仍由 Cartethyia 主機管理；插件無法取得畫面位元組、輸入權限、原生 Helper 或其他任務的 ID。",
         "nodeChildSpawn": "Node 程式可請宿主再啟動包內申報過的子處理程序",
         "nodeChildSpawnDetail": "只能啟動它自己包裡申報過的 JS 檔案(與主程式同樣的本機權限)，不能執行任意命令；插件停用或退出時子處理程序一併關閉。",
         "skill": "為 AI 助手新增技能「{{name}}」",
@@ -4876,10 +4878,10 @@
       },
       "errors": {
         "fileInvalid": "不是合法的 .cindy 插件檔案",
-        "hostUnsupported": "目前 Cindy 無法識別此插件的清單格式。",
+        "hostUnsupported": "目前 Cartethyia 無法識別此插件的清單格式。",
         "alreadyInstalled": "這個插件已經安裝",
         "commandConflict": "它的指令和已裝插件撞名了，先解除安裝佔用方或讓作者改名",
-        "idReserved": "{{reservedGhostIdPrefixes}} 是官方插件保留字首，無法透過拖入、選取檔案或自訂插件市場安裝；請從 Cindy 插件市場安裝對應的官方插件",
+        "idReserved": "{{reservedGhostIdPrefixes}} 是官方插件保留字首，無法透過拖入、選取檔案或自訂插件市場安裝；請從 Cartethyia 插件市場安裝對應的官方插件",
         "brokerManualInstallNotAuthorized": "本機安裝的 .cindy 無法使用授權 broker；請改從組織插件市場安裝",
         "brokerRedirectPortRequired": "這個插件宣告了授權 broker，但沒有在同一項 OAuth 設定中宣告 redirectPort。請讓作者補上該欄位，確保授權最後一跳能回到本機監聽連接埠。",
         "sourceMissing": "找不到所選檔案",
@@ -4913,8 +4915,8 @@
         "updateTitle": "更新版本",
         "updateDesc": "選擇新的 .cindy 檔案原位替換；生效狀態與面板位置保持不變。",
         "cindyPrefs": {
-          "title": "Cindy 能力",
-          "desc": "這個插件申請的每項 Cindy 代辦能力，可單獨指定用哪個模型；預設跟隨系統(自帶 Proxy)。",
+          "title": "Cartethyia 能力",
+          "desc": "這個插件申請的每項 Cartethyia 代辦能力，可單獨指定用哪個模型；預設跟隨系統(自帶 Proxy)。",
           "cap": {
             "image.generate": "出圖",
             "image.edit": "改圖",
@@ -4931,7 +4933,7 @@
         },
         "errandPrefs": {
           "title": "AI 代辦",
-          "desc": "這個插件把任務交給 Cindy Agent 時用哪套配置幹活。不配就跟隨你新建草稿時的選擇；幫工預設只能看不能改，工作目錄預設是插件專屬資料夾。",
+          "desc": "這個插件把任務交給 Cartethyia Agent 時用哪套配置幹活。不配就跟隨你新建草稿時的選擇；幫工預設只能看不能改，工作目錄預設是插件專屬資料夾。",
           "agent": "Agent",
           "model": "模型",
           "permission": "動手權限",
@@ -4955,7 +4957,7 @@
         "moreActions": "更多插件操作",
         "updateFromFile": "從 .cindy 檔案更新…",
         "exportPackage": "匯出 .cindy 檔案…",
-        "exportFileType": "Cindy 插件",
+        "exportFileType": "Cartethyia 插件",
         "settingsTitle": "{{name}} 設定",
         "settingsUnavailableUntilRestore": "恢復插件後可繼續使用這項配置。",
         "oauthScopeStale": "當前授權未包含插件新增權限，請重新連線補齊授權。",
@@ -4976,7 +4978,7 @@
         "panel": "面板",
         "settingsUi": "自定義設定介面",
         "code": "可執行程式碼",
-        "slotCindy": "Cindy 代辦",
+        "slotCindy": "Cartethyia 代辦",
         "slotAgent": "發起 Agent 新回合",
         "slotNode": "本地 Node 程式",
         "slotTool": "註冊工具",
@@ -4998,7 +5000,7 @@
         "loadFailed": "庫資訊讀取失敗",
         "refresh": "重新整理",
         "locationLabel": "儲存位置",
-        "locationDefault": "Cindy 管理的位置(系統資料目錄)",
+        "locationDefault": "Cartethyia 管理的位置(系統資料目錄)",
         "locationCustomPrefix": "自訂：",
         "usageLabel": "佔用",
         "filesUnit": "個檔案",
@@ -5020,7 +5022,7 @@
         "revertConfirmTitle": "遷回預設位置？",
         "revertConfirmText": "遷回預設",
         "unbindConfirmTitle": "解除自訂位置記錄？",
-        "unbindConfirmDescription": "將回到 Cindy 管理的預設位置。原自訂目錄中的資料不會被刪除，也不會自動遷移；如需找回，請手動遷移該目錄。",
+        "unbindConfirmDescription": "將回到 Cartethyia 管理的預設位置。原自訂目錄中的資料不會被刪除，也不會自動遷移；如需找回，請手動遷移該目錄。",
         "unbindConfirmText": "解除記錄",
         "cloudWarningTitle": "雲端同步目錄提醒",
         "cloudWarningProceed": "仍使用該位置",
@@ -5034,7 +5036,7 @@
         "deleteFailed": "刪除失敗",
         "pickFailed": "所選位置不可用",
         "installLocationLabel": "作品庫儲存位置",
-        "installLocationDefault": "預設(Cindy 管理的位置)",
+        "installLocationDefault": "預設(Cartethyia 管理的位置)",
         "installLocationPickedPrefix": "已選擇：",
         "installLocationChange": "更改…",
         "bindAfterInstallFailed": "自訂儲存位置設定失敗，已回退預設位置",
@@ -5196,7 +5198,7 @@
         },
         "status": {
           "loading": "正在讀取同步狀態…",
-          "signInRequired": "登入 Cindy 帳號後可在裝置間同步",
+          "signInRequired": "登入 Cartethyia 帳號後可在裝置間同步",
           "off": "同步已關閉",
           "waiting": "等待其他已開啟同步的桌面裝置上線",
           "syncing": "正在安全同步…",
@@ -5360,7 +5362,7 @@
       "label": "權限模式",
       "hint": "遠端 IM 會為需要審批的操作保留確認流程。",
       "fullAccessDisabled": "遠端 IM 不支援完全訪問，避免無法安全確認的操作被直接執行。",
-      "permissionModeDisabled": "遠端 IM 使用 Cindy 桌面端確認策略，因此該權限模式不可用。"
+      "permissionModeDisabled": "遠端 IM 使用 Cartethyia 桌面端確認策略，因此該權限模式不可用。"
     }
   },
   "remoteDevice": {
@@ -5400,7 +5402,7 @@
     "entryButton": "刪除帳號",
     "entryAria": "刪除目前帳號",
     "introTitle": "刪除帳號？",
-    "introDescription": "此操作會安排永久刪除你的 Cindy 登入帳號。",
+    "introDescription": "此操作會安排永久刪除你的 Cartethyia 登入帳號。",
     "confirmTitle": "確認刪除帳號",
     "sendCodeButton": "傳送刪除驗證碼",
     "confirmButton": "確認刪除帳號",
@@ -5414,11 +5416,11 @@
       "sms": "簡訊"
     },
     "sessionNotice": "確認後，本機將立即退出登入；其他客戶端會在當前訪問憑證到期並嘗試續期時退出。",
-    "gracePeriodNotice": "確認後，帳號將進入 30 天等待期。等待期內重新登入可取消刪除；到期後 Cindy 登入帳號將永久刪除。",
+    "gracePeriodNotice": "確認後，帳號將進入 30 天等待期。等待期內重新登入可取消刪除；到期後 Cartethyia 登入帳號將永久刪除。",
     "verificationNotice": "刪除驗證碼將透過{{channel}}傳送至 {{target}}。",
-    "appleRevocationNotice": "如果你曾使用 Apple 登入，還需要在 Apple ID 設定中手動撤銷 Cindy 的訪問權限。",
-    "acknowledgement": "我已瞭解：等待期結束後，Cindy 登入帳號將被永久刪除且無法恢復。",
-    "restoredNotice": "帳號刪除已取消，你的 Cindy 登入帳號將繼續保留。",
+    "appleRevocationNotice": "如果你曾使用 Apple 登入，還需要在 Apple ID 設定中手動撤銷 Cartethyia 的訪問權限。",
+    "acknowledgement": "我已瞭解：等待期結束後，Cartethyia 登入帳號將被永久刪除且無法恢復。",
+    "restoredNotice": "帳號刪除已取消，你的 Cartethyia 登入帳號將繼續保留。",
     "errors": {
       "fallback": "刪除請求未能完成，請檢查網路後重試。",
       "UNAUTHENTICATED": "登入已過期，請重新登入後再試。",
@@ -5443,8 +5445,8 @@
       "processingTitle": "帳號正在刪除",
       "completedTitle": "帳號已刪除",
       "pendingCopy": "帳號計劃於 {{date}} 永久刪除。在此之前重新登入可取消刪除。",
-      "processingCopy": "等待期已結束，Cindy 登入帳號正在刪除。",
-      "completedCopy": "Cindy 登入帳號已刪除。",
+      "processingCopy": "等待期已結束，Cartethyia 登入帳號正在刪除。",
+      "completedCopy": "Cartethyia 登入帳號已刪除。",
       "dismissButton": "我知道了"
     }
   },
@@ -5456,9 +5458,9 @@
     },
     "dialog": {
       "title": "系統憑證儲存不可用",
-      "intro": "Cindy 無法透過系統憑證儲存讀取登入憑證，登入狀態和相關整合會持續失效。可嘗試以下步驟恢復：",
-      "stepMacKeychain": "退出 Cindy，開啟「鑰匙串訪問」，搜尋「Cindy Safe Storage」並檢查其訪問控制；必要時刪除該條目（已儲存的整合憑證會失效，需要重新連線）",
-      "stepRestart": "重新啟動 Cindy",
+      "intro": "Cartethyia 無法透過系統憑證儲存讀取登入憑證，登入狀態和相關整合會持續失效。可嘗試以下步驟恢復：",
+      "stepMacKeychain": "退出 Cartethyia，開啟「鑰匙串訪問」，搜尋「Cartethyia Safe Storage」並檢查其訪問控制；必要時刪除該條目（已儲存的整合憑證會失效，需要重新連線）",
+      "stepRestart": "重新啟動 Cartethyia",
       "stepRelogin": "如果仍未恢復，退出登入後重新登入",
       "confirm": "知道了"
     }
@@ -5470,7 +5472,7 @@
     "backToLogin": "返回登入方式"
   },
   "login": {
-    "title": "歡迎使用 Cindy",
+    "title": "歡迎使用 Cartethyia",
     "subtitle": "選擇一種方式安全登入",
     "phonePlaceholder": "請輸入手機號碼",
     "emailPlaceholder": "請輸入電子郵件",
@@ -5498,11 +5500,11 @@
     "ssoEntry": "使用企業 SSO 登入",
     "localModeEntry": "跳過登入",
     "localModeOpening": "正在跳過登入…",
-    "localModeDescription": "無需 Cindy 帳號，資料儲存在本機。雲模型、跨裝置與市場服務不可用。",
+    "localModeDescription": "無需 Cartethyia 帳號，資料儲存在本機。雲模型、跨裝置與市場服務不可用。",
     "consentStatement": "我已閱讀並同意 <terms>服務條款</terms> 和 <privacy>隱私政策</privacy>",
     "consentDialog": {
       "title": "服務條款和隱私政策",
-      "body": "請閱讀並同意 Cindy 的以下協議後繼續：<terms>服務條款</terms>、<privacy>隱私政策</privacy>",
+      "body": "請閱讀並同意 Cartethyia 的以下協議後繼續：<terms>服務條款</terms>、<privacy>隱私政策</privacy>",
       "agree": "同意",
       "disagree": "暫不同意"
     },
@@ -5513,8 +5515,8 @@
     "ssoOrgDetected": "選擇企業「{{org}}」的單點登入方式",
     "realmConsent": {
       "title": "連線企業所在區域",
-      "bodyCn": "你的企業位於中國大陸區。\n繼續後，Cindy 會連線該區域。",
-      "bodyGlobal": "你的企業位於國際區。\n繼續後，Cindy 會連線該區域。",
+      "bodyCn": "你的企業位於中國大陸區。\n繼續後，Cartethyia 會連線該區域。",
+      "bodyGlobal": "你的企業位於國際區。\n繼續後，Cartethyia 會連線該區域。",
       "agree": "繼續登入",
       "disagree": "取消"
     },
@@ -5602,10 +5604,10 @@
   "splash": {
     "tips": {
       "checkingUpdate": "檢查更新中…",
-      "updating": "Cindy 更新中…",
+      "updating": "Cartethyia 更新中…",
       "updateDone": "更新完成，等待自動重啟…",
       "checkingEnv": "執行環境檢測中…",
-      "waking": "喚醒 Cindy 中…",
+      "waking": "喚醒 Cartethyia 中…",
       "envFailed": "環境初始化失敗，點選重試"
     },
     "downloadStats": "{{percent}}% · {{speed}} MB/s · {{done}} MB / {{total}} MB",
@@ -5628,12 +5630,12 @@
         "seconds": "{{count}} 秒",
         "minutes": "{{count}} 分鐘"
       },
-      "cancelAction": "取消清理並進入 Cindy",
+      "cancelAction": "取消清理並進入 Cartethyia",
       "cancellingAction": "正在取消清理…",
       "finalizingAction": "即將完成，請稍候…",
-      "cancelHint": "可隨時取消；取消後會保留原資料庫並繼續啟動 Cindy。",
+      "cancelHint": "可隨時取消；取消後會保留原資料庫並繼續啟動 Cartethyia。",
       "cancellingHint": "正在停止清理，原資料庫不會被修改。",
-      "finalizingHint": "正在安全替換資料庫，請勿關閉 Cindy。"
+      "finalizingHint": "正在安全替換資料庫，請勿關閉 Cartethyia。"
     },
     "envFailed": {
       "title": "環境初始化失敗",
@@ -5791,7 +5793,7 @@
     }
   },
   "usageHistory": {
-    "description": "這台裝置上 Cindy 內部產生的 token 用量。紀錄從該功能上線起累積，不回填更早的歷史。",
+    "description": "這台裝置上 Cartethyia 內部產生的 token 用量。紀錄從該功能上線起累積，不回填更早的歷史。",
     "empty": "還沒有用量紀錄。跑過對話之後，這裡會開始累積。",
     "cacheHitTooltip": "快取讀取 ÷（輸入 + 快取讀取 + 快取寫入），與訊息卡片同口徑。",
     "summary": {
@@ -5895,6 +5897,7 @@
       "checkForUpdates": "檢查更新"
     },
     "updateCheckToast": {
+      "available": "發現新版本，請在側邊欄查看詳情",
       "alreadyLatest": "已經是最新版本了",
       "downloading": "正在下載新版本，請稍後…",
       "ready": "新版本已就緒，點選側邊欄完成更新",
@@ -5934,8 +5937,8 @@
       "confirm": "停用"
     },
     "externalLinkConfirm": {
-      "title": "是否要讓 Cindy 開啟外部網站",
-      "message": "是否要讓 Cindy 開啟外部網站",
+      "title": "是否要讓 Cartethyia 開啟外部網站",
+      "message": "是否要讓 Cartethyia 開啟外部網站",
       "open": "開啟網站",
       "cancel": "取消"
     }
@@ -6048,7 +6051,7 @@
       "agentControlApproval": {
         "attachTitle": "允許 Agent 連線並控制此模擬器？",
         "createTitle": "允許 Agent 建立並控制模擬器？",
-        "description": "操作成功後，Agent 可在目前的 Cindy 任務中使用此模擬器：啟動或停止模擬器、安裝或啟動 App，以及執行點按、滑動、輸入、截圖和變更模擬器設定等操作，無需再次確認裝置控制。中斷裝置連線、結束任務、重新啟動 Cindy，或在模擬器面板中撤銷 Agent 控制後，此存取權限即失效。其他敏感操作仍可能需要個別核准。"
+        "description": "操作成功後，Agent 可在目前的 Cartethyia 任務中使用此模擬器：啟動或停止模擬器、安裝或啟動 App，以及執行點按、滑動、輸入、截圖和變更模擬器設定等操作，無需再次確認裝置控制。中斷裝置連線、結束任務、重新啟動 Cartethyia，或在模擬器面板中撤銷 Agent 控制後，此存取權限即失效。其他敏感操作仍可能需要個別核准。"
       },
       "refresh": "重新整理",
       "checking": "正在檢查",
@@ -6057,22 +6060,22 @@
       "allowTaskAccess": "允許任務控制",
       "requestingAccess": "正在請求存取…",
       "accessDialogTitle": "允許控制 iOS 模擬器？",
-      "accessDialogMessage": "允許目前的 Cindy 視窗為任務「{{task}}」檢視和控制 iOS 模擬器嗎？",
+      "accessDialogMessage": "允許目前的 Cartethyia 視窗為任務「{{task}}」檢視和控制 iOS 模擬器嗎？",
       "accessDialogDetail": "此權限僅對該任務生效。切換到其他任務後會保留檢視授權，但控制會暫停；返回後請再次允許控制。",
       "accessDialogAllow": "允許模擬器控制",
       "accessDialogCancel": "取消",
       "accessDialogUntitledTask": "未命名任務",
       "readyTitle": "模擬器環境已就緒",
       "unavailableTitle": "模擬器不可用",
-      "connectionError": "Cindy 無法連線 iOS 模擬器 Host，請重試。",
-      "pluginNotInstalled": "目前的 Cindy 執行個體尚未安裝 iOS 模擬器插件。請前往插件市集安裝並啟用後重試。",
-      "pluginDisabled": "目前的 Cindy 執行個體已安裝 iOS 模擬器插件，但插件尚未啟用。請在插件頁啟用後重試。",
+      "connectionError": "Cartethyia 無法連線 iOS 模擬器 Host，請重試。",
+      "pluginNotInstalled": "目前的 Cartethyia 執行個體尚未安裝 iOS 模擬器插件。請前往插件市集安裝並啟用後重試。",
+      "pluginDisabled": "目前的 Cartethyia 執行個體已安裝 iOS 模擬器插件，但插件尚未啟用。請在插件頁啟用後重試。",
       "pluginDisabledForProject": "iOS 模擬器插件已對此工作目錄停用。請在專案插件設定中啟用後重試。",
-      "pluginSessionUnavailable": "插件已安裝並啟用，但目前的 Cindy 執行個體暫時無法使用共享插件能力。另一個 Cindy 執行個體或帳號切換可能正在占用此能力；請稍後重新整理。",
-      "pluginStateChanging": "Cindy 正在切換帳號或插件狀態，請稍後重新整理。",
-      "statusInternalError": "Cindy 讀取 iOS 模擬器狀態時發生內部錯誤，請重試。",
+      "pluginSessionUnavailable": "插件已安裝並啟用，但目前的 Cartethyia 執行個體暫時無法使用共享插件能力。另一個 Cartethyia 執行個體或帳號切換可能正在占用此能力；請稍後重新整理。",
+      "pluginStateChanging": "Cartethyia 正在切換帳號或插件狀態，請稍後重新整理。",
+      "statusInternalError": "Cartethyia 讀取 iOS 模擬器狀態時發生內部錯誤，請重試。",
       "remoteUnsupported": "iOS 模擬器僅支援本地 macOS 任務，不支援 SSH 或遠端任務。",
-      "sessionUnavailable": "當前 Cindy 任務已不可用。",
+      "sessionUnavailable": "當前 Cartethyia 任務已不可用。",
       "setupTitle": "設定清單",
       "devicesTitle": "可用裝置",
       "instancesTitle": "當前任務的模擬器",
@@ -6100,31 +6103,31 @@
       "deleteDevice": "刪除裝置",
       "deleteDeviceConfirmTitle": "刪除「{{device}}」？",
       "deleteDeviceConfirmDescription": "此操作會永久刪除這台模擬器，以及其中儲存的所有 App、帳號與資料。此操作無法復原。",
-      "deleteRunningDeviceConfirmDescription": "這台模擬器正在執行。確認後，Cindy 會先清理相關資源並停止裝置，然後永久刪除其中的所有 App、帳號與資料。此操作無法復原。",
-      "attachedDescription": "此裝置已繫結到當前 Cindy 任務。",
+      "deleteRunningDeviceConfirmDescription": "這台模擬器正在執行。確認後，Cartethyia 會先清理相關資源並停止裝置，然後永久刪除其中的所有 App、帳號與資料。此操作無法復原。",
+      "attachedDescription": "此裝置已繫結到當前 Cartethyia 任務。",
       "agentControlTitle": "Agent 控制",
       "agentControlDescription": "允許後，Agent 才能啟動、停止或操作這臺裝置。",
       "allowAgentControl": "允許 Agent 控制",
       "disableAgentControl": "停用 Agent 控制",
       "agentControlDialogTitle": "允許 Agent 控制？",
       "agentControlDialogMessage": "允許 Agent 控制 {{simulator}} 嗎？",
-      "agentControlDialogDetail": "此請求來自「{{task}}」。Agent 可以在這臺模擬器上啟動、停止、點按、輸入、安裝和啟動 App。Cindy 會為目前的設定保留此權限，重新啟動後仍然有效，直到你主動停用。",
+      "agentControlDialogDetail": "此請求來自「{{task}}」。Agent 可以在這臺模擬器上啟動、停止、點按、輸入、安裝和啟動 App。Cartethyia 會為目前的設定保留此權限，重新啟動後仍然有效，直到你主動停用。",
       "agentControlDialogAllow": "允許",
       "agentControlDialogCancel": "取消",
-      "operationError": "Cindy 無法完成模擬器操作。",
+      "operationError": "Cartethyia 無法完成模擬器操作。",
       "retryHint": "請重新整理狀態後重試。",
-      "operationErrorWithRecovery": "Cindy 無法完成模擬器操作。請重新整理狀態後重試。",
-      "deviceInUseByOtherTask": "另一個 Cindy 任務正在使用此裝置。請選取其他裝置，或先在原任務中中斷連線它。",
+      "operationErrorWithRecovery": "Cartethyia 無法完成模擬器操作。請重新整理狀態後重試。",
+      "deviceInUseByOtherTask": "另一個 Cartethyia 任務正在使用此裝置。請選取其他裝置，或先在原任務中中斷連線它。",
       "taskDeviceLimitReached": "當前任務已連線 {{limit}} 台裝置。請先中斷連線一台，再連線其他裝置。",
-      "runningDeviceLimitReached": "Cindy 已同時執行 {{limit}} 臺模擬器。請先停止一臺，再連線此已啟動裝置。",
+      "runningDeviceLimitReached": "Cartethyia 已同時執行 {{limit}} 臺模擬器。請先停止一臺，再連線此已啟動裝置。",
       "resourceSoftLimitTitle": "當前正在執行 {{count}} 台模擬器",
-      "resourceSoftLimitDescription": "繼續啟動更多裝置時，Cindy 會先檢查系統記憶體；不足時會保留現有裝置並阻止新裝置啟動。",
+      "resourceSoftLimitDescription": "繼續啟動更多裝置時，Cartethyia 會先檢查系統記憶體；不足時會保留現有裝置並阻止新裝置啟動。",
       "resourceHardLimitTitle": "已達到同時執行上限（{{limit}} 台）",
       "resourceHardLimitDescription": "請先停止一台正在執行的模擬器，再啟動新裝置。",
       "errors": {
-        "attachedElsewhere": "另一個 Cindy 任務正在使用此裝置。請選取其他裝置，或先在原任務中中斷連線它。",
+        "attachedElsewhere": "另一個 Cartethyia 任務正在使用此裝置。請選取其他裝置，或先在原任務中中斷連線它。",
         "taskLimitReached": "目前的任務最多連線 {{taskLimit}} 臺裝置。請先中斷連線一臺再重試。",
-        "resourceLimitReached": "Cindy 已達到同時執行上限（{{hardLimit}} 臺）。請先停止一臺模擬器再重試。",
+        "resourceLimitReached": "Cartethyia 已達到同時執行上限（{{hardLimit}} 臺）。請先停止一臺模擬器再重試。",
         "memoryPressure": "系統記憶體壓力較高，暫時無法啟動更多模擬器。請先停止一臺模擬器，或稍後重試。",
         "deviceNotFound": "所選裝置已不存在。請重新整理狀態並選取其他裝置。",
         "deviceStateChanged": "裝置狀態已變更。請重新整理狀態後重試。"
@@ -6211,7 +6214,7 @@
         "screenshot": "正在複製模擬器截圖…"
       },
       "setup": {
-        "localMac": "請在 Mac 上的本地 Cindy 任務中開啟此專案。",
+        "localMac": "請在 Mac 上的本地 Cartethyia 任務中開啟此專案。",
         "installXcode": "從 Mac App Store 或 Apple Developer 下載並安裝 Xcode。",
         "selectXcode": "開啟一次 Xcode，並選取它的命令列開發者工具。",
         "installRuntime": "在 Xcode 設定中安裝一個 iOS 模擬器執行環境。",
@@ -6652,7 +6655,7 @@
       "systemLog": "執行日誌",
       "noSystemLog": "暫無執行日誌。",
       "loadMoreTranscript": "載入更多記錄",
-      "transcriptUnavailable": "該 Harness 尚未向 Cindy 提供完整的子任務記錄；已回傳的結果和生命週期活動仍會保留。",
+      "transcriptUnavailable": "該 Harness 尚未向 Cartethyia 提供完整的子任務記錄；已回傳的結果和生命週期活動仍會保留。",
       "tool": {
         "fallbackName": "工具",
         "running": "執行中…",
@@ -6775,7 +6778,12 @@
       "confirmAria": "仍要重啟並應用更新，會中斷執行中的任務",
       "cancelAria": "取消更新",
       "dismiss": "稍後再說",
-      "dismissAria": "關閉更新提示，稍後再決定"
+      "dismissAria": "關閉更新提示，稍後再決定",
+      "availableTitle": "發現新版本 {{version}}",
+      "availableSubtitle": "不會自動下載或安裝",
+      "availableButton": "前往官方網站下載",
+      "availableTooltip": "發現官方新版本 — 點選前往官方網站下載{{versionSuffix}}",
+      "availableAria": "發現官方新版本 {{version}}，前往官方網站下載"
     },
     "notice": {
       "title": "更新公告",
@@ -6838,7 +6846,7 @@
       "regionCodeDev": "Dev",
       "viewReleaseNotes": "檢視版本日誌",
       "reopenUpdateBanner": "有更新待重啟，點選檢視",
-      "downloadMobile": "下載 Cindy 移動端"
+      "downloadMobile": "下載 Cartethyia 移動端"
     },
     "accountSwitcher": {
       "title": "切換帳號",
@@ -6855,16 +6863,16 @@
       "close": "關閉"
     },
     "mobileDownload": {
-      "title": "遠端控制 Cindy",
+      "title": "遠端控制 Cartethyia",
       "subtitle": "移動端連線桌面端",
-      "qrAlt": "Cindy 移動端下載二維碼",
+      "qrAlt": "Cartethyia 移動端下載二維碼",
       "preparing": "正在生成二維碼…",
       "error": "二維碼生成失敗，請稍後重試",
       "openPage": "開啟下載頁面",
       "openFailed": "下載頁面開啟失敗，請檢查系統預設瀏覽器設定",
-      "scanToOpen": "掃碼開啟 Cindy App，並登入同一帳號",
+      "scanToOpen": "掃碼開啟 Cartethyia App，並登入同一帳號",
       "scanAnother": "掃碼新增另一臺裝置",
-      "scanAnotherHint": "在另一臺手機上開啟 Cindy",
+      "scanAnotherHint": "在另一臺手機上開啟 Cartethyia",
       "myDevices": "我的裝置",
       "deviceOffline": "離線",
       "allowControl": "允許同帳號裝置控制本機",
@@ -7026,7 +7034,7 @@
         "AUTH_NETWORK": "無法連線授權服務，請檢查網路後重試。",
         "AUTH_SERVICE_UNAVAILABLE": "授權服務暫不可用，請稍後重試。",
         "INLINE_INVALID": "配置內容無效，請檢查後重試。",
-        "INLINE_UNAVAILABLE": "當前版本無法在對話中儲存此配置，請更新 Cindy 後重試。",
+        "INLINE_UNAVAILABLE": "當前版本無法在對話中儲存此配置，請更新 Cartethyia 後重試。",
         "SAVE_FAILED": "未能儲存配置，請重試。",
         "WINDOW_CLOSED": "發起設定的視窗已關閉，請回到該任務重試。",
         "TARGET_UNAVAILABLE": "插件已停用、解除安裝或不可用，請檢查插件狀態後重試。",
@@ -7456,7 +7464,7 @@
       "permissionSwitchFailed": "權限模式切換失敗，已保留原設定",
       "fullAccessConfirmation": {
         "title": "開啟 Full access？",
-        "description": "Full access 會關閉工作區沙箱並跳過常規審批，Cindy 無需詢問即可：",
+        "description": "Full access 會關閉工作區沙箱並跳過常規審批，Cartethyia 無需詢問即可：",
         "items": {
           "files": {
             "title": "檔案與資料夾",
@@ -7484,7 +7492,7 @@
       "modelSwitchContextGuard": {
         "title": "這個模型裝不下目前的對話",
         "warnToast": "這段對話已經用了 {{used}}，換過去大約會佔新模型容量（{{total}}）的 {{pct}}%",
-        "overflowDescription": "這段對話已經用了 {{used}}，超過新模型能放下的 {{total}}（約 {{pct}}%）。換過去後，Cindy 會先整理一份摘要再繼續；對話記錄還在，只是不會整段原樣帶給新模型。",
+        "overflowDescription": "這段對話已經用了 {{used}}，超過新模型能放下的 {{total}}（約 {{pct}}%）。換過去後，Cartethyia 會先整理一份摘要再繼續；對話記錄還在，只是不會整段原樣帶給新模型。",
         "overflowDescriptionRemote": "目前遠端任務的上下文已用 {{used}} / {{total}}（約 {{pct}}%），無法安全切換到這個小視窗模型。請保留目前模型，或新增任務後再選擇。",
         "confirmSwitch": "切換並繼續",
         "cancelSwitch": "先不換"
@@ -7570,10 +7578,10 @@
   },
   "onboarding": {
     "homeZeroModel": {
-      "title": "登入 Cindy 繼續使用",
-      "desc": "你還未設定任何模型，登入 Cindy 後即可使用數十種頂級大模型。",
-      "cta": "登入 Cindy",
-      "cloudTitle": "使用 Cindy 繼續",
+      "title": "登入 Cartethyia 繼續使用",
+      "desc": "你還未設定任何模型，登入 Cartethyia 後即可使用數十種頂級大模型。",
+      "cta": "登入 Cartethyia",
+      "cloudTitle": "使用 Cartethyia 繼續",
       "cloudDesc": "你還未設定任何模型，開通官方服務即可使用數十種頂級大模型。",
       "cloudCta": "開始使用",
       "ownApi": "我有自己的模型 API 設定"
@@ -7583,10 +7591,10 @@
       "desc": "還沒有可用的模型。連線任意一個供應商即可開始對話。",
       "recommendedLabel": "推薦",
       "cindy": {
-        "title": "Cindy AI",
+        "title": "Cartethyia AI",
         "desc": "官方服務 · 全部模型 · Claude Code / Codex 通用",
-        "loginTitle": "登入 Cindy",
-        "loginDesc": "登入後自動開通 Cindy AI 官方服務，即可使用全部模型，新使用者含贈送餘額"
+        "loginTitle": "登入 Cartethyia",
+        "loginDesc": "登入後自動開通 Cartethyia AI 官方服務，即可使用全部模型，新使用者含贈送餘額"
       },
       "othersToggle": "其他供應商({{count}})",
       "presetSub": "填入 API Key 即可連線",
@@ -7595,7 +7603,7 @@
       "banner": {
         "text": "當前沒有可用的模型，連線一個供應商後即可對話。",
         "connectCta": "連線供應商",
-        "loginCta": "登入 Cindy",
+        "loginCta": "登入 Cartethyia",
         "dismissAria": "關閉引導"
       },
       "detectedLabel": "已檢測到",
@@ -7603,13 +7611,13 @@
     },
     "inheritedSubscription": {
       "title": "已沿用這臺電腦上的 {{products}} 登入",
-      "desc": "Cindy 直接使用了本機已登入的帳號，沒有另外要你授權。想換帳號或斷開，去模型供應商裡改。",
+      "desc": "Cartethyia 直接使用了本機已登入的帳號，沒有另外要你授權。想換帳號或斷開，去模型供應商裡改。",
       "openProviders": "開啟模型供應商",
       "acknowledge": "知道了",
       "separator": "、"
     },
     "promotionalGrant": {
-      "title": "已為你開通 Cindy AI",
+      "title": "已為你開通 Cartethyia AI",
       "desc": "贈送餘額 {{amount}} 已到帳，有效期至 {{date}}。用完或過期後可隨時充值。",
       "openBilling": "檢視用量",
       "acknowledge": "知道了"
@@ -7658,7 +7666,7 @@
     "closeWithShortcut": "關閉並放棄（{{shortcut}}）",
     "codexRequired": "需要先在 {{appName}} 裡連線 Codex，才能使用語音輸入。",
     "apiKeyRequired": "需要先配置 API Key，才能使用語音輸入。",
-    "cindyServiceUnavailable": "Cindy 官方語音服務暫不可用，請檢查網路或切換服務來源。",
+    "cindyServiceUnavailable": "Cartethyia 官方語音服務暫不可用，請檢查網路或切換服務來源。",
     "asrServiceUnavailable": "語音識別服務連線失敗，請檢查網路或稍後重試。",
     "emptyTranscript": "檢測到了語音，但沒有識別出文字，請重試。",
     "connectionInterrupted": "語音連線中斷了，請檢查網路後重試。",
@@ -7668,14 +7676,14 @@
   },
   "chatgptAuthRecovery": {
     "title": "ChatGPT 登入已失效",
-    "systemSharedInvalidated": "Cindy 當前沿用了本機的 ChatGPT 登入。該登入已失效。請開啟 ChatGPT App 重新登入後重試。",
-    "instanceIsolatedInvalidated": "Cindy 當前使用的是單獨登入的 ChatGPT 帳號。該登入已失效。請在 Cindy 中重新登入後重試。",
-    "unknownInvalidated": "Cindy 當前的 ChatGPT 登入已失效。請重新登入後重試。",
+    "systemSharedInvalidated": "Cartethyia 當前沿用了本機的 ChatGPT 登入。該登入已失效。請開啟 ChatGPT App 重新登入後重試。",
+    "instanceIsolatedInvalidated": "Cartethyia 當前使用的是單獨登入的 ChatGPT 帳號。該登入已失效。請在 Cartethyia 中重新登入後重試。",
+    "unknownInvalidated": "Cartethyia 當前的 ChatGPT 登入已失效。請重新登入後重試。",
     "recovered": "ChatGPT 登入已恢復，請重試。",
     "openApp": "開啟 ChatGPT App",
     "relogin": "重新登入 ChatGPT",
-    "reloginRiskTitle": "仍要由 Cindy 重新登入？",
-    "reloginRiskDescription": "Cindy 會建立新的 OpenAI OAuth 登入憑證。通常不會影響 ChatGPT App；如果仍與系統 Codex 共用同一份憑證，相關應用程式可能會要求你重新登入。",
+    "reloginRiskTitle": "仍要由 Cartethyia 重新登入？",
+    "reloginRiskDescription": "Cartethyia 會建立新的 OpenAI OAuth 登入憑證。通常不會影響 ChatGPT App；如果仍與系統 Codex 共用同一份憑證，相關應用程式可能會要求你重新登入。",
     "reloginRiskConfirm": "接受風險並繼續",
     "devWriteBlocked": "開發環境預設以唯讀方式共用本機 ChatGPT 登入，不能發起登入或改寫憑證。確需測試 OAuth 時，請使用隔離沙箱並明確設定 XDT_ALLOW_DEV_OAUTH_WRITE=1。",
     "devReadOnly": "開發環境唯讀",
@@ -7846,7 +7854,7 @@
       "codexOrganizationUsageLimit": "目前連線的是企業 Codex 帳號，已達到用量上限。請等待用量上限重置，或切換其他可用帳號後再重試。",
       "codexUsageLimitWithReset": "目前連線的 Codex 帳號已達到用量上限，預計於 {{resetAt}} 恢復。",
       "codexUsageLimit": "目前連線的 Codex 帳號已達到用量上限。請等待用量上限重置，或切換其他可用帳號後再重試。",
-      "gatewayQuotaExhausted": "Cindy AI 餘額不足，請充值後繼續",
+      "gatewayQuotaExhausted": "Cartethyia AI 餘額不足，請充值後繼續",
       "viewBalance": "檢視餘額",
       "viewBalanceTitle": "開啟「用量和計費」檢視餘額並充值",
       "credentialSwitchBusy": "Codex 正在其它任務中執行，暫時無法按本任務選擇的模型來源切換（需要重啟共享的 Codex 後臺處理程序）。等它結束後點「重試」即可。",
@@ -7859,13 +7867,13 @@
       "switchingClaudeSubscription": "正在切換到 Claude.ai…",
       "claudeSubscriptionSwitchFailed": "無法切換到 Claude.ai 或重試當前任務：{{msg}}",
       "codexAppServerRetired": "Codex 服務已重新啟動或更換；目前的請求已中斷，請重新執行。",
-      "codexAuthMissing": "遠端 Codex 還沒同步登入態（401 Unauthorized）。點選右側「同步登入態」把本機 Codex 憑證推到遠端 Cindy Codex home，然後重試傳送。",
+      "codexAuthMissing": "遠端 Codex 還沒同步登入態（401 Unauthorized）。點選右側「同步登入態」把本機 Codex 憑證推到遠端 Cartethyia Codex home，然後重試傳送。",
       "codexAuthMissingLocal": "Codex 憑證缺失或失效（401 Unauthorized）。請在 {{appName}} Settings → Codex 重新登入（登入後會自動重啟 Codex app-server），或在終端跑 `codex login` + 在 Settings 切換一次鑑權模式來重啟 app-server，然後新建任務再發。",
       "codexSessionExpired": "OpenAI 連線需要更新。重新連線 ChatGPT 後即可繼續；{{appName}} 不會退出系統 Codex CLI，也不會要求你重新連線其他模型來源。",
       "codexAuthSynced": "登入態已同步，請點選「重試」重新傳送。",
       "syncAuth": "同步登入態",
       "syncAuthSyncing": "同步中…",
-      "syncAuthTitle": "把本機 Codex 憑證同步到遠端 Cindy Codex home",
+      "syncAuthTitle": "把本機 Codex 憑證同步到遠端 Cartethyia Codex home",
       "syncAuthSuccess": "已同步，請點選「重試」重新傳送",
       "syncAuthFailed": "同步失敗：{{msg}}",
       "syncAuthDaemonRestartFailed": "憑證已推送到遠端，但舊 daemon 沒重啟 — 請重連遠端後再點重試",
@@ -7890,8 +7898,8 @@
       "streamInterruptedNoRetry": "模型輸出中途中斷了。通常是上游暫時故障，請稍後重試。",
       "networkShowRaw": "檢視原始錯誤",
       "networkHideRaw": "收起原始錯誤",
-      "gatewayProxyTokenInvalid": "Cindy AI 憑據已失效。請點「重試」。若仍失敗，請退出後重新登入",
-      "gatewayProxyTokenInvalidNoRetry": "Cindy AI 憑據已失效。若後續仍失敗，請退出後重新登入",
+      "gatewayProxyTokenInvalid": "Cartethyia AI 憑據已失效。請點「重試」。若仍失敗，請退出後重新登入",
+      "gatewayProxyTokenInvalidNoRetry": "Cartethyia AI 憑據已失效。若後續仍失敗，請退出後重新登入",
       "silentStopContinue": "繼續",
       "silentStopContinueTitle": "繼續當前任務",
       "piTransportClosed": "遠端 Pi 連線已中斷（SSH 通道關閉）。遠端任務仍在執行，重新連線後可以繼續。",
@@ -8257,13 +8265,13 @@
         "failure": {
           "reviewerClosed": "審查任務在完成前已關閉",
           "cancelledBeforeStart": "審查在開始前已取消",
-          "interrupted": "Cindy 關閉時審查被中斷，請重新執行 /review。",
+          "interrupted": "Cartethyia 關閉時審查被中斷，請重新執行 /review。",
           "sourceWorkspaceChanged": "來源任務的工作區已變更，請在當前工作區重新執行 /review。",
           "sourceConversationChanged": "來源任務已變更，請針對當前任務重新執行 /review。",
           "sourceFilesChanged": "來源任務的檔案已變更，請針對當前成果重新執行 /review。",
           "artifactChanged": "審查成果已變更，請針對當前成果重新執行 /review。",
           "providerFailed": "審查任務執行失敗",
-          "artifactUnavailable": "Cindy 無法安全讀取審查成品，請檢查工作區或附件後重新執行 /review"
+          "artifactUnavailable": "Cartethyia 無法安全讀取審查成品，請檢查工作區或附件後重新執行 /review"
         }
       }
     },
@@ -8308,9 +8316,9 @@
       "mention": "提及插件 · {{names}}",
       "mentionExpandAria": "檢視追加給模型的提示原文",
       "mentionDirectiveLabel": "追加給模型的提示",
-      "hostCapabilityExpandAria": "檢視所選 Cindy 能力的路由說明",
-      "hostCapabilityDirectiveLabel": "傳送給 Agent 的 Cindy 能力路由",
-      "hostCapabilityLegend": "高亮 = 目前選擇 · 其餘為 Cindy 固定路由說明",
+      "hostCapabilityExpandAria": "檢視所選 Cartethyia 能力的路由說明",
+      "hostCapabilityDirectiveLabel": "傳送給 Agent 的 Cartethyia 能力路由",
+      "hostCapabilityLegend": "高亮 = 目前選擇 · 其餘為 Cartethyia 固定路由說明",
       "semanticExpandAria": "檢視本次呼叫說明",
       "semanticNote": "AI 根據訊息語義自主呼叫了這個插件；本條訊息未追加任何機器指令。",
       "listSeparator": "、",
@@ -8361,7 +8369,7 @@
       }
     },
     "threadContext": {
-      "cindyFrom": "Cindy · 來自 {{platform}}",
+      "cindyFrom": "Cartethyia · 來自 {{platform}}",
       "viewThread": "檢視 thread 上下文 ({{count}})"
     },
     "rewind": {
@@ -8414,8 +8422,8 @@
       "AUTO_REVIEW_UNAVAILABLE": "自動審批暫時無法給出判斷（網路或服務波動），需要審批的操作已轉由你來確認。想少被打斷，可以把任務切到「預設權限」自行掌控。",
       "AUTO_REVIEW_CONFIRM_UNDELIVERED": "自動審批沒完成，確認也沒有送到或沒有被點。這次拒絕不是你點的。",
       "REMOTE_COMPAT_MODE_UNSUPPORTED": "遠端 Claude Code 會話無法透過本地相容 Proxy 路由(內部錯誤，請反饋)。",
-      "REMOTE_GATEWAY_ENDPOINT_UNAVAILABLE": "Cindy AI 憑據尚未就緒(登入後由服務端自動下發)。請稍候重試；若持續出現，請到 設定 → 模型供應商 檢查 Cindy AI 連線狀態。",
-      "REMOTE_LOCAL_ONLY_PROVIDER": "此模型供應商是本機專屬服務（如 Ollama），SSH 遠端任務無法存取本機位址。請改用 Cindy AI 閘道，或選擇遠端主機可達的模型供應商。",
+      "REMOTE_GATEWAY_ENDPOINT_UNAVAILABLE": "Cartethyia AI 憑據尚未就緒(登入後由服務端自動下發)。請稍候重試；若持續出現，請到 設定 → 模型供應商 檢查 Cartethyia AI 連線狀態。",
+      "REMOTE_LOCAL_ONLY_PROVIDER": "此模型供應商是本機專屬服務（如 Ollama），SSH 遠端任務無法存取本機位址。請改用 Cartethyia AI 閘道，或選擇遠端主機可達的模型供應商。",
       "LOCAL_OLLAMA_NOT_READY": "本機 Ollama 尚未就緒。請打開設定 → 模型供應商 → Ollama。",
       "DEVICE_LINK_CONTROL_DISABLED": "已關閉對該裝置的控制，訊息未傳送。",
       "DEVICE_LINK_MEDIA_TRANSFER_FAILED": "附件傳輸失敗，訊息未傳送。請重試。"
@@ -8454,7 +8462,7 @@
       "undoPartialSuccess": "已撤銷精確記錄的改動；未記錄的改動未被撤銷",
       "reapplyPartialSuccess": "已重新應用精確記錄的改動；未記錄的改動未被重新應用",
       "actionRunning": "請等待當前回覆結束後再更改工作區",
-      "gitUnavailable": "未檢測到 Git。請在本機安裝 Git 並確保它已加入系統 PATH，然後重啟 Cindy，即可使用完整的撤銷和重新應用功能。",
+      "gitUnavailable": "未檢測到 Git。請在本機安裝 Git 並確保它已加入系統 PATH，然後重啟 Cartethyia，即可使用完整的撤銷和重新應用功能。",
       "actionConflict": "工作區內容已變化，無法安全應用本條訊息的補丁；請先審查當前改動",
       "actionUnavailable": "本條訊息包含無法安全撤銷的檔案變更",
       "actionFailed": "未能應用本條訊息的改動，請重試",
@@ -8571,7 +8579,7 @@
         "replaced": "本機連線被另一處相同裝置頂替，正在重新連線…",
         "too-many-connections": "同帳號線上裝置過多，連線被服務端拒絕",
         "version-mismatch": "與服務端協議版本不一致，請升級應用後重試",
-        "unstable": "本機連線反覆斷開又重連，遠端操作可能一直超時；請檢查網路，或重啟 Cindy 後重試"
+        "unstable": "本機連線反覆斷開又重連，遠端操作可能一直超時；請檢查網路，或重啟 Cartethyia 後重試"
       }
     },
     "common": {
@@ -8623,8 +8631,8 @@
       "markedAsRead_other": "已標記 {{count}} 條執行為已讀",
       "markAllReadFailed": "全部標記已讀失敗：{{error}}",
       "apiKeyDialog": {
-        "title": "需要連線 Cindy AI",
-        "description": "傳送訊息前需要先在「模型供應商」連線 Cindy AI，點選下方前往設定",
+        "title": "需要連線 Cartethyia AI",
+        "description": "傳送訊息前需要先在「模型供應商」連線 Cartethyia AI，點選下方前往設定",
         "confirm": "前往設定",
         "cancel": "取消"
       },
@@ -8650,7 +8658,7 @@
     },
     "remoteDesktopConfirmation": {
       "title": "需要在受控電腦上確認",
-      "description": "請在受控電腦上開啟 Cindy，查看並處理這項確認。"
+      "description": "請在受控電腦上開啟 Cartethyia，查看並處理這項確認。"
     },
     "handoff": {
       "card": {
@@ -8686,7 +8694,7 @@
       "remoteProviderUnsupported": "該供應商不支援 SSH 遠端會話，請更換來源",
       "remoteNativeOauthUnavailable": "未連線 Claude.ai 訂閱，請先連線或選擇閘道器模型",
       "deviceStillLoading": "遠端裝置仍在載入中，請稍候",
-      "remoteDefaultsLoadFailed": "無法讀取遠端裝置配置。請檢查連線，Cindy 正在重試。",
+      "remoteDefaultsLoadFailed": "無法讀取遠端裝置配置。請檢查連線，Cartethyia 正在重試。",
       "worktreeMissingRepo": "無法開 worktree：缺少當前目錄的倉庫根",
       "worktreeRepoHint": "可嘗試重新選一次工作目錄，等右下角資料夾標識重新整理後再試",
       "sessionInactive": "任務已不再處於活躍狀態",
@@ -9003,7 +9011,7 @@
       "sessionBranches": {
         "title": "任務分支",
         "close": "關閉任務分支",
-        "description": "Cindy 任務分叉與 Pi 任務內分支統一顯示在這裡。",
+        "description": "Cartethyia 任務分叉與 Pi 任務內分支統一顯示在這裡。",
         "current": "當前",
         "empty": "當前任務還沒有可切換的 Pi 分支。",
         "emptyEntry": "無可見內容",
@@ -9655,7 +9663,7 @@
         "aiGenerating": "生成中…",
         "aiDone": "指令碼已寫入 {{path}}，建議點「測試」驗證一次",
         "aiFailure": {
-          "no_candidate": "當前沒有可用的輕量模型。請先連線 OpenAI 或 Cindy AI，然後重試。",
+          "no_candidate": "當前沒有可用的輕量模型。請先連線 OpenAI 或 Cartethyia AI，然後重試。",
           "all_candidates_failed": "所有輕量模型請求均失敗。請檢查供應商連線後重試。",
           "empty_response": "輕量模型未返回可用內容。請重試或檢查供應商連線。",
           "timeout": "輕量模型請求超時。請檢查網路和供應商連線後重試。",
@@ -9667,8 +9675,8 @@
             "modelUnavailable": "當前供應商未提供所選模型",
             "notAuthenticated": "需要登入 OpenAI",
             "authProbeFailed": "無法確認 OpenAI 登入狀態",
-            "apiKeyMissing": "Cindy AI Key 不可用",
-            "endpointMissing": "Cindy AI endpoint 不可用",
+            "apiKeyMissing": "Cartethyia AI Key 不可用",
+            "endpointMissing": "Cartethyia AI endpoint 不可用",
             "timeout": "請求超時",
             "emptyResponse": "返回內容為空",
             "httpError": "HTTP {{status}}",
@@ -9906,17 +9914,17 @@
       "emptyTitleUnverified": "暫時查不到你的 Issue",
       "startIssueChat": "用 /issue 開始新任務",
       "statusUnknown": "狀態未知",
-      "sourceCindy": "由 Cindy 提交",
+      "sourceCindy": "由 Cartethyia 提交",
       "sourceGithub": "GitHub 帳號",
       "commentCount_other": "{{count}} 條評論",
       "openOnGithub": "在 GitHub 上開啟",
       "viewerGithub": "GitHub 帳號 @{{login}}",
       "platformUnavailableHint": "當前只顯示本機記錄的提交。在其它裝置上提交過的 Issue、以及它們在 GitHub 上的最新狀態，暫時無法在應用內檢視。",
       "platformUnavailablePartialHint": "在其它裝置上提交過的 Issue 暫時無法在應用內檢視，列表可能不完整。",
-      "notSignedInHint": "登入 Cindy 帳號後，可以看到你提交過的全部 Issue 和它們的最新狀態。",
+      "notSignedInHint": "登入 Cartethyia 帳號後，可以看到你提交過的全部 Issue 和它們的最新狀態。",
       "fetchFailedHint": "暫時取不到最新狀態，當前只顯示本機記錄的提交，列表可能不完整。",
       "fetchFailedPartialHint": "暫時取不到最新狀態，部分 Issue 的狀態可能顯示不全。",
-      "enhancementFailedHint": "暫時沒能讀取你 GitHub 帳號名下的 Issue。可能是 Cindy GitHub 插件的訪問令牌權限不足，可到插件頁檢查。",
+      "enhancementFailedHint": "暫時沒能讀取你 GitHub 帳號名下的 Issue。可能是 Cartethyia GitHub 插件的訪問令牌權限不足，可到插件頁檢查。",
       "enhancementFailedGenericHint": "暫時沒能讀取你 GitHub 帳號名下的 Issue，可能是網路問題或 GitHub 介面限流，稍後可以點右上角重試。",
       "truncatedHint": "Issue 較多，這裡只列出了一部分，完整列表請在 GitHub 上檢視。"
     },
@@ -10121,7 +10129,7 @@
       "submissionMethodLabel": "釋出方式",
       "identityGithubUser": "GitHub 帳號 @{{login}} 直接釋出",
       "identityGithubUserHint": "你將成為該 Issue 的 GitHub 作者，可以在 GitHub 編輯或關閉",
-      "identityPlatform": "由 Cindy 平臺代發(GitHub App {{login}})",
+      "identityPlatform": "由 Cartethyia 平臺代發(GitHub App {{login}})",
       "identityPlatformHint": "你不是該 Issue 的 GitHub 作者，提交後無法自行編輯或關閉",
       "publicNameLabel": "公開署名",
       "publicNameHint": "該署名會公開顯示在 Issue 正文中",
@@ -10164,7 +10172,7 @@
       "descriptionSaveDir": "以下目錄在當前任務的工作目錄之外。允許後，該插件可以把下載的檔案存入其中(不會覆蓋已有檔案)。",
       "descriptionRevealPath": "該路徑只會在你允許後回傳給目前 Agent，並進入對話記錄；配對裝置可能同步該記錄。此操作不授予插件讀取檔案的權限。",
       "descriptionFsWrite": "該插件請求在當前任務的工作目錄寫入以下檔案。允許後，本任務內它寫同一目錄不再詢問。",
-      "descriptionWorkspace": "該資料夾在當前任務的工作目錄之外。允許後，Cindy 會以它為工作目錄在側邊欄建立一個空任務(已有任務時直接複用)，不會讀取其中的檔案。",
+      "descriptionWorkspace": "該資料夾在當前任務的工作目錄之外。允許後，Cartethyia 會以它為工作目錄在側邊欄建立一個空任務(已有任務時直接複用)，不會讀取其中的檔案。",
       "dirMeta": "{{count}} 個檔案 · {{size}}",
       "directory": "目錄",
       "allowDirs": "同時允許這些檔案所在目錄(本任務內同目錄媒體檔案不再詢問)",
@@ -10806,7 +10814,7 @@
       "telegramBotWentOnline": "已上線",
       "telegramBotToggleOnlineFailed": "切換失敗：{{message}}",
       "telegramRemoteWentOffline": "已讓該裝置下線",
-      "telegramRemoteUnsupported": "該裝置的 Cindy 版本還不支援遠端下線，需要先更新",
+      "telegramRemoteUnsupported": "該裝置的 Cartethyia 版本還不支援遠端下線，需要先更新",
       "telegramRemoteFailed": "遠端下線失敗：{{message}}",
       "dingtalkBotConnected": "釘釘機器人已連線",
       "dingtalkBotConnectFailed": "釘釘機器人連線失敗，請檢查憑證、Stream 模式和網路",
@@ -10829,18 +10837,18 @@
       "silentStopExhausted": "模型連續多次返回空響應，自動續跑已暫停。點選「繼續」恢復任務。",
       "permissionTightenInterruptFailed": "收緊權限時未能停止正在執行的任務，它可能會繼續免確認執行直到結束；如有需要請手動停止。",
       "codexAutoReviewUnavailable": "自動審批暫時不可用，當前操作已阻止並切換為預設權限。請重試，需要時會詢問你。",
-      "hostShellCommandBlocked": "Cindy 已阻止會繞過內嵌模擬器的 Shell 命令。請改用模擬器工具控制裝置、啟動 App、操作介面、截圖和診斷。",
+      "hostShellCommandBlocked": "Cartethyia 已阻止會繞過內嵌模擬器的 Shell 命令。請改用模擬器工具控制裝置、啟動 App、操作介面、截圖和診斷。",
       "upstreamResponseIdleTimeout": "模型長時間沒有任何響應，本輪已自動中斷以免無限等待。已完成的工具呼叫都保留，可以直接發下一條訊息繼續。",
-      "codexHistoryOversized": "這段歷史裡有過大的圖片，遠端壓縮送不出去。Cindy 會自動略去這些圖片，並在目前任務裡繼續。",
-      "codexHistoryOversizedRemote": "這段歷史裡有過大的圖片，遠端壓縮送不出去。請在執行 Codex 的那台電腦上打開任務後再傳送，Cindy 會自動略去這些圖片並繼續。",
+      "codexHistoryOversized": "這段歷史裡有過大的圖片，遠端壓縮送不出去。Cartethyia 會自動略去這些圖片，並在目前任務裡繼續。",
+      "codexHistoryOversizedRemote": "這段歷史裡有過大的圖片，遠端壓縮送不出去。請在執行 Codex 的那台電腦上打開任務後再傳送，Cartethyia 會自動略去這些圖片並繼續。",
       "codexCompactionNotConverging": "Codex 反覆壓縮上下文卻壓不動，本輪已自動中斷以免無限迴圈。壓不動的部分通常不在對話裡——system prompt 與工具定義佔掉的空間壓縮清不掉。新開一個任務可以繼續。",
       "codexCompactionNotConvergingModelSwitch": "Codex 反覆壓縮上下文卻壓不動，本輪已自動中斷以免無限迴圈。本任務中途切換過模型，而 Codex 仍按切換前那個模型的上下文上限來判斷。切回原模型可以繼續，或者新開一個任務。",
       "turnNoEventTimeout": "本輪長時間沒有任何進展（模型、工具與後臺處理程序都沒有動靜），已自動中斷以免無限等待。可以直接發下一條訊息繼續。",
-      "toolUseLoopDetected": "模型重複呼叫工具次數過多，Cindy 已停止這一輪以避免無限迴圈。可以傳送新訊息繼續。",
-      "toolUseLoopDetectedWithCount": "模型連續觸發無效的工具呼叫，Cindy 已在 {{count}} 次失敗後停止本輪，以避免無限迴圈。可以傳送新訊息繼續。",
-      "toolUseLoopDetectedConsecutiveWithCount": "模型重複呼叫同一個工具 {{count}} 次，Cindy 已停止本輪以避免無限迴圈。可以傳送新訊息繼續。",
-      "toolUseLoopDetectedPingPongWithCount": "模型在多個工具呼叫之間來回循環，Cindy 偵測到本輪已有 {{count}} 次呼叫後停止了本輪。可以傳送新訊息繼續。",
-      "toolUseLoopDetectedRotationWithCount": "模型持續輪轉呼叫多個工具，Cindy 偵測到本輪已有 {{count}} 次呼叫後停止了本輪。可以傳送新訊息繼續。"
+      "toolUseLoopDetected": "模型重複呼叫工具次數過多，Cartethyia 已停止這一輪以避免無限迴圈。可以傳送新訊息繼續。",
+      "toolUseLoopDetectedWithCount": "模型連續觸發無效的工具呼叫，Cartethyia 已在 {{count}} 次失敗後停止本輪，以避免無限迴圈。可以傳送新訊息繼續。",
+      "toolUseLoopDetectedConsecutiveWithCount": "模型重複呼叫同一個工具 {{count}} 次，Cartethyia 已停止本輪以避免無限迴圈。可以傳送新訊息繼續。",
+      "toolUseLoopDetectedPingPongWithCount": "模型在多個工具呼叫之間來回循環，Cartethyia 偵測到本輪已有 {{count}} 次呼叫後停止了本輪。可以傳送新訊息繼續。",
+      "toolUseLoopDetectedRotationWithCount": "模型持續輪轉呼叫多個工具，Cartethyia 偵測到本輪已有 {{count}} 次呼叫後停止了本輪。可以傳送新訊息繼續。"
     },
     "validation": {
       "feishuFieldsRequired": "App ID 和 App Secret 都需要填寫",
@@ -10866,8 +10874,8 @@
         "device-mismatch": "登入狀態與本裝置不匹配，請重新登入。",
         "account-unavailable": "帳號不可用（可能已被停用或刪除），如有疑問請聯絡管理員。"
       },
-      "voiceApiKeyAuthTitle": "需要配置 Cindy AI",
-      "voiceApiKeyAuthDescription": "語音輸入當前使用 Cindy AI 語音識別服務。尚未連線 Cindy AI，無法開始語音輸入。是否前往「模型供應商」連線？",
+      "voiceApiKeyAuthTitle": "需要配置 Cartethyia AI",
+      "voiceApiKeyAuthDescription": "語音輸入當前使用 Cartethyia AI 語音識別服務。尚未連線 Cartethyia AI，無法開始語音輸入。是否前往「模型供應商」連線？",
       "voiceDirectApiKeyAuthTitle": "需要配置語音輸入 API Key",
       "voiceDirectApiKeyAuthDescription": "語音輸入當前使用直連供應商，需要先配置對應 API Key。是否前往「API Keys」新增？",
       "codexVoiceAuthTitle": "需要連線 ChatGPT",
@@ -11297,7 +11305,7 @@
     },
     "orders": {
       "title": "訂單記錄",
-      "description": "僅顯示在 Cindy 內發起的充值與訂閱訂單。待支付訂單超時後自動取消。",
+      "description": "僅顯示在 Cartethyia 內發起的充值與訂閱訂單。待支付訂單超時後自動取消。",
       "count": "{{count}} 筆",
       "incomplete": "訂單記錄較多，當前僅顯示最近的 {{count}} 筆。",
       "orderId": "NO. {{id}}",
@@ -11423,7 +11431,7 @@
       "scanHint": "請使用對應支付應用掃碼",
       "checkingExpiry": "正在確認有效時間…",
       "expiresIn": "二維碼將在 {{minutes}}:{{seconds}} 後過期",
-      "redirectHint": "請在支付頁面完成操作，完成後返回 Cindy。",
+      "redirectHint": "請在支付頁面完成操作，完成後返回 Cartethyia。",
       "openPayment": "開啟支付頁面",
       "refreshingAction": "正在獲取支付方式…",
       "paymentCompleted": "支付已完成。",
@@ -11447,7 +11455,7 @@
       "confirmingTitle": "正在提交變更",
       "confirmingBody": "正在提交套餐變更…",
       "pendingProviderTitle": "正在處理套餐變更",
-      "pendingProviderBody": "支付渠道正在處理本次變更，Cindy 會持續確認最新結果…",
+      "pendingProviderBody": "支付渠道正在處理本次變更，Cartethyia 會持續確認最新結果…",
       "awaitingTitle": "支付差價",
       "scheduledTitle": "降級已排期",
       "scheduledBody": "新套餐將於 {{date}} 生效，當前套餐在此之前保持不變。",
@@ -11480,7 +11488,7 @@
   "fileAccess": {
     "epermGuidance": {
       "title": "macOS 資料夾訪問被拒絕",
-      "message": "Cindy 無法訪問你的“{{folder}}”資料夾",
+      "message": "Cartethyia 無法訪問你的“{{folder}}”資料夾",
       "detail": "macOS 拒絕了訪問。請開啟“系統設定”授予權限，然後重新執行 Agent 命令。",
       "openSystemSettings": "開啟系統設定",
       "cancel": "取消",
@@ -11489,6 +11497,11 @@
         "documents": "文稿",
         "downloads": "下載"
       }
+    }
+  },
+  "composerModes": {
+    "cartethyiaBattle": {
+      "menuItem": "卡提戰鬥模式"
     }
   }
 }

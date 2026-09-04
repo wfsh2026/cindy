@@ -8,6 +8,7 @@ import { exit, stderr } from 'node:process';
 import { BRAND_IDENTITY } from '@cindy/maker-shared/brand-identity';
 import { refreshBrowserRuntimeConfigDir } from '@cindy/browser-control-runtime/config-dir';
 import { CURRENT_CINDY_REGION } from '../shared/brandRegion.js';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { resolveRegionUserDataDirName } from './regionUserData.js';
 import { createLogger, initLogger } from './logger.js';
 import { beginDesktopDevInstance, type DesktopDevMode } from './devStartupStatus.js';
@@ -110,7 +111,7 @@ if (devFlags.isolatedOnProductionProfile) {
   // 报实际目标目录：可能是当前区域，也可能是另一地区的正式 profile。
   const targetDir = devFlags.userDataDirOverride ?? app.getPath('userData');
   stderr.write(
-    `[cindy] FATAL: --isolated cannot use the official Cindy profile (${targetDir}). ` +
+    `[cindy] FATAL: --isolated cannot use the official ${BRAND_NAME} profile (${targetDir}). ` +
       'Use the default sandbox, --isolated=<name>, or a directory that is not an official userData.\n',
   );
   exit(1);

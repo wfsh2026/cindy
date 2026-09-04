@@ -88,7 +88,7 @@ const log = createLogger('updateService');
  * 并禁用,防止用户点了之后装上的是 a。下载成功 → `ready` (b);下载失败 → 静默回退
  * 到 `ready` (a),下一次轮询再试。
  */
-type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'ready' | 'superseding' | 'error';
+type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'superseding' | 'error';
 
 interface UpdateStatusPayload {
   status: UpdateStatus;
@@ -155,12 +155,17 @@ function writeReloginFlag(targetVersion: string): void {
 const FIRST_CHECK_DELAY_MS = 10_000;         // first background check delay
 const POLL_INTERVAL_MS = 30 * 60 * 1000; // 30min polling
 const AUTO_RELAUNCH_POLL_INTERVAL_MS = 30_000;
+// Cartethyia Windows builds keep the official update manifest as the source of
+// truth, but never stage or apply its payload. The renderer only presents the
+// detected version and sends the user to the official download page.
+const notifyOnlyUpdateMode = process.platform === 'win32';
 // 启动态 manifest 短超时（#26）：probe 最坏 1.5s + external CDN P99 < 5s，8s 留足余量
 const STARTUP_MANIFEST_TIMEOUT_MS = 8_000;
 
 // ── State ──────────────────────────────────────────────────────────────────
 
 let currentStatus: UpdateStatus = 'idle';
+let availableVersion: string | undefined;
 let readyVersion: string | undefined;
 let readyFilePath: string | undefined;
 /** 当前 staged 补丁对应的渠道代际。延迟清理用它区分「同路径上的新旧包」。 */
@@ -861,6 +866,28 @@ function discardStagedPatchFiles(): void {
   }
 }
 
+/**
+ * Windows 个人包只读取官方 manifest 并显示提示。清理官方版本可能遗留的
+ * staged payload，确保断网启动、旧 renderer IPC 或后台状态都无法再次应用它。
+ * 更新锁属于正在收尾的原生更新器，不在这里删除。
+ */
+function discardNotifyOnlyUpdateArtifacts(): void {
+  if (!notifyOnlyUpdateMode) return;
+  const updatesDir = getUpdatesDir();
+  try {
+    cleanOldUpdateFiles(updatesDir, '__notify-only-no-payload__', [UPDATE_LOCK_FILE]);
+  } catch (err) {
+    const errorMessage = String(err);
+    log.warn('Failed to clear notify-only update artifacts: %s', errorMessage);
+  }
+  readyVersion = undefined;
+  readyFilePath = undefined;
+  readyChannelEpoch = undefined;
+  linuxStagedDebSha256 = null;
+  linuxStagedDebSize = null;
+  clearReloginFlag();
+}
+
 function flushDeferredStagedPatchClear(): void {
   if (!deferredStagedPatch) return;
   if (isUpdateApplyCommitted() || autoRelaunchDecisionDepth > 0) return;
@@ -1032,6 +1059,7 @@ function resolveUpdateAsset(manifest: Manifest): { file: string; sha256: string;
 // ── Core check logic ───────────────────────────────────────────────────────
 
 export type CheckForUpdateResult =
+  | 'available'
   | 'ready'
   | 'manifest_failed'
   | 'download_failed'
@@ -1093,20 +1121,21 @@ async function doCheckForUpdate(manifestOverride?: Manifest | null): Promise<Che
   // 发现 b > a 时进入 superseding 状态去下 b,而不是像旧实现那样直接短路返回。
   // previousReadyVersion/Path 用于失败时静默回退到 a。
   const wasReady = currentStatus === 'ready';
+  const wasAvailable = currentStatus === 'available';
   const previousReadyVersion = wasReady ? readyVersion : undefined;
   const previousReadyFilePath = wasReady ? readyFilePath : undefined;
   const previousReadyChannelEpoch = wasReady ? readyChannelEpoch : undefined;
 
   // 只有非 ready 路径才广播 'checking' — wasReady 路径下广播 checking 会让 banner
   // 的可见条件(status === 'ready' || 'superseding')瞬间不满足,banner 抖一下。
-  if (!wasReady) {
+  if (!wasReady && !wasAvailable) {
     setStatus('checking');
   }
 
   const manifest = manifestOverride ?? await fetchManifest();
   if (!manifest) {
     log.info('Manifest fetch failed');
-    if (!wasReady) currentStatus = 'idle';
+    if (!wasReady && !wasAvailable) currentStatus = 'idle';
     return 'manifest_failed';
   }
 
@@ -1115,6 +1144,26 @@ async function doCheckForUpdate(manifestOverride?: Manifest | null): Promise<Che
   log.info('Version check: current=%s, latest=%s, ready=%s', currentVersion, latestVersion, previousReadyVersion ?? '<none>');
 
   const versionRelation = compareAppUpdateVersions(latestVersion, currentVersion);
+  if (notifyOnlyUpdateMode) {
+    discardNotifyOnlyUpdateArtifacts();
+    if (versionRelation === 'invalid') {
+      availableVersion = undefined;
+      setStatus('idle');
+      log.error('Notify-only version comparison is invalid: current=%s latest=%s', currentVersion, latestVersion);
+      return 'manifest_failed';
+    }
+    if (versionRelation === 'newer') {
+      availableVersion = latestVersion;
+      setStatus('available', { version: latestVersion });
+      log.info('Notify-only update available: %s → %s', currentVersion, latestVersion);
+      return 'available';
+    }
+    availableVersion = undefined;
+    setStatus('idle');
+    log.info('Notify-only manifest does not advertise an upgrade (relation=%s)', versionRelation);
+    return 'idle';
+  }
+
   if (versionRelation === 'invalid') {
     log.error(
       'Refusing app update because version comparison is invalid: current=%s latest=%s',
@@ -1847,6 +1896,16 @@ async function executeRelaunchUnguarded(theme: 'light' | 'dark'): Promise<void> 
     log.info('executeRelaunch() skipped — already in progress');
     return;
   }
+
+  if (notifyOnlyUpdateMode) {
+    log.warn('executeRelaunch() refused — Windows update mode is notify-only');
+    discardNotifyOnlyUpdateArtifacts();
+    const fallbackStatus = availableVersion ? 'available' : 'idle';
+    const statusPayload = availableVersion ? { version: availableVersion } : undefined;
+    setStatus(fallbackStatus, statusPayload);
+    return;
+  }
+
   isRelaunching = true;
 
   // translocated bundle 的临时路径不能写入 updater marker，也不能从该只读位置
@@ -1960,6 +2019,7 @@ export function initUpdateService(): void {
   // Counterpart to the Rust updater's own sweep — covers the case where the
   // user stays on the latest version and never triggers another updater run.
   sweepStaleUpdateTempDirs();
+  discardNotifyOnlyUpdateArtifacts();
 
   ipcMain.on('update-relaunch', (event, theme: 'light' | 'dark') => {
     // Linux 分支会退出应用并触发 pkexec 系统授权,属于特权操作;
@@ -1969,6 +2029,11 @@ export function initUpdateService(): void {
     // Defensive default: if an old preload is somehow loaded (or theme is
     // missing), fall back to dark — matches the renderer's getStoredTheme()
     // default and the .env'd-out look most users have.
+    if (notifyOnlyUpdateMode) {
+      log.warn('update-relaunch IPC refused — Windows update mode is notify-only');
+      discardNotifyOnlyUpdateArtifacts();
+      return;
+    }
     const resolved = theme === 'light' || theme === 'dark' ? theme : 'dark';
     resolvedRelaunchTheme = resolved;
     void executeRelaunch(resolved);
@@ -1977,6 +2042,11 @@ export function initUpdateService(): void {
   ipcMain.handle(
     'update-relaunch-auto',
     async (_event, theme: 'light' | 'dark'): Promise<AutoRelaunchRequestResult> => {
+      if (notifyOnlyUpdateMode) {
+        log.warn('update-relaunch-auto IPC refused — Windows update mode is notify-only');
+        discardNotifyOnlyUpdateArtifacts();
+        return { accepted: false, blockReason: 'not-ready' };
+      }
       // Startup checks and the renderer's 1.5 s presentation delay create a
       // real TOCTOU window. Re-run the startup policy at the apply boundary so a
       // settings change / already-in-flight relaunch cannot be cut off by a
@@ -1996,7 +2066,8 @@ export function initUpdateService(): void {
   );
 
   ipcMain.handle('update-get-status', () => {
-    return { status: currentStatus, version: readyVersion, errorCode: lastErrorCode };
+    const version = currentStatus === 'available' ? availableVersion : readyVersion;
+    return { status: currentStatus, version, errorCode: lastErrorCode };
   });
 
   ipcMain.handle('update-auto-settings-get', () => {
@@ -2161,12 +2232,20 @@ export function initUpdateService(): void {
         return { hasUpdate: false, action: 'none' as const };
       }
 
+      if (notifyOnlyUpdateMode) {
+        discardNotifyOnlyUpdateArtifacts();
+      }
+
       // Step 1: prefer manifest (so we don't relaunch into a stale intermediate version).
       // 启动态用短超时，避免 external CDN 慢时阻塞启动关键路径（#26）。
       // 后台 30-min 轮询仍走默认 30s 超时。
       const manifest = await fetchManifest(STARTUP_MANIFEST_TIMEOUT_MS);
 
       if (!manifest) {
+        if (notifyOnlyUpdateMode) {
+          log.info('Notify-only manifest fetch failed; no local payload fallback is allowed');
+          return { hasUpdate: false, action: 'none' as const, error: 'manifest_failed' as const };
+        }
         // Network unavailable — fall back to local patch.
         log.info('Manifest fetch failed, falling back to local patch');
         const patchResult = checkExistingPatch();
@@ -2188,6 +2267,24 @@ export function initUpdateService(): void {
       log.info('Startup: current=%s, latest=%s', currentVersion, latestVersion);
 
       const startupVersionRelation = compareAppUpdateVersions(latestVersion, currentVersion);
+      if (notifyOnlyUpdateMode) {
+        discardNotifyOnlyUpdateArtifacts();
+        if (startupVersionRelation === 'invalid') {
+          availableVersion = undefined;
+          setStatus('idle');
+          log.info('[diag] update-check-startup returning error=manifest_failed');
+          return { hasUpdate: false, action: 'none' as const, error: 'manifest_failed' as const };
+        }
+        if (startupVersionRelation === 'newer') {
+          availableVersion = latestVersion;
+          setStatus('available', { version: latestVersion });
+          return { hasUpdate: true, action: 'none' as const, version: latestVersion };
+        }
+        availableVersion = undefined;
+        setStatus('idle');
+        return { hasUpdate: false, action: 'none' as const };
+      }
+
       if (startupVersionRelation !== 'newer') {
         // The online manifest is authoritative. A local patch that is no longer
         // advertised must not survive into a later offline startup.
@@ -2296,10 +2393,12 @@ export function initUpdateService(): void {
     return;
   }
 
-  startAutoRelaunchPoller();
-  powerMonitor.on('resume', handlePowerMonitorActivity);
-  powerMonitor.on('unlock-screen', handlePowerMonitorActivity);
-  powerMonitor.on('user-did-become-active', handlePowerMonitorActivity);
+  if (!notifyOnlyUpdateMode) {
+    startAutoRelaunchPoller();
+    powerMonitor.on('resume', handlePowerMonitorActivity);
+    powerMonitor.on('unlock-screen', handlePowerMonitorActivity);
+    powerMonitor.on('user-did-become-active', handlePowerMonitorActivity);
+  }
 
   setTimeout(() => {
     log.info('First background check fires');

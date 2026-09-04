@@ -7,6 +7,7 @@ import { emitRefresh } from '@/lib/sessionsBus';
 import { getSessionDeviceId } from '@/features/device-link/remoteProjectsStore';
 import { refreshRemoteDeviceSessions } from '@/features/device-link/refreshRemoteSessions';
 import { createLogger } from '@/lib/logger';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 const log = createLogger('workLouderCodexTaskActions');
 
@@ -51,7 +52,7 @@ export async function copyCurrentTaskMarkdown(
       const text = sessionMessageDisplayText(message);
       if (!text) return [];
       const heading =
-        message.role === 'user' ? 'User' : message.role === 'assistant' ? 'Cindy' : null;
+        message.role === 'user' ? 'User' : message.role === 'assistant' ? BRAND_NAME : null;
       return heading ? [`## ${heading}`, '', text, ''] : [];
     });
     if (lines.length === 0) {

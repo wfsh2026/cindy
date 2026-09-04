@@ -33,9 +33,9 @@ const CASES: Array<{
     done: '已完成 ✓',
     error: '执行失败',
     needsReply: '需要你回复',
-    externalDone: 'Cindy · 任务「整理报告」已完成 ✓',
-    externalError: 'Cindy · 任务「整理报告」执行失败',
-    externalNeedsReply: 'Cindy · 任务「整理报告」需要你回复',
+    externalDone: 'Cartethyia · 任务「整理报告」已完成 ✓',
+    externalError: 'Cartethyia · 任务「整理报告」执行失败',
+    externalNeedsReply: 'Cartethyia · 任务「整理报告」需要你回复',
   },
   {
     locale: 'zh-TW',
@@ -44,9 +44,9 @@ const CASES: Array<{
     done: '已完成 ✓',
     error: '執行失敗',
     needsReply: '需要你回覆',
-    externalDone: 'Cindy · 任務「整理報告」已完成 ✓',
-    externalError: 'Cindy · 任務「整理報告」執行失敗',
-    externalNeedsReply: 'Cindy · 任務「整理報告」需要你回覆',
+    externalDone: 'Cartethyia · 任務「整理報告」已完成 ✓',
+    externalError: 'Cartethyia · 任務「整理報告」執行失敗',
+    externalNeedsReply: 'Cartethyia · 任務「整理報告」需要你回覆',
   },
   {
     locale: 'en',
@@ -55,9 +55,9 @@ const CASES: Array<{
     done: 'Completed ✓',
     error: 'Failed',
     needsReply: 'Reply needed',
-    externalDone: 'Cindy · Session “Report” completed ✓',
-    externalError: 'Cindy · Session “Report” failed',
-    externalNeedsReply: 'Cindy · Session “Report” needs your reply',
+    externalDone: 'Cartethyia · Session “Report” completed ✓',
+    externalError: 'Cartethyia · Session “Report” failed',
+    externalNeedsReply: 'Cartethyia · Session “Report” needs your reply',
   },
   {
     locale: 'ja',
@@ -66,9 +66,9 @@ const CASES: Array<{
     done: '完了しました ✓',
     error: '実行に失敗しました',
     needsReply: '返信が必要です',
-    externalDone: 'Cindy · セッション「レポート」が完了しました ✓',
-    externalError: 'Cindy · セッション「レポート」の実行に失敗しました',
-    externalNeedsReply: 'Cindy · セッション「レポート」への返信が必要です',
+    externalDone: 'Cartethyia · セッション「レポート」が完了しました ✓',
+    externalError: 'Cartethyia · セッション「レポート」の実行に失敗しました',
+    externalNeedsReply: 'Cartethyia · セッション「レポート」への返信が必要です',
   },
   {
     locale: 'ko',
@@ -77,9 +77,9 @@ const CASES: Array<{
     done: '완료됨 ✓',
     error: '실행 실패',
     needsReply: '답변이 필요합니다',
-    externalDone: 'Cindy · 세션 “보고서” 완료됨 ✓',
-    externalError: 'Cindy · 세션 “보고서” 실행 실패',
-    externalNeedsReply: 'Cindy · 세션 “보고서”에 답변이 필요합니다',
+    externalDone: 'Cartethyia · 세션 “보고서” 완료됨 ✓',
+    externalError: 'Cartethyia · 세션 “보고서” 실행 실패',
+    externalNeedsReply: 'Cartethyia · 세션 “보고서”에 답변이 필요합니다',
   },
 ];
 
@@ -110,13 +110,13 @@ describe('session notification copy', () => {
     (title) => {
       setMainLocale('en');
       expect(getSessionExternalNotificationText(title, 'done')).toBe(
-        `Cindy · Session “${title}” completed ✓`,
+        `Cartethyia · Session “${title}” completed ✓`,
       );
       expect(getSessionExternalNotificationText(title, 'error')).toBe(
-        `Cindy · Session “${title}” failed`,
+        `Cartethyia · Session “${title}” failed`,
       );
       expect(getSessionExternalNotificationText(title, 'needs-reply')).toBe(
-        `Cindy · Session “${title}” needs your reply`,
+        `Cartethyia · Session “${title}” needs your reply`,
       );
     },
   );

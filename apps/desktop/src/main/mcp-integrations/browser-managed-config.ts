@@ -1,10 +1,11 @@
 import type { BrowserRuntimeConfig } from '@cindy/browser-control-runtime';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 /**
  * Managed profile identity. The profile key is the on-disk folder
  * `browser/<key>/user-data`. Chrome's top-right chip follows `displayName` when
- * set, otherwise the key. Isolated and snapshot profiles both pass
- * `displayName: "Cindy"` so the chip never shows the disk identifier. The runtime
+ * set, otherwise the key. Isolated and snapshot profiles both pass the current
+ * product display name so the chip never shows the pinned disk identifier. The runtime
  * seeds name + color into Local State / Preferences before launch (decoration
  * re-checks every launch, so an old chip label self-heals on first run).
  * (Same Chrome binary as the user's, so the dock/taskbar icon is unchanged.)
@@ -18,13 +19,13 @@ import type { BrowserRuntimeConfig } from '@cindy/browser-control-runtime';
  *    就地改名自愈处理。两处的 'XDMaker'/'Cindy' 字面量与本常量保持一致。
  */
 export const MANAGED_PROFILE = 'Cindy';
+export const MANAGED_PROFILE_DISPLAY_NAME = BRAND_NAME;
 
 /**
  * Snapshot profile for consented "use my browser logins". Disk name is pinned
  * like `Cindy` — do not rename, or leftover cookie copies become unreachable
  * and cleanup will miss them. Never overlay onto `MANAGED_PROFILE`. The Chrome
- * chip still shows `MANAGED_PROFILE` via `displayName`; this string is not
- * user-facing.
+ * chip uses `MANAGED_PROFILE_DISPLAY_NAME`; the disk identifier is not user-facing.
  */
 export const REAL_MANAGED_PROFILE = 'Cindy-real';
 
@@ -98,7 +99,7 @@ export function buildManagedConfig(options?: {
           driver: MANAGED_DRIVER,
           color: DEFAULT_PROFILE_COLOR,
           cdpPort,
-          displayName: MANAGED_PROFILE,
+          displayName: MANAGED_PROFILE_DISPLAY_NAME,
           ...(executablePath ? { executablePath } : {}),
         },
       },

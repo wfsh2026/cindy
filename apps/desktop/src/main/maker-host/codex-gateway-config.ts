@@ -10,7 +10,7 @@
  * 等价的 config.toml:
  *   model_provider = "cindy_gateway"
  *   [model_providers.cindy_gateway]
- *   name     = "Cindy Gateway"
+ *   name     = "Cartethyia Gateway"
  *   base_url = "<网关 endpoint>/v1"   # 登录随凭据下发,非硬编码
  *   wire_api = "responses"
  *   env_key  = "XDT_CODEX_API_KEY"
@@ -19,6 +19,7 @@
  * (见 auth-adapters.ts getAuthEnv 的 API 模式分支)。
  */
 
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { claudeUpstreamEndpoint } from './runtime-configs.js';
 
 /** 内部 provider id(codex config 里的 key)。仅 codex 子进程配置的本地标签,不外发。 */
@@ -86,6 +87,7 @@ export function buildCodexProxySpawnArgs(
   authMode: CodexProxySpawnAuthMode,
 ): string[] {
   const p = CODEX_GATEWAY_PROVIDER_ID;
+  const gatewayDisplayName = `${BRAND_NAME} Gateway`;
   const authArg = authMode === 'oauth-bearer'
     ? `model_providers.${p}.requires_openai_auth=true`
     : `model_providers.${p}.env_key="${CODEX_GATEWAY_ENV_KEY}"`;
@@ -93,7 +95,7 @@ export function buildCodexProxySpawnArgs(
     // 统一使用 CodeModeOnly，解决 Codex namespace tools 发现不及时的问题。
     '-c', 'features.code_mode_only=true',
     '-c', `model_provider="${p}"`,
-    '-c', `model_providers.${p}.name="Cindy Gateway"`,
+    '-c', `model_providers.${p}.name="${gatewayDisplayName}"`,
     '-c', `model_providers.${p}.base_url="${baseUrl}"`,
     '-c', `model_providers.${p}.wire_api="responses"`,
     '-c', authArg,

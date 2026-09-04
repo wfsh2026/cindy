@@ -438,6 +438,13 @@ function isPointInsideElement(
   );
 }
 
+interface ComposerModeMenuConfig {
+  label: string;
+  searchText?: string;
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+}
+
 interface ChatInputProps {
   onSend: (
     message: string,
@@ -526,6 +533,8 @@ interface ChatInputProps {
    * 草稿 patchVendorPrefs)。未提供 = 不显示计划模式入口。
    */
   onPlanModeChange?: (enabled: boolean) => void | Promise<void>;
+  /** 可插拔 Composer Mode 的通用菜单投影；具体模式实现由父层 registry 持有。 */
+  composerMode?: ComposerModeMenuConfig;
   /** Current Fast Mode state from the session store. */
   fastMode?: boolean;
   /** Called when the Fast Mode toggle changes. Captured device ID pins remote routing. */
@@ -1061,6 +1070,7 @@ export function ChatInput({
   initialPermissionMode,
   planModeEnabled = false,
   onPlanModeChange,
+  composerMode,
   fastMode = false,
   onFastModeChange,
   onWorkingDirChange,
@@ -3639,9 +3649,7 @@ export function ChatInput({
       saveComposerTextAfterAsyncTransition(prevEditorKey, editor.getJSON(), recoveryCheckpoint!);
     };
 
-    let cancelled = false;
     const isCurrentTransition = () =>
-      !cancelled &&
       !editor.isDestroyed &&
       isDataOwnerGenerationCurrent(dataOwnerAtTransition) &&
       storageKeyTransitionSeqRef.current === transitionSeq &&
@@ -4335,6 +4343,16 @@ export function ChatInput({
         run: runNewGoalAction,
       });
     }
+    if (composerMode) {
+      actions.push({
+        id: 'composer-mode',
+        label: composerMode.label,
+        searchText: composerMode.searchText,
+        checked: composerMode.enabled,
+        disabled: composerMutationLocked,
+        run: () => composerMode.onToggle(!composerMode.enabled),
+      });
+    }
     if (planModeEntry) {
       actions.push({
         id: 'plan-mode',
@@ -4438,6 +4456,7 @@ export function ChatInput({
     return actions;
   }, [
     collaboration,
+    composerMode,
     composerMutationLocked,
     confirmDialog,
     extraDirs,

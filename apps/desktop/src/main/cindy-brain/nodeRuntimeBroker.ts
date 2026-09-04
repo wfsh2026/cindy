@@ -23,6 +23,7 @@ import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
 import { utilityProcess } from 'electron';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type {
   GhostNodeChildToHostMessage,
@@ -792,7 +793,8 @@ export class GhostNodeRuntimeBroker {
       ghost.manifest.node.protocol === 'mcp-stdio' &&
       isGhostNodeMcpReservedMethod(request.method as string)
     ) {
-      return errorResult('INVALID_REQUEST', 'MCP 初始化由 Cindy 主机统一管理');
+      const mcpInitializationMessage = `MCP 初始化由 ${BRAND_NAME} 主机统一管理`;
+      return errorResult('INVALID_REQUEST', mcpInitializationMessage);
     }
 
     let ownerScopeSnapshot: unknown;
@@ -1892,10 +1894,11 @@ export class GhostNodeRuntimeBroker {
     if (typeof msg.method === 'string' && msg.id !== undefined) {
       // MCP server→client 反向请求不接 Cindy 能力，明确回“不支持”。这条是
       // Node 不能直接控制 Cindy 的代码边界，不靠作者自觉。
+      const reverseRpcMessage = `${BRAND_NAME} host does not expose reverse RPC methods`;
       this.writeLine(entry, {
         jsonrpc: '2.0',
         id: msg.id,
-        error: { code: -32601, message: 'Cindy host does not expose reverse RPC methods' },
+        error: { code: -32601, message: reverseRpcMessage },
       });
       return;
     }

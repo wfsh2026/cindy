@@ -1,4 +1,5 @@
 import { ipcMain, net } from 'electron';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   captureImAccountGeneration,
@@ -219,7 +220,8 @@ export class WecomGroupNotificationService implements WecomGroupNotificationPubl
     const accountGeneration = captureImAccountGeneration();
     if (accountGeneration === null) throw new ImAccountScopeClosedError();
     return this.enqueue(async () => {
-      const chunks = splitUtf8(markdown.trim() || 'Cindy 通知');
+      const fallbackMessage = `${BRAND_NAME} 通知`;
+      const chunks = splitUtf8(markdown.trim() || fallbackMessage);
       for (const chunk of chunks) {
         if (!isImAccountGenerationCurrent(accountGeneration)) {
           throw new ImAccountScopeClosedError();

@@ -21,6 +21,7 @@ import { promisify } from 'node:util';
 
 import JSZip from 'jszip';
 
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import {
   PLUGIN_MEMBER_UPLOAD_MAX_ARCHIVE_BYTES,
   PLUGIN_MEMBER_UPLOAD_MAX_UNCOMPRESSED_BYTES,
@@ -2109,7 +2110,7 @@ const r = await cindy.send({ type: 'cindy-request', kind: 'gen_image', prompt: '
 const search = await cindy.send({
   type: 'cindy-request',
   kind: 'search_web',
-  query: 'Cindy 最新版本',
+  query: \`${BRAND_NAME} 最新版本\`,
   limit: 5,                       // 可选,1–10,缺省 5
   provider: 'cindy',
   callId: msg.callId,             // 搜索只由 tool-call 触发,必须透传

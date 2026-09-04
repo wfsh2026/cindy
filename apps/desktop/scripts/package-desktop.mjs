@@ -47,7 +47,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ensureBinary } from '../../../scripts/ensure-agent-binaries.mjs';
 import { desktopClientBuildEnv } from '../../../scripts/shared/client-endpoint-build-env.mjs';
-import { desktopLogUploadBuildEnv } from '../../../scripts/shared/log-upload-build-env.mjs';
+import { desktopLogUploadBuildEnv, LOG_UPLOAD_TARGET_ENV } from '../../../scripts/shared/log-upload-build-env.mjs';
 import {
   DESKTOP_ROOT,
   RELEASE_DIR,
@@ -146,11 +146,17 @@ function cleanOutDir() {
   }
 }
 
-function runForgeMake({ platform, arch, region, version, versionless, noSign, webAuthnAppleTeamId }) {
+function runForgeMake({ platform, arch, region, version, versionless, noSign, webAuthnAppleTeamId, personalNoLogUpload }) {
   console.log('==> Building remote bundles...');
   execSync('node scripts/build-remote-bundles.mjs', { cwd: DESKTOP_ROOT, stdio: 'inherit' });
 
   console.log(`==> Running electron-forge make (${platform}-${arch}, region=${region})...`);
+  const logUploadBuildEnv = personalNoLogUpload
+    ? { [LOG_UPLOAD_TARGET_ENV]: '' }
+    : desktopLogUploadBuildEnv({ authRegion: region, allowMissing: versionless });
+  if (personalNoLogUpload) {
+    console.warn('WARN: Personal Windows CN package: diagnostic log upload is disabled.');
+  }
   const forgeEnv = {
     ...process.env,
     NODE_ENV: 'production',
@@ -164,7 +170,7 @@ function runForgeMake({ platform, arch, region, version, versionless, noSign, we
     // 版本无关 / 开源打包(versionless):配置文件是 gitignore 的、默认 checkout 里不存在,
     // 允许缺失 ⇒ 注入空目标、功能整体关闭,拉仓即可打包(2026-08-04 review P1)。
     // 注意 allowMissing 只放宽「文件缺失」;文件在但内容损坏两种模式都仍然硬失败。
-    ...desktopLogUploadBuildEnv({ authRegion: region, allowMissing: versionless }),
+    ...logUploadBuildEnv,
     // forge.config.ts 的 NSIS appId / AUMID 优先读这个(与 VITE_ 同源,双保险)。
     CINDY_AUTH_REGION: region,
     // forge.config.ts 注入 packagerConfig.appVersion;版本无关时为占位 0.0.0。
@@ -520,7 +526,7 @@ async function main() {
     console.error(`ERROR: ${err.message}`);
     process.exit(1);
   }
-  const { platform, archs, region, versionSpec, skipSmoke, allowUnsigned, noSign } = args;
+  const { platform, archs, region, versionSpec, skipSmoke, allowUnsigned, noSign, personalNoLogUpload } = args;
   // ensureBinary 的 CDN fallback 按此 region 选择清单基址；必须早于二进制准备。
   process.env.CINDY_AUTH_REGION = region;
   // mac 签名身份按区域从 release-regions.json 注入(文件缺失时静默跳过,
@@ -625,6 +631,7 @@ async function main() {
       versionless,
       noSign,
       webAuthnAppleTeamId: webAuthnProvisioningProfile ? macSigningIdentity?.teamId : undefined,
+      personalNoLogUpload,
     });
 
     // drizzle 资源校验(平台差异只在 packaged 内路径)。

@@ -157,8 +157,8 @@ import type {
 // 硬约定, 不改)。
 //
 // 目录分发运行时:
-//   - codex-package:完整目录包含 bin/codex、code-mode host、rg 与 resources；生产入口
-//     与 dev 一致指向 bin/codex，CDN 资产读取 manifest.codexPackage。
+//   - Codex 默认使用 codex-package 完整目录；Windows 旧清单若还没有该字段，
+//     才回退 manifest.codex 单文件，避免首启 asset_missing，同时不牺牲新版能力。
 //   - pi:完整目录包含主二进制与 theme/ 等运行时资产；同时它是可选实验 agent，
 //     manifest 缺 pi 字段 / 下载失败都不阻塞启动。
 
@@ -212,25 +212,125 @@ const CONFIG: Record<AgentBinaryKind, AgentBinaryConfig> = {
   },
 };
 
+const LEGACY_WINDOWS_CODEX_CONFIG: AgentBinaryConfig = {
+  vendorKey: 'codex',
+  manifestField: 'codex',
+  installSubdir: 'codex',
+  binaryName: 'codex.exe',
+  devBinDir: 'codex-package-bin',
+  devBinaryName: path.join('bin', 'codex.exe'),
+  vendorTag: 'codex',
+  artifactKind: 'gz',
+  preserveLocalVersion: true,
+};
+
 // ── 懒加载的底层 provisioner 实例缓存 ─────────────────────────────────────────
 
 const baseProvisioners = new Map<AgentBinaryKind, BinaryProvisioner>();
+const readyProvisioners = new Map<AgentBinaryKind, BinaryProvisioner>();
+let legacyWindowsCodexProvisioner: BinaryProvisioner | undefined;
+
+function createProvisioner(cfg: AgentBinaryConfig): BinaryProvisioner {
+  const artifact = cfg.artifactKind === 'gz'
+    ? { kind: 'gz' as const, binaryName: cfg.binaryName }
+    : { kind: 'tar-gz-dir' as const, binaryName: cfg.binaryName };
+  const localVersionResolver = cfg.preserveLocalVersion ? probeBinaryVersion : undefined;
+  return createBinaryProvisioner({
+    vendorKey: cfg.vendorKey,
+    manifestField: cfg.manifestField,
+    installSubdir: cfg.installSubdir,
+    artifact,
+    optionalAsset: cfg.optionalAsset,
+    localVersionResolver,
+  });
+}
 
 function getBase(kind: AgentBinaryKind): BinaryProvisioner {
   let base = baseProvisioners.get(kind);
   if (!base) {
     const cfg = CONFIG[kind];
-    base = createBinaryProvisioner({
-      vendorKey: cfg.vendorKey,
-      manifestField: cfg.manifestField,
-      installSubdir: cfg.installSubdir,
-      artifact: { kind: cfg.artifactKind, binaryName: cfg.binaryName },
-      optionalAsset: cfg.optionalAsset,
-      localVersionResolver: cfg.preserveLocalVersion ? probeBinaryVersion : undefined,
-    });
+    base = createProvisioner(cfg);
     baseProvisioners.set(kind, base);
   }
   return base;
+}
+
+function getLegacyWindowsCodexBase(): BinaryProvisioner {
+  let base = legacyWindowsCodexProvisioner;
+  if (!base) {
+    base = createProvisioner(LEGACY_WINDOWS_CODEX_CONFIG);
+    legacyWindowsCodexProvisioner = base;
+  }
+  return base;
+}
+
+function shouldUseLegacyWindowsCodex(kind: AgentBinaryKind): boolean {
+  if (!isWindowsCodex(kind)) return false;
+  const manifest = getCachedManifest();
+  if (!manifest) return false;
+  const packageAsset = getVendorAsset(manifest, CONFIG.codex.manifestField);
+  if (packageAsset) return false;
+  const legacyAsset = getVendorAsset(manifest, LEGACY_WINDOWS_CODEX_CONFIG.manifestField);
+  return legacyAsset !== undefined;
+}
+
+function managedConfigs(kind: AgentBinaryKind): AgentBinaryConfig[] {
+  const primary = CONFIG[kind];
+  if (!isWindowsCodex(kind)) return [primary];
+  return [primary, LEGACY_WINDOWS_CODEX_CONFIG];
+}
+
+function isWindowsCodex(kind: AgentBinaryKind): boolean {
+  return process.platform === 'win32' && kind === 'codex';
+}
+
+function findVerifiedBinaryPath(cfg: AgentBinaryConfig, userDataPath: string): string | undefined {
+  try {
+    const installRoot = path.join(userDataPath, cfg.installSubdir);
+    const entries = fs.readdirSync(installRoot, { withFileTypes: true });
+    const versions = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    for (const version of versions) {
+      const binaryPath = path.join(installRoot, version, cfg.binaryName);
+      const verifiedPath = path.join(installRoot, version, '.verified');
+      if (fs.existsSync(binaryPath) && fs.existsSync(verifiedPath)) return binaryPath;
+    }
+  } catch {
+    // 目录不存在或不可读时按未安装处理。
+  }
+  return undefined;
+}
+
+type ProvisionerPrepareOptions = NonNullable<Parameters<BinaryProvisioner['prepare']>[0]>;
+
+interface ProvisionerAttempt {
+  base: BinaryProvisioner;
+  result: Awaited<ReturnType<BinaryProvisioner['prepare']>>;
+}
+
+async function prepareWithLegacyCodexFallback(
+  kind: AgentBinaryKind,
+  primaryBase: BinaryProvisioner,
+  options: ProvisionerPrepareOptions,
+): Promise<ProvisionerAttempt> {
+  let base = primaryBase;
+  let result = await base.prepare(options);
+  if (!result.ready && result.error === 'asset_missing' && shouldUseLegacyWindowsCodex(kind)) {
+    const fallbackMessage = 'codexPackage is missing from the Windows manifest; falling back to the legacy codex asset';
+    log.warn(fallbackMessage);
+    base = getLegacyWindowsCodexBase();
+    result = await base.prepare(options);
+  }
+  if (!result.ready && result.error === 'manifest_failed' && isWindowsCodex(kind)) {
+    const userDataPath = app.getPath('userData');
+    const binaryPath = findVerifiedBinaryPath(LEGACY_WINDOWS_CODEX_CONFIG, userDataPath);
+    if (binaryPath) {
+      const fallbackMessage = 'Codex manifest is unavailable; using the verified legacy Windows Codex installation';
+      log.warn(fallbackMessage);
+      base = getLegacyWindowsCodexBase();
+      result = { ready: true, binaryPath };
+    }
+  }
+  return { base, result };
 }
 
 // ── prepare() 成功后回填的路径 cache ──────────────────────────────────────────
@@ -300,22 +400,13 @@ export function getCachedBinaryStatus(kind: AgentBinaryKind): CachedBinaryStatus
     if (linuxFallbackPath) return { binaryReady: true, binaryPath: linuxFallbackPath };
   }
 
-  // prod / dev fallback miss: 扫 userData/<installSubdir>/<version>/<binary> + .verified
-  try {
-    const installRoot = path.join(app.getPath('userData'), cfg.installSubdir);
-    const versions = fs
-      .readdirSync(installRoot, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name);
-    for (const v of versions) {
-      const p = path.join(installRoot, v, cfg.binaryName);
-      const verified = path.join(installRoot, v, '.verified');
-      if (fs.existsSync(p) && fs.existsSync(verified)) {
-        return { binaryReady: true, binaryPath: p };
-      }
-    }
-  } catch {
-    // fs 错 (目录不存在等) → 降级 false
+  // prod / dev fallback miss: 扫 userData/<installSubdir>/<version>/<binary> + .verified。
+  // Windows Codex 同时识别完整包与旧单文件目录，保证清单过渡期和离线重启可用。
+  const userDataPath = app.getPath('userData');
+  const configs = managedConfigs(kind);
+  for (const managedCfg of configs) {
+    const binaryPath = findVerifiedBinaryPath(managedCfg, userDataPath);
+    if (binaryPath) return { binaryReady: true, binaryPath };
   }
 
   return { binaryReady: false };
@@ -477,8 +568,11 @@ async function prepareViaCdn(
 
   // ── 不广播 IPC 路径 (lazy 调用, 当前 desktop 不走) ────────────────────────
   if (!broadcastProgress) {
-    const result = await base.prepare({ signal: opts.signal });
+    const prepareOptions = { signal: opts.signal };
+    const attempt = await prepareWithLegacyCodexFallback(kind, base, prepareOptions);
+    const result = attempt.result;
     if (result.ready) {
+      readyProvisioners.set(kind, attempt.base);
       lastReadyPath.set(kind, result.binaryPath);
       return { ready: true, path: result.binaryPath };
     }
@@ -540,38 +634,41 @@ async function prepareViaCdn(
   });
 
   try {
-    const result = await base.prepare({
+    const handleProgress = (progressState: VendorRuntimeState): void => {
+      if (progressState.status === 'downloading') {
+        didDownload = true;
+        startCdnBudget();
+      }
+      if (progressState.downloadProgress) {
+        lastReceived = progressState.downloadProgress.received;
+        lastTotal = progressState.downloadProgress.total;
+        lastSpeed = progressState.downloadProgress.speedBps > 0
+          ? `${formatBytes(progressState.downloadProgress.speedBps)}/s`
+          : undefined;
+        normalizer.handle({
+          loaded: lastReceived,
+          total: lastTotal > 0 ? lastTotal : null,
+          percent: lastTotal > 0 ? (lastReceived / lastTotal) * 100 : null,
+          speedBps: progressState.downloadProgress.speedBps,
+        });
+      }
+      // 初始 0% 广播 (首次进入 downloading 状态时, lastReceived 还是 0)
+      if (progressState.status === 'downloading' && lastReceived === 0) {
+        broadcastBinaryDownloadProgress({
+          progress: 0,
+          total: lastTotal > 0 ? formatBytes(lastTotal) : undefined,
+          step,
+          totalSteps,
+          vendor: cfg.vendorTag,
+        });
+      }
+    };
+    const prepareOptions = {
       signal: effectiveSignal,
-      onProgress: (p: VendorRuntimeState) => {
-        if (p.status === 'downloading') {
-          didDownload = true;
-          startCdnBudget();
-        }
-        if (p.downloadProgress) {
-          lastReceived = p.downloadProgress.received;
-          lastTotal = p.downloadProgress.total;
-          lastSpeed = p.downloadProgress.speedBps > 0
-            ? `${formatBytes(p.downloadProgress.speedBps)}/s`
-            : undefined;
-          normalizer.handle({
-            loaded: lastReceived,
-            total: lastTotal > 0 ? lastTotal : null,
-            percent: lastTotal > 0 ? (lastReceived / lastTotal) * 100 : null,
-            speedBps: p.downloadProgress.speedBps,
-          });
-        }
-        // 初始 0% 广播 (首次进入 downloading 状态时, lastReceived 还是 0)
-        if (p.status === 'downloading' && lastReceived === 0) {
-          broadcastBinaryDownloadProgress({
-            progress: 0,
-            total: lastTotal > 0 ? formatBytes(lastTotal) : undefined,
-            step,
-            totalSteps,
-            vendor: cfg.vendorTag,
-          });
-        }
-      },
-    });
+      onProgress: handleProgress,
+    };
+    const attempt = await prepareWithLegacyCodexFallback(kind, base, prepareOptions);
+    const result = attempt.result;
 
     if (result.ready) {
       if (didDownload) {
@@ -585,6 +682,7 @@ async function prepareViaCdn(
           vendor: cfg.vendorTag,
         });
       }
+      readyProvisioners.set(kind, attempt.base);
       lastReadyPath.set(kind, result.binaryPath);
       return { ready: true, path: result.binaryPath, downloaded: didDownload };
     }
@@ -631,11 +729,20 @@ export async function peekNeedsDownload(kind: AgentBinaryKind): Promise<boolean>
     }
     return findCachedLinuxRuntimeFallbackBinary(kind) === null;
   }
-  return getBase(kind).peekNeedsDownload();
+  const primaryBase = getBase(kind);
+  const primaryNeedsDownload = await primaryBase.peekNeedsDownload();
+  if (!shouldUseLegacyWindowsCodex(kind)) return primaryNeedsDownload;
+  const legacyBase = getLegacyWindowsCodexBase();
+  return legacyBase.peekNeedsDownload();
 }
 
 export async function getInstallState(kind: AgentBinaryKind): Promise<VendorRuntimeState> {
-  return getBase(kind).getState();
+  const readyBase = readyProvisioners.get(kind);
+  const base = readyBase ?? getBase(kind);
+  const state = await base.getState();
+  const binaryPath = lastReadyPath.get(kind);
+  if (!binaryPath) return state;
+  return { ...state, status: 'ready', binaryPath };
 }
 
 /**

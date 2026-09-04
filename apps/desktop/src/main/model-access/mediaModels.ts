@@ -8,6 +8,7 @@ import {
   type ModelDisableOverrides,
   type ModelCatalogEntry,
 } from '@cindy/model-providers';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import {
   MODEL_ACCESS_INVOCATION_GUIDE_PATH,
   MODEL_ACCESS_INVOCATION_GUIDES_PATH,
@@ -280,7 +281,7 @@ function parseResolvedGuidePayload(
   ) {
     throw new MediaGuideCompatibilityError(
       'CLIENT_UPGRADE_REQUIRED',
-      '当前 Cindy 版本不支持该模型的调用协议，请升级客户端或更换模型。',
+      `当前 ${BRAND_NAME} 版本不支持该模型的调用协议，请升级客户端或更换模型。`,
       `unsupported Guide schemaVersion: ${schemaVersion}`,
     );
   }

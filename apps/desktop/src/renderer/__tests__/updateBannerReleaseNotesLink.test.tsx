@@ -84,6 +84,22 @@ describe('UpdateBanner release-notes link', () => {
     expect(onOpenVersionNotice).toHaveBeenCalledWith('1.4.2');
   });
 
+  it('opens the official website instead of relaunching for a notify-only update', async () => {
+    updateStatus.current = { status: 'available', version: '1.4.3' };
+    const openWebsite = vi.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+      render(<UpdateBanner isCollapsed={false} onOpenVersionNotice={vi.fn()} />);
+      const downloadButton = await screen.findByText('update.banner.availableButton');
+      fireEvent.click(downloadButton);
+
+      expect(openWebsite).toHaveBeenCalledWith('https://cindy.ai', '_blank');
+      expect(relaunchToUpdate).not.toHaveBeenCalled();
+      expect(anyActivityBlockingRelaunch).not.toHaveBeenCalled();
+    } finally {
+      openWebsite.mockRestore();
+    }
+  });
+
   it('hides the link when the CDN has no renderable notes for that version', async () => {
     fetchReleaseNotes.mockResolvedValue(null);
     render(<UpdateBanner isCollapsed={false} onOpenVersionNotice={vi.fn()} />);

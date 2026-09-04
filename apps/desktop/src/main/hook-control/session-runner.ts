@@ -34,6 +34,7 @@ import path from 'node:path';
 import { app } from 'electron';
 import { stripInternalWebCitations } from '@cindy/maker-shared/internal-citation';
 import { MAIN_OWNED_SEND_CONTEXT } from '@cindy/maker-core';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type {
   AgentKind,
@@ -1044,8 +1045,8 @@ export function createMakerHookSessionRunner(deps: {
           }
           if (handoffMessages.length > 0) {
             replacementHandoff = buildHandoffText(handoffMessages, {
-              fromLabel: 'Cindy',
-              toLabel: 'Cindy',
+              fromLabel: BRAND_NAME,
+              toLabel: BRAND_NAME,
             });
           }
         } catch (err) {
@@ -1058,7 +1059,7 @@ export function createMakerHookSessionRunner(deps: {
                   createdAt: startedAt,
                 },
               ],
-              { fromLabel: 'Cindy', toLabel: 'Cindy' },
+              { fromLabel: BRAND_NAME, toLabel: BRAND_NAME },
             );
           }
           log.warn(

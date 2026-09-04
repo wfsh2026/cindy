@@ -9,6 +9,7 @@
  */
 import { ServerApiError, serverApiFetch, type ApiFetchOptions } from '../serverApiClient';
 import { getClientEndpoint } from '../clientEndpointsService';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 function requireSkillhubApiBaseUrl(): string {
   const baseUrl = getClientEndpoint('cindySkillHubApiBaseUrl');
@@ -16,7 +17,7 @@ function requireSkillhubApiBaseUrl(): string {
     throw new ServerApiError(
       'UNSUPPORTED_CAPABILITY',
       0,
-      'Cindy Skill Hub is not configured for this environment',
+      `${BRAND_NAME} Skill Hub is not configured for this environment`,
     );
   }
   return baseUrl;

@@ -14,6 +14,7 @@ import {
   type IOSSimulatorPixelDiff,
   type IOSSimulatorCommandRunner,
 } from '@cindy/ios-simulator-runtime';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { ingestMedia, type IngestedMedia, type IngestMediaParams } from '../cindy-media/ingest.js';
 import type { LedgerDb } from '../cindy-media/ledger.js';
@@ -763,9 +764,10 @@ export class IOSSimulatorMediaCapture {
     source: 'agent' | 'user';
   }): Promise<{ recordingId: string; startedAt: string }> {
     if (this.#ingestPoisoned) {
+      const restartMessage = `The simulator media store is unavailable until ${BRAND_NAME} restarts.`;
       throw new IOSSimulatorInstanceError(
         'RECORDING_FAILED',
-        'The simulator media store is unavailable until Cindy restarts.',
+        restartMessage,
         true,
       );
     }

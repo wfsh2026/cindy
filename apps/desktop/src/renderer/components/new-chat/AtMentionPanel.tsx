@@ -31,6 +31,7 @@ import {
   File as FileIcon,
   Folder as FolderIcon,
   FolderPlus,
+  Gamepad2,
   Globe2,
   History,
   Monitor,
@@ -109,6 +110,7 @@ interface AtMentionPanelProps {
 const ACTION_ICONS: Record<ComposerSuggestionAction['id'], typeof Paperclip> = {
   'attach-files': Paperclip,
   'new-goal': Target,
+  'composer-mode': Gamepad2,
   'plan-mode': ClipboardList,
   collaboration: UsersRound,
   'add-extra-dir': FolderPlus,

@@ -24,6 +24,7 @@ import {
   type ProviderPreset,
   type ProviderView,
 } from '@cindy/model-providers';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type { LocalCliDetection } from '../../shared/localCliDetect.js';
 import { MANAGED_OLLAMA_PROVIDER_ID } from '../../shared/localModelRuntime.js';
@@ -1350,7 +1351,7 @@ export function registerProviderHandlers(
       const target = parsePriceTarget(targetInput);
       const desired = parseDesiredPrice(quoteInput);
       if (target.providerId === 'xd') {
-        throwIpcError('INVALID_PARAMS', 'Cindy AI Gateway pricing is server-controlled');
+        throwIpcError('INVALID_PARAMS', `${BRAND_NAME} AI Gateway pricing is server-controlled`);
       }
       if (desired.currency === 'CNY' && deps.getLedgerCurrency() === 'USD') {
         throwIpcError('INVALID_PARAMS', 'CNY price overrides cannot project into a USD ledger');

@@ -4,7 +4,7 @@ import { backup, DatabaseSync } from 'node:sqlite';
 
 import {
   MANAGED_CDP_PORT,
-  MANAGED_PROFILE,
+  MANAGED_PROFILE_DISPLAY_NAME,
   REAL_MANAGED_PROFILE,
 } from '../browser-managed-config.js';
 import { REAL_PROFILE_READ_DENIED } from '../../../shared/browserBackend.js';
@@ -76,8 +76,8 @@ function asObject(value: unknown): Record<string, unknown> | null {
  * folder (often an empty `Profile 2`) and look signed-out. Point every
  * selection field at Default and keep only that info_cache entry, taking
  * metadata from the source last_used profile when present. Stamp the chip
- * name to `Cindy` so a copied "Dash" / "Person 1" label never leaks; launch
- * decoration uses the same display name.
+ * with the current product display name so a copied "Dash" / "Person 1" label
+ * never leaks; launch decoration uses the same display name.
  */
 export function rewriteLocalStateForManagedDefault(
   localStateRaw: string,
@@ -98,9 +98,9 @@ export function rewriteLocalStateForManagedDefault(
   const sourceInfo = {
     ...(asObject(infoCache[sourceProfile]) ?? asObject(infoCache.Default) ?? {}),
   };
-  sourceInfo.name = MANAGED_PROFILE;
-  sourceInfo.shortcut_name = MANAGED_PROFILE;
-  sourceInfo.user_name = MANAGED_PROFILE;
+  sourceInfo.name = MANAGED_PROFILE_DISPLAY_NAME;
+  sourceInfo.shortcut_name = MANAGED_PROFILE_DISPLAY_NAME;
+  sourceInfo.user_name = MANAGED_PROFILE_DISPLAY_NAME;
   profile.last_used = 'Default';
   profile.last_active_profiles = ['Default'];
   profile.profiles_order = ['Default'];

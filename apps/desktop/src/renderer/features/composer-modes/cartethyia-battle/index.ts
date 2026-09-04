@@ -1,0 +1,1 @@
+export { CartethyiaBattleStage } from './CartethyiaBattleStage';

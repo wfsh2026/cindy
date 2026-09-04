@@ -6,6 +6,7 @@
  */
 
 import type { IMUnsupportedEntry } from '@cindy/im';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type { ImUiTextPack } from '../shared/types';
 
@@ -40,12 +41,12 @@ export const ui = {
     runtimeError: (errMsg: string) => `⚠️ Agent 翻车了：${errMsg.slice(0, 200)}`,
     sendInternalError: (errMsg: string) => `❌ 内部出 bug 了：${errMsg}`,
     apiKeyMissing:
-      '⚠️ Cindy AI Key 还没配呢~\n去 desktop 的 Settings → 模型供应商里连接 Cindy AI，再来 ping 我',
+      `⚠️ ${BRAND_NAME} AI Key 还没配呢~\n去 desktop 的 Settings → 模型供应商里连接 ${BRAND_NAME} AI，再来 ping 我`,
     authMissing: ({ providerLabel, providerId, missing, agentKind, model, attached }) => {
       const provider = providerLabel ?? providerId ?? '当前供应商';
       const reason =
         missing === 'gateway-key'
-          ? '需要先配置 Cindy AI Key'
+          ? `需要先配置 ${BRAND_NAME} AI Key`
           : missing === 'provider-key'
             ? '还没有配置该供应商的 API Key'
             : missing === 'provider-disconnected'
@@ -124,7 +125,7 @@ export const ui = {
       resolved: (label: string) => `✅ 权限模式切到 ${label} 了`,
       failed: (reason: string) => `❌ 权限模式没切过去：${reason}`,
       fullAccessConfirmTitle: '⚠️ 确认开启 Full access？',
-      fullAccessConfirmBody: 'Full access 会关闭工作区沙箱并跳过常规审批。Cindy 可以修改工作区外的文件、执行联网命令且不再询问；内置高风险操作仍会要求确认。',
+      fullAccessConfirmBody: `Full access 会关闭工作区沙箱并跳过常规审批。${BRAND_NAME} 可以修改工作区外的文件、执行联网命令且不再询问；内置高风险操作仍会要求确认。`,
       btnConfirmFullAccess: '开启 Full access',
       btnCancelFullAccess: '保留当前权限',
       fullAccessCancelled: '已取消，保留当前权限',

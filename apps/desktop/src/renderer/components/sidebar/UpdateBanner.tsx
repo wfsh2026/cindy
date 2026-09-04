@@ -120,6 +120,7 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
   const isSpawnFailed = status === 'error' && errorCode === 'updater_spawn_failed';
   const isWindowsRuntimeMissing =
     status === 'ready' && errorCode === 'windows_vc_runtime_missing';
+  const isAvailable = status === 'available';
   const isPreparing = status === 'superseding';
 
   useEffect(() => {
@@ -171,7 +172,7 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
   //     让探测跟着弹窗开关反复重跑。
   const canOpenNotice = Boolean(onOpenVersionNotice);
   useEffect(() => {
-    if (status !== 'ready' || !version || !canOpenNotice || isCollapsed) {
+    if ((status !== 'available' && status !== 'ready') || !version || !canOpenNotice || isCollapsed) {
       setHasNotes(false);
       return;
     }
@@ -209,7 +210,16 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
   // 时 return null,只留头像行那颗。busy 时若把折叠火焰也藏掉,rail 会完全没入口。
   const hideExpandedBanner =
     hideUntilBusyDecision
-    || (dismissed && (status === 'ready' || isPreparing));
+    || (dismissed && (isAvailable || status === 'ready' || isPreparing));
+  if (!isCollapsed && hideExpandedBanner) return null;
+  if (
+    isCollapsed
+    && dismissed
+    && reason === 'user'
+    && (isAvailable || status === 'ready' || isPreparing)
+  ) {
+    return null;
+  }
 
   const handleRelaunch = () => {
     const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -286,11 +296,21 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
     window.electronAPI.relaunchToUpdate(theme);
   };
 
+  const handleOpenOfficialDownload = () => {
+    window.open(websiteUrl(), '_blank');
+  };
+  const enabledUpdateActionClassName = cn(
+    'flex w-full items-center justify-center gap-2 rounded-full border py-2',
+    'text-13 font-medium transition-colors',
+    'bg-[var(--update-btn-bg)] border-[var(--update-btn-border)] text-[var(--update-btn-text)]',
+    'hover:bg-[var(--update-btn-hover)]',
+  );
+
   // 文字链要显示的版本 —— undefined 即不显示。ready 态之外(superseding / error)没有
   // 可信版本号,confirming 态则刻意让位给两步确认。hasNotes 已经蕴含「ready + 该版本
   // 公告可渲染」,这里再显式列出条件,读代码时不必回溯 effect。
   const notesVersion =
-    status === 'ready' && !confirming && hasNotes && version ? version : undefined;
+    (isAvailable || status === 'ready') && !confirming && hasNotes && version ? version : undefined;
 
   const versionSuffix = version ? ` (v${version})` : '';
   const versionForAria = version ?? 'latest';
@@ -322,10 +342,9 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
     </>
   );
 
-  // Banner is visible for ready (relaunch available), superseding (preparing
-  // a newer version on top of an already-ready patch), or error fallback
-  // dialogs. Everything else hides the banner.
-  if (status !== 'ready' && !isPreparing && !isTranslocated && !isSpawnFailed) return null;
+  // Banner is visible for available (notify-only), ready (relaunch available),
+  // superseding (preparing a newer version), or error fallback dialogs.
+  if (!isAvailable && status !== 'ready' && !isPreparing && !isTranslocated && !isSpawnFailed) return null;
 
   if (isErrorOnly) {
     // onOpenChange is a no-op so the user can't accidentally dismiss the
@@ -411,16 +430,23 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
         <Tip
           text={isPreparing
             ? t('update.banner.preparingTooltip')
-            : t('update.banner.tooltipReady', { versionSuffix })}
+            : isAvailable
+              ? t('update.banner.availableTooltip', { versionSuffix })
+              : t('update.banner.tooltipReady', { versionSuffix })}
           side="right"
         >
           <button
             ref={relaunchTriggerRef}
-            onClick={() => { if (!isPreparing) void handleRelaunchClick(); }}
+            onClick={() => {
+              if (isAvailable) handleOpenOfficialDownload();
+              else if (!isPreparing) void handleRelaunchClick();
+            }}
             disabled={isPreparing}
             aria-label={isPreparing
               ? t('update.banner.preparingAria')
-              : t('update.banner.ariaCollapsed', { version: versionForAria })}
+              : isAvailable
+                ? t('update.banner.availableAria', { version: versionForAria })
+                : t('update.banner.ariaCollapsed', { version: versionForAria })}
             className={cn(
               'flex w-full items-center justify-center py-2',
               'transition-colors',
@@ -472,7 +498,9 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
             ? t('update.banner.preparingTitle')
             : confirming
               ? t('update.banner.confirmTitle')
-              : t('update.banner.title', { version: version ?? '…' })}
+              : isAvailable
+                ? t('update.banner.availableTitle', { version: version ?? '…' })
+                : t('update.banner.title', { version: version ?? '…' })}
         </p>
 
         {/* Subtitle + 「查看更新公告」文字链 —— 同一视觉组(gap-1),所以链接读作副标题的
@@ -492,7 +520,9 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
               ? t('update.banner.preparingSubtitle')
               : confirming
                 ? t('update.banner.confirmBusyHint')
-                : t('update.banner.subtitle')}
+                : isAvailable
+                  ? t('update.banner.availableSubtitle')
+                  : t('update.banner.subtitle')}
           </p>
           {notesVersion && (
             <button
@@ -514,7 +544,15 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
                            「取消」在其下,次级 ghost,需刻意移动 → 打断任务前的最后一道闸。
             - ready:       单个「立即重启」入口 pill,点击后按 busy 探针决定直接重启还是
                            先进中断警告态。 */}
-        {isPreparing ? (
+        {isAvailable ? (
+          <button
+            onClick={handleOpenOfficialDownload}
+            aria-label={t('update.banner.availableAria', { version: version ?? '' })}
+            className={enabledUpdateActionClassName}
+          >
+            {t('update.banner.availableButton')}
+          </button>
+        ) : isPreparing ? (
           <button
             disabled
             aria-label={t('update.banner.preparingAria')}
@@ -560,12 +598,7 @@ export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerP
             ref={relaunchTriggerRef}
             onClick={() => { void handleRelaunchClick(); }}
             aria-label={t('update.banner.ariaExpanded', { version: version ?? '' })}
-            className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-full border py-2',
-              'text-13 font-medium transition-colors',
-              'bg-[var(--update-btn-bg)] border-[var(--update-btn-border)] text-[var(--update-btn-text)]',
-              'hover:bg-[var(--update-btn-hover)]',
-            )}
+            className={enabledUpdateActionClassName}
           >
             {t('update.banner.button')}
           </button>

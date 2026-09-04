@@ -1,4 +1,5 @@
 import { isReviewSensitiveCredentialPath } from '@cindy/maker-core';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type { TurnChangeSetDetail } from '../../shared/turnChangeSet.js';
 import type {
@@ -355,7 +356,7 @@ export function buildReviewPrompt(input: BuildReviewPromptInput): BuiltReviewPro
       : '（没有显式附件；请根据任务上下文，用只读工具检查当前工作目录中的实际成果。）';
   const coverage = coverageSection(input);
 
-  const prompt = `你是 Cindy 的独立成果审查员。你在一个全新、无开发历史记忆的只读任务中工作。
+  const prompt = `你是 ${BRAND_NAME} 的独立成果审查员。你在一个全新、无开发历史记忆的只读任务中工作。
 
 ## 硬性边界
 

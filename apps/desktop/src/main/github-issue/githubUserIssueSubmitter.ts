@@ -164,7 +164,7 @@ export async function postGithubIssueAsUser(
   ) {
     throw submissionError(
       'SERVER_ERROR',
-      'Cindy GitHub 返回的 issue 创建结果不完整，issue 状态无法确认，请勿自动重试。',
+      'GitHub 插件返回的 issue 创建结果不完整，issue 状态无法确认，请勿自动重试。',
     );
   }
   return { githubIssue: { number: created.number, url: created.html_url } };
@@ -179,7 +179,8 @@ async function requireGithubOperation(
   try {
     operation = await callGithubOperation(deps, name, args);
   } catch (err) {
-    throw malformedResponseError(`Cindy GitHub 的 ${name} 调用失败`, err);
+    const errorMessage = `GitHub 插件的 ${name} 调用失败`;
+    throw malformedResponseError(errorMessage, err);
   }
   if (operation.ok) return operation.data;
   const code = isGithubAuthFailure(operation.message)
@@ -190,7 +191,7 @@ async function requireGithubOperation(
   throw submissionError(
     code,
     code === 'AUTH_NOT_READY'
-      ? `GitHub 用户身份或仓库权限不可用，issue 未提交。请到「插件」→「Cindy GitHub」检查 token 权限：${operation.message}`
+      ? `GitHub 用户身份或仓库权限不可用，issue 未提交。请到「插件」→「GitHub」检查 token 权限：${operation.message}`
       : `GitHub 用户身份提交失败，issue 未提交且未切换为平台代提交：${operation.message}`,
   );
 }
@@ -211,7 +212,7 @@ async function callGithubOperation(
     () => ({
       ok: false as const,
       errorCode: 'GHOST_TIMEOUT',
-      message: `Cindy GitHub ${name} 超时`,
+      message: `GitHub 插件 ${name} 超时`,
     }),
   );
   if (!result.ok) return result;
@@ -225,7 +226,7 @@ function parseGithubLogin(value: unknown): string {
   if (!isRecord(value) || typeof value.login !== 'string' || !value.login.trim()) {
     throw submissionError(
       'SERVER_ERROR',
-      'Cindy GitHub 未返回有效的 GitHub 用户名，issue 未提交。',
+      'GitHub 插件未返回有效的 GitHub 用户名，issue 未提交。',
     );
   }
   return value.login.trim();

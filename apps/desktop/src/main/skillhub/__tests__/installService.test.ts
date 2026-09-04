@@ -232,7 +232,7 @@ describe('skillhub/installService', () => {
     await expect(uninstall(finalDir)).resolves.toEqual({
       success: false,
       errorCode: 'AUTH_REQUIRED',
-      message: 'SkillHub 卸载需要 Cindy 云端账号',
+      message: 'SkillHub 卸载需要 Cartethyia 云端账号',
     });
     expect(fs.existsSync(finalDir)).toBe(true);
   });

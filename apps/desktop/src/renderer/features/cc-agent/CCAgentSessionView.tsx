@@ -175,6 +175,8 @@ import {
   type UnifiedCommand,
 } from '@/lib/slashCommands';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { ComposerModeHost, ComposerModeSlot } from '@/features/composer-modes/ComposerModeHost';
+import { useComposerModePreference } from '@/features/composer-modes/useComposerModePreference';
 import * as sessionService from '@/lib/sessionService';
 import { emitRefresh } from '@/lib/sessionsBus';
 import type { Session } from '@/lib/ccAgent.types';
@@ -829,6 +831,22 @@ export function CCAgentSessionView({
   const controlledBannerCollapsed = useComposerCollapsed(sessionId ?? null);
   const showExpandedControlledBanner = hasControlledBanner && !controlledBannerCollapsed;
   const isMac = window.electronAPI?.platform === 'darwin';
+  const composerModeAvailable = window.electronAPI?.platform === 'win32';
+  const { mode: composerMode, setMode: setComposerMode } = useComposerModePreference();
+  const activeComposerMode = composerModeAvailable ? composerMode : 'standard';
+  const [composerModeStopGeneration, setComposerModeStopGeneration] = useState(0);
+  const composerModeMenu = useMemo(() => {
+    if (!composerModeAvailable) return undefined;
+    return {
+      label: t('composerModes.cartethyiaBattle.menuItem'),
+      searchText: 'Cartethyia battle 卡提 打怪',
+      enabled: activeComposerMode === 'cartethyia-battle',
+      onToggle: (enabled: boolean) => {
+        const nextMode = enabled ? 'cartethyia-battle' : 'standard';
+        setComposerMode(nextMode);
+      },
+    };
+  }, [activeComposerMode, composerModeAvailable, setComposerMode, t]);
   // messageWidth：消息流容器宽度（视觉边距 50px / compact 20px）
   // inputWidth：ChatInput / 状态栏 / workingDir 行的宽度（视觉边距 40px / compact 10px）
   // doc rail 内嵌场景(isCompactRail)恒 compact;主会话不显式传 compact,由 hook
@@ -3533,6 +3551,7 @@ export function CCAgentSessionView({
       toast.warning(t('ccAgent.remoteSession.actionsUnavailable'));
       return;
     }
+    setComposerModeStopGeneration((current) => current + 1);
     stopSession();
   }, [remoteSessionUnavailable, stopSession, t]);
 
@@ -4963,138 +4982,147 @@ export function CCAgentSessionView({
                   getContentWidth={getMessageWidth}
                 />
               ) : (
-                <ChatInput
-                  onSend={handleSend}
-                  onBeforeVoiceInputStart={handleBeforeVoiceInputStart}
-                  sessionId={sessionId}
-                  ownsHardwareComposerActions={ownsHardwareTaskActions}
-                  // session=null 是冷启动 / 直链 GET 尚未回流的合法首帧；显式传 null，
-                  // 让 ChatInput 暂不显示 Agent 身份，不能跟随 displayAgentKind 的 cc 回退。
-                  runtimeAgentKind={session ? dbToMakerAgentKind(session.agentKind) : null}
-                  // 协同会话不参与跨引擎切换；session 未加载时保留 undefined 未知态，
-                  // 仅在完整元数据确认非 Orca 后传 null 开放入口。
-                  sessionOrcaRole={session ? (session.orcaRole ?? null) : undefined}
-                  initialWorkingDir={session?.workingDir}
-                  remoteHostId={session?.remoteHostId ?? null}
-                  deviceLinkDeviceId={rightSidebarDeviceLinkDeviceId}
-                  modelMemoryOverride={remoteModelMemoryOverride}
-                  initialModel={session?.model}
-                  initialProviderId={session?.providerId ?? null}
-                  initialEffort={session?.effort}
-                  initialPermissionMode={session?.permissionMode}
-                  planModeEnabled={planModeEnabled}
-                  onPlanModeChange={setPlanMode}
-                  fastMode={fastMode}
-                  onFastModeChange={setFastMode}
-                  onWorkingDirChange={handleWorkingDirChange}
-                  isStreaming={isStreaming}
-                  isAgentBusy={isAgentBusy}
-                  onStop={handleStopSession}
-                  pendingQueue={pendingQueue}
-                  disabled={remoteHandoffPreparing || session?.source === 'review'}
-                  settingsLocked={session?.source === 'review'}
-                  queuePaused={queuePaused}
-                  queueExpanded={queueExpanded}
-                  onQueueExpandedChange={setQueueExpanded}
-                  onQueueResume={resumeQueue}
-                  onQueueRemove={removeFromQueue}
-                  onQueueEdit={updateQueueItem}
-                  onQueueSteer={steerQueuedMessage}
-                  onQueueReorder={moveQueueItem}
-                  onQueueInteractionLock={setQueueInteractionLock}
-                  onQueueEditLock={setQueueEditLock}
-                  steeringQueueClientIds={steeringQueueClientIds}
-                  messages={messages}
-                  placeholder={t('ccAgent.layout.chatPlaceholder')}
-                  folderPickerOpen={folderPickerOpen}
-                  onFolderPickerOpenChange={handleFolderPickerOpenChange}
-                  showFolderPicker={false}
-                  onModelDidChange={handleModelDidChange}
-                  onEffortDidChange={handleEffortDidChange}
-                  onPermissionModeDidChange={handlePermissionModeDidChange}
-                  attachmentState={attachmentState}
-                  externalDragOver={isDragOver}
-                  onComposerDropHandled={resetFullAreaDragState}
-                  vendorKey={normalizeDbAgentKind(displayAgentKind)}
-                  extraDirs={session?.extraDirs ?? []}
-                  onExtraDirsChange={handleExtraDirsChange}
-                  writableDirs={session?.writableDirs ?? []}
-                  writableGrantScope={sessionId}
-                  onWritableDirsChange={
-                    writableDirsChangeSupported ? handleWritableDirsChange : undefined
-                  }
-                  onWritableDirRemove={
-                    writableDirsChangeSupported ? handleWritableDirRemove : undefined
-                  }
-                  compactToolbar={compactToolbar}
-                  // doc rail (isCompactRail) 宽度受限 + 拖宽上限,工具行需要把字号/控件压一档。
-                  denseToolbar={isCompactRail}
-                  // doc 模式右栏:不抢焦点,避免 TipTap contenteditable 激活
-                  // Windows 中文 IME 后,Ctrl+Shift+F 等组合键被 OS 层吞掉。
-                  // 详见 ChatInput 的 disableAutofocus prop 注释。
-                  disableAutofocus={isCompactRail || disableAutofocus}
-                  focusOnStorageKeyChange={ownsRoute}
-                  // F-COLLAB:「+」菜单里的协同模式项。普通 Lead 的项目/对话会话都渲染,
-                  // 项目级与用户级策略范围由 collabEntry 决定;只排除 Worker 子会话
-                  // (worker 自己不能再开协同)。
-                  // orcaMode 路由下也保留显示 — ON 态菜单项本身就是
-                  // 关闭按钮 (点击触发 onChange({enabled:false}),走 requestStopCollab)。
-                  collaboration={
-                    allowCollabToggle || (orcaMode && collabEnabled)
-                      ? {
-                          enabled: collabEnabled,
-                          worker: collabWorker,
-                          onChange: (next) => {
-                            // enableBusy 只盖 enable;关闭走 hook 自己的 busy 重入保护。
-                            if (collabEnabled && !next.enabled) {
-                              void requestStopCollab();
-                              return;
-                            }
-                            if (!collabEnabled && next.enabled) {
-                              if (enableBusy) return;
-                              setCollabWorker(next.worker);
-                              setCreateWorkerOpen(true);
-                              return;
-                            }
-                            // 同态切 worker 选择目前先不支持(需销毁重建 Worker),
-                            // mvp 先吃掉这条事件,后续可加 "切换 Worker" 流程。
-                          },
-                          onOpenDetails: () => {
-                            if (enableBusy) return;
-                            setCreateWorkerOpen(true);
-                          },
-                          onDisabledActivate: collabPolicy.unavailable
-                            ? () => {
-                                if (enableBusy) return;
-                                void collabPolicy.refresh().then((policy) => {
-                                  if (policy.enabled && !policy.unavailable) {
-                                    setCreateWorkerOpen(true);
-                                  }
-                                });
+                <ComposerModeHost mode={activeComposerMode}>
+                  <ComposerModeSlot
+                    sessionId={sessionId ?? null}
+                    active={ownsHardwareTaskActions && viewVisible}
+                    compact={isCompactRail || compactToolbar}
+                    stopGeneration={composerModeStopGeneration}
+                  />
+                  <ChatInput
+                    onSend={handleSend}
+                    onBeforeVoiceInputStart={handleBeforeVoiceInputStart}
+                    sessionId={sessionId}
+                    ownsHardwareComposerActions={ownsHardwareTaskActions}
+                    // session=null 是冷启动 / 直链 GET 尚未回流的合法首帧；显式传 null，
+                    // 让 ChatInput 暂不显示 Agent 身份，不能跟随 displayAgentKind 的 cc 回退。
+                    runtimeAgentKind={session ? dbToMakerAgentKind(session.agentKind) : null}
+                    // 协同会话不参与跨引擎切换；session 未加载时保留 undefined 未知态，
+                    // 仅在完整元数据确认非 Orca 后传 null 开放入口。
+                    sessionOrcaRole={session ? (session.orcaRole ?? null) : undefined}
+                    initialWorkingDir={session?.workingDir}
+                    remoteHostId={session?.remoteHostId ?? null}
+                    deviceLinkDeviceId={rightSidebarDeviceLinkDeviceId}
+                    modelMemoryOverride={remoteModelMemoryOverride}
+                    initialModel={session?.model}
+                    initialProviderId={session?.providerId ?? null}
+                    initialEffort={session?.effort}
+                    initialPermissionMode={session?.permissionMode}
+                    planModeEnabled={planModeEnabled}
+                    onPlanModeChange={setPlanMode}
+                    composerMode={composerModeMenu}
+                    fastMode={fastMode}
+                    onFastModeChange={setFastMode}
+                    onWorkingDirChange={handleWorkingDirChange}
+                    isStreaming={isStreaming}
+                    isAgentBusy={isAgentBusy}
+                    onStop={handleStopSession}
+                    pendingQueue={pendingQueue}
+                    disabled={remoteHandoffPreparing || session?.source === 'review'}
+                    settingsLocked={session?.source === 'review'}
+                    queuePaused={queuePaused}
+                    queueExpanded={queueExpanded}
+                    onQueueExpandedChange={setQueueExpanded}
+                    onQueueResume={resumeQueue}
+                    onQueueRemove={removeFromQueue}
+                    onQueueEdit={updateQueueItem}
+                    onQueueSteer={steerQueuedMessage}
+                    onQueueReorder={moveQueueItem}
+                    onQueueInteractionLock={setQueueInteractionLock}
+                    onQueueEditLock={setQueueEditLock}
+                    steeringQueueClientIds={steeringQueueClientIds}
+                    messages={messages}
+                    placeholder={t('ccAgent.layout.chatPlaceholder')}
+                    folderPickerOpen={folderPickerOpen}
+                    onFolderPickerOpenChange={handleFolderPickerOpenChange}
+                    showFolderPicker={false}
+                    onModelDidChange={handleModelDidChange}
+                    onEffortDidChange={handleEffortDidChange}
+                    onPermissionModeDidChange={handlePermissionModeDidChange}
+                    attachmentState={attachmentState}
+                    externalDragOver={isDragOver}
+                    onComposerDropHandled={resetFullAreaDragState}
+                    vendorKey={normalizeDbAgentKind(displayAgentKind)}
+                    extraDirs={session?.extraDirs ?? []}
+                    onExtraDirsChange={handleExtraDirsChange}
+                    writableDirs={session?.writableDirs ?? []}
+                    writableGrantScope={sessionId}
+                    onWritableDirsChange={
+                      writableDirsChangeSupported ? handleWritableDirsChange : undefined
+                    }
+                    onWritableDirRemove={
+                      writableDirsChangeSupported ? handleWritableDirRemove : undefined
+                    }
+                    compactToolbar={compactToolbar}
+                    // doc rail (isCompactRail) 宽度受限 + 拖宽上限,工具行需要把字号/控件压一档。
+                    denseToolbar={isCompactRail}
+                    // doc 模式右栏:不抢焦点,避免 TipTap contenteditable 激活
+                    // Windows 中文 IME 后,Ctrl+Shift+F 等组合键被 OS 层吞掉。
+                    // 详见 ChatInput 的 disableAutofocus prop 注释。
+                    disableAutofocus={isCompactRail || disableAutofocus}
+                    focusOnStorageKeyChange={ownsRoute}
+                    // F-COLLAB:「+」菜单里的协同模式项。普通 Lead 的项目/对话会话都渲染,
+                    // 项目级与用户级策略范围由 collabEntry 决定;只排除 Worker 子会话
+                    // (worker 自己不能再开协同)。
+                    // orcaMode 路由下也保留显示 — ON 态菜单项本身就是
+                    // 关闭按钮 (点击触发 onChange({enabled:false}),走 requestStopCollab)。
+                    collaboration={
+                      allowCollabToggle || (orcaMode && collabEnabled)
+                        ? {
+                            enabled: collabEnabled,
+                            worker: collabWorker,
+                            onChange: (next) => {
+                              // enableBusy 只盖 enable;关闭走 hook 自己的 busy 重入保护。
+                              if (collabEnabled && !next.enabled) {
+                                void requestStopCollab();
+                                return;
                               }
-                            : undefined,
-                          disabled:
-                            !collabEnabled && (collabPolicy.loading || !collabPolicy.enabled),
-                          // unsupported(被控端版本过旧、没有 maker:plugins:get-state)
-                          // 排在 unavailable 之前:它是确定性的不支持,给「稍后重试」是
-                          // 误导,上面的 onDisabledActivate 也只挂在 unavailable 上。
-                          disabledReason: !collabEnabled
-                            ? collabPolicy.loading
-                              ? t('newChat.collaboration.loadingHint')
-                              : collabPolicy.unsupported
-                                ? t('newChat.collaboration.unsupportedRemoteHint')
-                                : collabPolicy.unavailable || !collabPolicy.enabled
-                                  ? t(
-                                      collabPolicy.unavailable
-                                        ? 'newChat.collaboration.unavailableHint'
-                                        : 'newChat.collaboration.disabledHint',
-                                    )
-                                  : undefined
-                            : undefined,
-                        }
-                      : undefined
-                  }
-                />
+                              if (!collabEnabled && next.enabled) {
+                                if (enableBusy) return;
+                                setCollabWorker(next.worker);
+                                setCreateWorkerOpen(true);
+                                return;
+                              }
+                              // 同态切 worker 选择目前先不支持(需销毁重建 Worker),
+                              // mvp 先吃掉这条事件,后续可加 "切换 Worker" 流程。
+                            },
+                            onOpenDetails: () => {
+                              if (enableBusy) return;
+                              setCreateWorkerOpen(true);
+                            },
+                            onDisabledActivate: collabPolicy.unavailable
+                              ? () => {
+                                  if (enableBusy) return;
+                                  void collabPolicy.refresh().then((policy) => {
+                                    if (policy.enabled && !policy.unavailable) {
+                                      setCreateWorkerOpen(true);
+                                    }
+                                  });
+                                }
+                              : undefined,
+                            disabled:
+                              !collabEnabled && (collabPolicy.loading || !collabPolicy.enabled),
+                            // unsupported(被控端版本过旧、没有 maker:plugins:get-state)
+                            // 排在 unavailable 之前:它是确定性的不支持,给「稍后重试」是
+                            // 误导,上面的 onDisabledActivate 也只挂在 unavailable 上。
+                            disabledReason: !collabEnabled
+                              ? collabPolicy.loading
+                                ? t('newChat.collaboration.loadingHint')
+                                : collabPolicy.unsupported
+                                  ? t('newChat.collaboration.unsupportedRemoteHint')
+                                  : collabPolicy.unavailable || !collabPolicy.enabled
+                                    ? t(
+                                        collabPolicy.unavailable
+                                          ? 'newChat.collaboration.unavailableHint'
+                                          : 'newChat.collaboration.disabledHint',
+                                      )
+                                    : undefined
+                              : undefined,
+                          }
+                        : undefined
+                    }
+                  />
+                </ComposerModeHost>
               )}
 
               {/* F-FP-5: workingDir — always rendered to prevent layout shift

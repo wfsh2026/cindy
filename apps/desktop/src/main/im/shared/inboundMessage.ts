@@ -1,9 +1,10 @@
 import type { UserContentBlock, UserMessage } from '@cindy/maker-core';
 import type { IMAttachment } from '@cindy/im';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 const TAKEOVER_DELIVERY_CONTEXT =
   '<cindy_delivery_context>' +
-  'Reply normally to the user message in this turn. Cindy automatically delivers your final response ' +
+  `Reply normally to the user message in this turn. ${BRAND_NAME} automatically delivers your final response ` +
   'to the conversation that sent it. Do not ask the user to configure a bot, webhook, or outbound ' +
   'integration, and do not use a proactive outbound tool unless the user explicitly requests a separate ' +
   'outbound message. This delivery rule is transport-independent; never infer a persistent destination ' +

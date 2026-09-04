@@ -17,9 +17,9 @@
     "DEVICE_LINK_DEVICE_UNRESPONSIVE": "The target device is not responding. Check the remote device and try again.",
     "INTERNAL": "Operation failed. Please try again later.",
     "SSH_CONFIG_CONCURRENT_MODIFICATION": "The SSH configuration changed on disk. Reload it and try again.",
-    "SSH_CONFIG_RELOAD_REQUIRED": "The SSH config was saved, but Cindy could not refresh it. Reload the SSH configuration.",
-    "SSH_CONFIG_OWNERSHIP_REQUIRED": "Cindy cannot safely manage this SSH configuration. Reload it, then verify the Cindy ownership marker and that the host alias is unique.",
-    "SSH_CONFIG_AUTH_UNSUPPORTED": "Cindy cannot safely reproduce some SSH configuration rules for this host. Terminal SSH may still work; review Match, conditional Include, IdentityAgent, IdentitiesOnly, and public-key settings.",
+    "SSH_CONFIG_RELOAD_REQUIRED": "The SSH config was saved, but Cartethyia could not refresh it. Reload the SSH configuration.",
+    "SSH_CONFIG_OWNERSHIP_REQUIRED": "Cartethyia cannot safely manage this SSH configuration. Reload it, then verify the Cartethyia ownership marker and that the host alias is unique.",
+    "SSH_CONFIG_AUTH_UNSUPPORTED": "Cartethyia cannot safely reproduce some SSH configuration rules for this host. Terminal SSH may still work; review Match, conditional Include, IdentityAgent, IdentitiesOnly, and public-key settings.",
     "SSH_AGENT_UNAVAILABLE": "The SSH Agent is unavailable. Start it, load the matching private key with ssh-add, and try again.",
     "SSH_HOST_PREFS_WRITE_FAILED": "The host is still saved, but its display name or Agent Proxy settings could not be saved. Check local storage permissions and try again.",
     "RIGHT_SIDEBAR_TOO_MANY_TABS": "This task has reached its tab limit. Close some tabs first",
@@ -51,17 +51,17 @@
   "localDbFatal": {
     "databaseCleanup": {
       "interruptedTitle": "Database Cleanup Was Interrupted",
-      "interruptedDescription": "Database cleanup stopped unexpectedly. Restart Cindy so it can recover safely from the saved maintenance state.",
+      "interruptedDescription": "Database cleanup stopped unexpectedly. Restart Cartethyia so it can recover safely from the saved maintenance state.",
       "recoveryFailedTitle": "The Local Database Couldn't Be Recovered Safely",
-      "recoveryFailedDescription": "Database cleanup recovery failed. Cindy stopped opening the local database to avoid overwriting the original data."
+      "recoveryFailedDescription": "Database cleanup recovery failed. Cartethyia stopped opening the local database to avoid overwriting the original data."
     },
     "updateReady": {
       "title": "Update required to continue",
-      "description": "Your local data was upgraded by a newer version of Cindy and can't be opened by this version. The new version is downloaded and ready — restart to install it and get back in.",
+      "description": "Your local data was upgraded by a newer version of Cartethyia and can't be opened by this version. The new version is downloaded and ready — restart to install it and get back in.",
       "confirm": "Restart & Install Update"
     },
     "preparing": {
-      "description": "Your local data was upgraded by a newer version of Cindy and can't be opened by this version. Fetching the new version, please wait…",
+      "description": "Your local data was upgraded by a newer version of Cartethyia and can't be opened by this version. Fetching the new version, please wait…",
       "progress": "{{progress}}% downloaded"
     },
     "noUpdate": {
@@ -175,11 +175,11 @@
       "footnote": "Phase A: SSH connection management only. Running agents on the remote arrives in a later update.",
       "viaAuth": "via {{label}}",
       "readOnlyFromSshConfig": "Connection details come from SSH configuration",
-      "configWarning": "Cindy cannot evaluate some SSH configuration rules. The host list or connection details may differ from terminal SSH.",
+      "configWarning": "Cartethyia cannot evaluate some SSH configuration rules. The host list or connection details may differ from terminal SSH.",
       "configDiagnostic": {
-        "io": "Cindy could not read your SSH configuration. The last successfully loaded hosts are still shown. Check file permissions and reload.",
-        "syntax": "Cindy could not parse your SSH configuration. The last successfully loaded hosts are still shown. Fix the configuration and reload.",
-        "limit": "The SSH configuration is too deeply nested or too large for Cindy to read safely. The last successfully loaded hosts are still shown."
+        "io": "Cartethyia could not read your SSH configuration. The last successfully loaded hosts are still shown. Check file permissions and reload.",
+        "syntax": "Cartethyia could not parse your SSH configuration. The last successfully loaded hosts are still shown. Fix the configuration and reload.",
+        "limit": "The SSH configuration is too deeply nested or too large for Cartethyia to read safely. The last successfully loaded hosts are still shown."
       },
       "empty": {
         "title": "No remote machines yet.",
@@ -292,7 +292,7 @@
         "title": "Add a remote machine",
         "alias": "Alias",
         "displayName": "Display name",
-        "displayNamePlaceholder": "Optional name shown in Cindy",
+        "displayNamePlaceholder": "Optional name shown in Cartethyia",
         "hostname": "Hostname",
         "user": "User",
         "port": "Port",
@@ -315,13 +315,13 @@
         "cancel": "Cancel",
         "submit": "Add machine",
         "agentProxy": "Route agent traffic via proxy",
-        "agentProxyTip": "Send remote codex / Claude Code model traffic through a proxy: either a Cindy-managed SSH tunnel back to your local proxy, or a remote-reachable proxy URL you provide",
-        "agentProxyModeTunnel": "Cindy-managed tunnel",
+        "agentProxyTip": "Send remote codex / Claude Code model traffic through a proxy: either a Cartethyia-managed SSH tunnel back to your local proxy, or a remote-reachable proxy URL you provide",
+        "agentProxyModeTunnel": "Cartethyia-managed tunnel",
         "agentProxyModeTunnelDesc": "Dedicated SSH tunnel back to your local proxy, fixed remote port, auto-reconnects",
         "agentProxyModeEnv": "Bring your own proxy (env vars only)",
         "agentProxyModeEnvDesc": "Provide a proxy URL reachable from the remote; you maintain the tunnel/reachability",
         "agentProxyAddr": "Local proxy address",
-        "agentProxyHint": "A fixed port on the remote 127.0.0.1 is tunneled over a dedicated, Cindy-managed SSH connection back to your local proxy (e.g. Clash on 7890). {{appName}} does not provide a proxy — only the tunnel; the remote agent's HTTPS_PROXY is pinned to the fixed port and never drifts on reconnect. Changing this restarts the remote codex daemon once.",
+        "agentProxyHint": "A fixed port on the remote 127.0.0.1 is tunneled over a dedicated, Cartethyia-managed SSH connection back to your local proxy (e.g. Clash on 7890). {{appName}} does not provide a proxy — only the tunnel; the remote agent's HTTPS_PROXY is pinned to the fixed port and never drifts on reconnect. Changing this restarts the remote codex daemon once.",
         "agentProxyAddrInvalid": "Expected host:port, e.g. 127.0.0.1:7890",
         "agentProxyRemotePort": "Fixed remote port",
         "agentProxyRemotePortInvalid": "Port must be an integer between 1 and 65535",
@@ -376,9 +376,9 @@
         "confirmTitle": "Push Codex credentials to remote?",
         "confirmPush": "Push",
         "confirmOverwrite": "Overwrite",
-        "descFirstPush": "This will install your local Codex credentials in Cindy Codex home on {{hostId}} (~/.xdt-server/v1/codex-home/auth.json).",
-        "descOverwrite": "This will overwrite the existing Codex login in Cindy Codex home on {{hostId}}.",
-        "descOverwriteWithAge": "This will overwrite the existing Codex login in Cindy Codex home on {{hostId}} (last updated {{when}}).",
+        "descFirstPush": "This will install your local Codex credentials in Cartethyia Codex home on {{hostId}} (~/.xdt-server/v1/codex-home/auth.json).",
+        "descOverwrite": "This will overwrite the existing Codex login in Cartethyia Codex home on {{hostId}}.",
+        "descOverwriteWithAge": "This will overwrite the existing Codex login in Cartethyia Codex home on {{hostId}} (last updated {{when}}).",
         "warnOverwrite": "The current remote login will be lost. If someone is using Codex on that machine right now, they will be logged out.",
         "warnShared": "Anyone who can SSH into {{hostId}} will be able to read this file and use your OpenAI account.",
         "daysAgo": "{{n}} day(s) ago",
@@ -537,9 +537,9 @@
         "done": "Completed ✓",
         "error": "Failed",
         "needsReply": "Reply needed",
-        "externalDone": "Cindy · Session “{{title}}” completed ✓",
-        "externalError": "Cindy · Session “{{title}}” failed",
-        "externalNeedsReply": "Cindy · Session “{{title}}” needs your reply"
+        "externalDone": "Cartethyia · Session “{{title}}” completed ✓",
+        "externalError": "Cartethyia · Session “{{title}}” failed",
+        "externalNeedsReply": "Cartethyia · Session “{{title}}” needs your reply"
       },
       "wecomGroupLabel": "WeCom group notifications",
       "wecomGroupHint": "Used for automation completion notifications. Paste a WeCom group bot Webhook URL; it is encrypted on this device.",
@@ -550,7 +550,7 @@
       "wecomGroupSaveSuccess": "Webhook saved and test message sent",
       "wecomGroupSaveFailed": "Could not save or test the Webhook",
       "wecomGroupTest": "Send test",
-      "wecomGroupTestMessage": "Cindy WeCom group notification test succeeded",
+      "wecomGroupTestMessage": "Cartethyia WeCom group notification test succeeded",
       "wecomGroupTestSuccess": "Test message sent",
       "wecomGroupTestFailed": "Test message failed",
       "wecomGroupToggleFailed": "Could not update WeCom group notifications",
@@ -566,17 +566,17 @@
         "aria": "Choose what happens when the main window closes",
         "tray": "Minimize to tray",
         "minimize": "Minimize window",
-        "quit": "Quit Cindy"
+        "quit": "Quit Cartethyia"
       },
       "closePrompt": {
-        "title": "Close Cindy",
+        "title": "Close Cartethyia",
         "message": "What should happen when you close the main window?",
-        "detail": "Tasks keep running when Cindy is minimized to the system tray; right-click the tray icon to quit. You can change this later in Settings.",
-        "linuxDetail": "Tasks keep running while the window is minimized. Restore Cindy from the taskbar or window overview, or change this choice later in Settings."
+        "detail": "Tasks keep running when Cartethyia is minimized to the system tray; right-click the tray icon to quit. You can change this later in Settings.",
+        "linuxDetail": "Tasks keep running while the window is minimized. Restore Cartethyia from the taskbar or window overview, or change this choice later in Settings."
       },
       "trayMenu": {
-        "show": "Open Cindy",
-        "quit": "Quit Cindy"
+        "show": "Open Cartethyia",
+        "quit": "Quit Cartethyia"
       },
       "trayError": {
         "title": "Could not minimize to tray",
@@ -612,8 +612,8 @@
       "skinAnimationAria": "Switch {{skin}} animation preview",
       "skins": {
         "cindy": {
-          "name": "Cindy",
-          "description": "Cindy herself, keeping an eye on every run."
+          "name": "Cartethyia",
+          "description": "Cartethyia herself, keeping an eye on every run."
         },
         "blackcat": {
           "name": "Black Cat",
@@ -693,8 +693,8 @@
       "local": {
         "exitFailed": "Failed to exit the not-signed-in state, please try again",
         "name": "Not signed in",
-        "description": "Data stays on this device without Cindy account services",
-        "signIn": "Sign in to Cindy",
+        "description": "Data stays on this device without Cartethyia account services",
+        "signIn": "Sign in to Cartethyia",
         "exit": "Exit the not-signed-in state"
       },
       "copyUserId": {
@@ -792,7 +792,7 @@
       "openLogsDirTooltip": "Open the logs directory in the system file manager",
       "logUpload": {
         "crashAutoLabel": "Upload logs automatically on crash",
-        "crashAutoDescription": "When enabled, Cindy sends the run records from around a crash to our backend automatically, so you don't have to upload them yourself. Off by default and can be turned off at any time; any crash records still queued for upload are cleared immediately when you do.",
+        "crashAutoDescription": "When enabled, Cartethyia sends the run records from around a crash to our backend automatically, so you don't have to upload them yourself. Off by default and can be turned off at any time; any crash records still queued for upload are cleared immediately when you do.",
         "crashAutoEnabledToast": "Automatic log upload on crash enabled",
         "crashAutoDisabledToast": "Automatic log upload on crash disabled",
         "saveFailed": "Failed to save log upload settings",
@@ -801,7 +801,7 @@
         "uploading": "Uploading",
         "uploadTooltip": "Upload recent run records to our backend and get an upload code you can quote",
         "uploadDescription": "Hit this when something goes wrong to send your recent run records to our backend. You'll get an upload code afterwards — just give us that code when reporting the problem, no need to hunt for files.",
-        "scopeDescription": "What is uploaded: Cindy's own run records (startup and exit, crashes, network, updates, database, sign-in) and device environment information (OS version, app version, device identifier), plus your account ID once signed in. What is not uploaded: conversations, file contents, prompts, working directory paths. Credentials and email addresses are stripped automatically before upload.",
+        "scopeDescription": "What is uploaded: Cartethyia's own run records (startup and exit, crashes, network, updates, database, sign-in) and device environment information (OS version, app version, device identifier), plus your account ID once signed in. What is not uploaded: conversations, file contents, prompts, working directory paths. Credentials and email addresses are stripped automatically before upload.",
         "successToast": "Logs uploaded. Upload code {{code}} (copied — send it to us when reporting)",
         "errorUnavailable": "Log upload is not configured in this build and is unavailable for now",
         "errorConsentRequired": "You need to accept the Privacy Policy before uploading logs",
@@ -812,14 +812,16 @@
         "unavailableNoConsent": "You need to accept the Privacy Policy first."
       },
       "openLogsDirError": "Failed to open logs directory",
+      "updateNotificationLabel": "Notify me when updates are available",
+      "windowsUpdateNotificationDescription": "Cartethyia shows an update notice but does not download or install updates automatically.",
       "autoUpdateLabel": "Install updates while idle",
       "autoUpdateDescription": "After an update finishes downloading, restart the app to install it when this computer has been idle for 10 minutes and no tasks are running.",
-      "linuxUpdateDescription": "When a newer build is available, Cindy downloads the .deb in the app. Installing it asks for your system password, so updates are not applied while idle.",
+      "linuxUpdateDescription": "When a newer build is available, Cartethyia downloads the .deb in the app. Installing it asks for your system password, so updates are not applied while idle.",
       "autoUpdateEnabledToast": "Idle update installation enabled",
       "autoUpdateDisabledToast": "Idle update installation disabled",
       "autoUpdateSaveFailed": "Failed to save auto-update settings",
       "analyticsLabel": "Usage statistics",
-      "analyticsDescription": "Helps us understand how often Cindy is launched and kept in use. Reports device and usage-environment information — such as your device model, OS version, app version, and a device identifier — plus, once signed in, your account ID; never conversations, files, or prompts. Turning this off stops reporting immediately.",
+      "analyticsDescription": "Helps us understand how often Cartethyia is launched and kept in use. Reports device and usage-environment information — such as your device model, OS version, app version, and a device identifier — plus, once signed in, your account ID; never conversations, files, or prompts. Turning this off stops reporting immediately.",
       "analyticsEnabledToast": "Usage statistics enabled",
       "analyticsDisabledToast": "Usage statistics disabled",
       "analyticsSaveFailed": "Failed to save usage statistics settings",
@@ -832,7 +834,7 @@
         "openFailed": "Unable to open the document. Check your system browser settings."
       },
       "social": {
-        "title": "Connect with Cindy",
+        "title": "Connect with Cartethyia",
         "discordLabel": "Discord",
         "discordDescription": "Join the community",
         "xLabel": "X",
@@ -853,7 +855,7 @@
         "statsFailed": "Stats temporarily unavailable",
         "legacyUsage": "Legacy data (read-only, not part of cleanup): {{size}}",
         "legacyImagesLabel": "Image cache directory",
-        "legacyImagesDescription": "Cindy does not scan or clean this directory automatically. Deleting files may make images in message history unavailable; review them before deleting.",
+        "legacyImagesDescription": "Cartethyia does not scan or clean this directory automatically. Deleting files may make images in message history unavailable; review them before deleting.",
         "legacyImagesOpenButton": "Open directory",
         "legacyImagesClearButton": "Clear image cache",
         "legacyImagesDirectoryMissing": "The image cache directory was not found",
@@ -864,7 +866,7 @@
         "legacyImagesCleared": "Image cache cleaned up",
         "legacyImagesClearFailed": "Could not clean up the image cache. Try again.",
         "chatAttachmentsLabel": "Message attachment cache directory",
-        "chatAttachmentsDescription": "Some attachments you send are stored here. Cindy does not scan or clean this directory automatically. Deleting files may make attachments in message history unavailable.",
+        "chatAttachmentsDescription": "Some attachments you send are stored here. Cartethyia does not scan or clean this directory automatically. Deleting files may make attachments in message history unavailable.",
         "chatAttachmentsOpenButton": "Open directory",
         "chatAttachmentsClearButton": "Clear attachment cache",
         "chatAttachmentsDirectoryMissing": "The message attachment cache directory was not found",
@@ -876,11 +878,11 @@
         "chatAttachmentsClearFailed": "Could not clean up the message attachment cache. Try again.",
         "dbSlimmingBackupDirectoryDialogTitle": "Choose database cleanup backup folder",
         "dbSlimmingLabel": "Database cleanup",
-        "dbSlimmingDescription": "Scan history in soft-deleted and archived tasks not updated for the selected period, with an option to include active tasks. After confirmation, Cindy restarts and compacts the database before opening it. Files and generated media on disk are not deleted.",
+        "dbSlimmingDescription": "Scan history in soft-deleted and archived tasks not updated for the selected period, with an option to include active tasks. After confirmation, Cartethyia restarts and compacts the database before opening it. Files and generated media on disk are not deleted.",
         "dbSlimmingScanButton": "Scan database",
         "dbSlimmingScanLoading": "Scanning the database…",
         "dbSlimmingScanResultTitle": "Database scan results",
-        "dbSlimmingExecutionLoading": "Preparing database cleanup. Cindy will restart shortly…",
+        "dbSlimmingExecutionLoading": "Preparing database cleanup. Cartethyia will restart shortly…",
         "dbSlimmingArchiveAgeLabel": "Clean tasks not updated for more than",
         "dbSlimmingArchiveAgeOption7Days": "7 days",
         "dbSlimmingArchiveAgeOption1": "1 month",
@@ -909,8 +911,8 @@
         "dbSlimmingInsufficientSpace": "There is not enough disk space to safely create a working copy and compact the database.",
         "dbSlimmingConfirmButton": "Confirm database cleanup",
         "dbSlimmingConfirmTitle": "Restart and clean up the database?",
-        "dbSlimmingConfirmDescriptionWithBackup": "Cindy will restart gracefully, then back up, clean history, compact, and verify the database before opening it. Data is cleaned only after the backup is written and verified.",
-        "dbSlimmingConfirmDescriptionWithoutBackup": "Cindy will restart gracefully, then clean and compact the database before opening it. No backup will be created, and cleaned history cannot be recovered.",
+        "dbSlimmingConfirmDescriptionWithBackup": "Cartethyia will restart gracefully, then back up, clean history, compact, and verify the database before opening it. Data is cleaned only after the backup is written and verified.",
+        "dbSlimmingConfirmDescriptionWithoutBackup": "Cartethyia will restart gracefully, then clean and compact the database before opening it. No backup will be created, and cleaned history cannot be recovered.",
         "dbSlimmingRestartButton": "Restart and clean up database",
         "dbSlimmingResultCompleted": "Removed {{messages}} messages from {{tasks}} tasks and reduced the database by {{size}}.",
         "dbSlimmingOpenBackupButton": "Open cleanup backup",
@@ -923,7 +925,7 @@
           "insufficient-space": "There was not enough disk space to clean up the database.",
           "integrity-check-failed": "The database integrity check failed. The original database was restored.",
           "replacement-failed": "The compacted database could not be installed. The original database was restored.",
-          "recovery-failed": "Database recovery failed. Cindy stopped opening the database to protect the original data.",
+          "recovery-failed": "Database recovery failed. Cartethyia stopped opening the database to protect the original data.",
           "unknown": "Database cleanup did not finish. Try again."
         },
         "cleanupLabel": "Disk cleanup",
@@ -967,15 +969,15 @@
       },
       "serviceSource": {
         "label": "Voice service",
-        "hint": "Uses the Cindy voice service by default. You can instead connect a realtime ASR service with separate voice credentials.",
-        "localHint": "Cindy account services are unavailable while not signed in; connect a realtime ASR service with separate voice credentials.",
+        "hint": "Uses the Cartethyia voice service by default. You can instead connect a realtime ASR service with separate voice credentials.",
+        "localHint": "Cartethyia account services are unavailable while not signed in; connect a realtime ASR service with separate voice credentials.",
         "ariaLabel": "Voice service source",
         "options": {
-          "cindy": "Cindy official service",
+          "cindy": "Cartethyia official service",
           "byok": "Custom voice service"
         },
         "optionDescriptions": {
-          "cindy": "Uses your Cindy sign-in, no keys to configure",
+          "cindy": "Uses your Cartethyia sign-in, no keys to configure",
           "byok": "Uses an ASR-capable service and its own voice credentials"
         },
         "asr": {
@@ -1014,7 +1016,7 @@
         "customAsr": {
           "optionLabel": "Custom realtime ASR",
           "optionDescription": "Uses a dedicated speech-recognition WebSocket and API key",
-          "notice": "Enter the complete WebSocket address from an ASR-capable service. Cindy will not reuse or append paths to your chat model endpoint.",
+          "notice": "Enter the complete WebSocket address from an ASR-capable service. Cartethyia will not reuse or append paths to your chat model endpoint.",
           "protocol": {
             "label": "Realtime protocol",
             "hint": "Choose the message format implemented by the ASR service.",
@@ -1097,7 +1099,7 @@
           "systemReserved": "This shortcut conflicts with a system or common editing shortcut",
           "registrationFailed": "Could not register this shortcut: {{error}}",
           "recordingFailed": "Could not start shortcut recording: {{error}}",
-          "listenerUnavailable": "Could not start the shortcut listener — restart Cindy and try again",
+          "listenerUnavailable": "Could not start the shortcut listener — restart Cartethyia and try again",
           "pendingInputMonitoring": "Shortcut saved — it takes effect after you grant the shortcut listener permission"
         }
       },
@@ -1321,12 +1323,12 @@
           "binaryMissing": "Codex component is unavailable, please restart the app"
         },
         "apiMode": {
-          "label": "API mode (via Cindy AI)",
-          "description": "When on, Codex uses the Cindy AI key from Model Providers instead of your subscription.",
-          "noKey": "No Cindy AI key configured — connect Cindy AI in Model Providers",
+          "label": "API mode (via Cartethyia AI)",
+          "description": "When on, Codex uses the Cartethyia AI key from Model Providers instead of your subscription.",
+          "noKey": "No Cartethyia AI key configured — connect Cartethyia AI in Model Providers",
           "noKeyDialog": {
             "title": "API Key not configured",
-            "description": "API mode reuses the Cindy AI key, which is not set yet. Connect Cindy AI in Model Providers to enable API mode."
+            "description": "API mode reuses the Cartethyia AI key, which is not set yet. Connect Cartethyia AI in Model Providers to enable API mode."
           },
           "badge": {
             "api": "● API",
@@ -1334,7 +1336,7 @@
           },
           "expandAria": "Expand / collapse Codex API mode settings",
           "toggleAria": "Toggle Codex API mode",
-          "sharedKeyWarning": "Shares one key with Cindy AI — deleting/changing it also affects Claude",
+          "sharedKeyWarning": "Shares one key with Cartethyia AI — deleting/changing it also affects Claude",
           "toast": {
             "toggleFailed": "Failed to switch API mode, please retry"
           }
@@ -1369,7 +1371,7 @@
         },
         "logoutConfirm": {
           "title": "Disconnect Claude.ai subscription?",
-          "description": "Disconnecting clears this machine's Claude Code login credential (your local `claude` CLI is signed out too); if you're currently in subscription mode it falls back to Cindy AI. You'll need to authorize again to restore it.",
+          "description": "Disconnecting clears this machine's Claude Code login credential (your local `claude` CLI is signed out too); if you're currently in subscription mode it falls back to Cartethyia AI. You'll need to authorize again to restore it.",
           "confirm": "Disconnect",
           "cancel": "Cancel"
         },
@@ -1382,13 +1384,13 @@
           "needAuth": "Authorize and sign in to Claude.ai first"
         },
         "apiMode": {
-          "label": "API mode (via Cindy AI)",
-          "description": "When on, Claude uses the Cindy AI shared key (default); when off, native Anthropic models (Claude) connect directly to api.anthropic.com using your subscription, while other models still use Cindy AI.",
+          "label": "API mode (via Cartethyia AI)",
+          "description": "When on, Claude uses the Cartethyia AI shared key (default); when off, native Anthropic models (Claude) connect directly to api.anthropic.com using your subscription, while other models still use Cartethyia AI.",
           "toggleAria": "Toggle Claude API mode",
-          "sharedKeyWarning": "Shares one key with Cindy AI — with API mode off, non-Claude models still need Cindy AI",
+          "sharedKeyWarning": "Shares one key with Cartethyia AI — with API mode off, non-Claude models still need Cartethyia AI",
           "noKeyDialog": {
             "title": "No API Key configured",
-            "description": "With API mode off (subscription), non-Claude models (gpt / deepseek, etc.) still reuse the Cindy AI key, which is not configured yet. Connect Cindy AI in Model Providers to continue."
+            "description": "With API mode off (subscription), non-Claude models (gpt / deepseek, etc.) still reuse the Cartethyia AI key, which is not configured yet. Connect Cartethyia AI in Model Providers to continue."
           },
           "toast": {
             "toggleFailed": "Failed to switch API mode, please retry"
@@ -1447,7 +1449,7 @@
         }
       },
       "xd": {
-        "title": "Cindy AI",
+        "title": "Cartethyia AI",
         "subtitle": "All models · Claude Code / Codex · billed from your balance per token",
         "modelLabel": "All models",
         "billingLabel": "billed from your balance per token",
@@ -1455,8 +1457,8 @@
           "free": "Free tier"
         },
         "disconnectConfirm": {
-          "title": "Disconnect Cindy AI?",
-          "description": "Disconnecting clears the Cindy AI key saved locally. You will need to reconnect to keep using models provided by Cindy AI."
+          "title": "Disconnect Cartethyia AI?",
+          "description": "Disconnecting clears the Cartethyia AI key saved locally. You will need to reconnect to keep using models provided by Cartethyia AI."
         },
         "sync": {
           "syncing": "Fetching credentials…",
@@ -1470,14 +1472,14 @@
           "modelsFetchFailed": "Couldn’t fetch the model list. Check your network and try again."
         },
         "rotateConfirm": {
-          "title": "Rotate Cindy AI Key?",
+          "title": "Rotate Cartethyia AI Key?",
           "description": "This revokes the current key and issues a new one. The old key stops working immediately: in-flight sessions, remote sessions, and mobile voice using it will need to restart.",
           "confirm": "Rotate"
         },
         "rotateSuccess": "Key rotated",
         "rotateFailed": "Rotation failed, please try again later",
-        "copyKeyAria": "Copy Cindy AI key",
-        "copyKeySuccess": "Cindy AI key copied",
+        "copyKeyAria": "Copy Cartethyia AI key",
+        "copyKeySuccess": "Cartethyia AI key copied",
         "copyKeyFailed": "Copy failed, please try again later",
         "asset": {
           "viewUsage": "View usage",
@@ -1533,7 +1535,7 @@
           "runtimeSupportsImageGenerationEndpointsTitle": "Required endpoints",
           "runtimeSupportsImageGenerationEndpoints": "The gateway must handle these requests:",
           "runtimeSupportsImageGenerationPermissionsTitle": "Access and failures",
-          "runtimeSupportsImageGenerationPermissions": "The current API key, account, or user group needs access to the image model. This switch only declares the gateway's capability and does not grant upstream access. If a request fails, Cindy shows the actual upstream error and does not switch to another image service.",
+          "runtimeSupportsImageGenerationPermissions": "The current API key, account, or user group needs access to the image model. This switch only declares the gateway's capability and does not grant upstream access. If a request fails, Cartethyia shows the actual upstream error and does not switch to another image service.",
           "modelSupportsReasoning": "Supports reasoning",
           "modelSupportsReasoningHelp": "Enable only when the model accepts reasoning effort, then select every supported level. Changes take effect in the next Pi Agent session.",
           "modelReasoningEfforts": "Supported reasoning effort levels",
@@ -1546,11 +1548,11 @@
         },
         "wireProtocol": {
           "responses": "OpenAI Responses (native)",
-          "chat": "Chat Completions (Cindy bridge)",
-          "anthropic": "Anthropic Messages (Cindy bridge)",
-          "responsesHelp": "The provider supports the Responses API natively, so Cindy forwards its event stream unchanged.",
-          "chatHelp": "For providers that only expose Chat Completions. Cindy converts streaming text and function tool calls; some advanced Responses features are unavailable.",
-          "anthropicHelp": "For providers that expose the Anthropic Messages API. Cindy converts Responses messages, images, tools, reasoning, and streaming events.",
+          "chat": "Chat Completions (Cartethyia bridge)",
+          "anthropic": "Anthropic Messages (Cartethyia bridge)",
+          "responsesHelp": "The provider supports the Responses API natively, so Cartethyia forwards its event stream unchanged.",
+          "chatHelp": "For providers that only expose Chat Completions. Cartethyia converts streaming text and function tool calls; some advanced Responses features are unavailable.",
+          "anthropicHelp": "For providers that expose the Anthropic Messages API. Cartethyia converts Responses messages, images, tools, reasoning, and streaming events.",
           "piResponses": "OpenAI Responses",
           "piChat": "OpenAI Chat Completions",
           "piAnthropic": "Anthropic Messages",
@@ -1572,9 +1574,9 @@
           "claude": "Claude Code",
           "claudeDesc": "Claude Code follows the Anthropic protocol (auth via x-api-key). Enter this source's baseURL, key, and models for Claude Code; leave blank to skip Claude Code for this source.",
           "codex": "Codex",
-          "codexDesc": "Codex speaks the OpenAI Responses protocol. Choose native Responses, or let Cindy bridge Chat Completions or Anthropic Messages. Enter this source's base URL, key, and models for Codex; leave blank to skip Codex for this source.",
+          "codexDesc": "Codex speaks the OpenAI Responses protocol. Choose native Responses, or let Cartethyia bridge Chat Completions or Anthropic Messages. Enter this source's base URL, key, and models for Codex; leave blank to skip Codex for this source.",
           "pi": "Pi",
-          "piDesc": "Pi is a multi-protocol harness: your custom or local models connect natively (Ollama, vLLM, self-hosted endpoints), without going through Cindy's compatibility proxy. Pick the API type below, then enter this source's base URL, key, and models for Pi; leave blank to skip Pi for this source."
+          "piDesc": "Pi is a multi-protocol harness: your custom or local models connect natively (Ollama, vLLM, self-hosted endpoints), without going through Cartethyia's compatibility proxy. Pick the API type below, then enter this source's base URL, key, and models for Pi; leave blank to skip Pi for this source."
         },
         "errors": {
           "nameRequired": "Display name is required",
@@ -1627,7 +1629,7 @@
           "apiKey": "API key",
           "oauth": "OAuth subscription",
           "none": "No authentication",
-          "noneHelp": "For local or trusted self-hosted proxies. Cindy removes the CLI's subscription credentials and account headers before forwarding requests.",
+          "noneHelp": "For local or trusted self-hosted proxies. Cartethyia removes the CLI's subscription credentials and account headers before forwarding requests.",
           "oauthHelp": "For providers offering OAuth sign-in. Choose a browser callback or device code flow, then authorize from the provider list. Credentials are stored encrypted on this device only.",
           "flowLabel": "OAuth flow",
           "flow": {
@@ -1740,7 +1742,7 @@
         "enableModel": "Enable This Model",
         "capabilityGroupHint": "Not shown in the chat model picker; used only by features like image generation.",
         "accessWriteFailed": "Couldn't save the change. Please try again.",
-        "visibilityWriteFailed": "Couldn't save the model visibility setting. Try again, or restart Cindy if the problem continues.",
+        "visibilityWriteFailed": "Couldn't save the model visibility setting. Try again, or restart Cartethyia if the problem continues.",
         "disabledGroup": "Disabled",
         "enableAllModels": "Enable All",
         "priceOverride": {
@@ -1857,8 +1859,8 @@
         "nameLabel": "Display name",
         "onlyAgentNote": "This provider only supports {{agent}}",
         "endpointLabel": "{{agent}} base URL",
-        "noAuthNote": "This proxy needs no client key; Cindy removes CLI subscription credentials before forwarding.",
-        "bridgedNote": "Cindy bridge (Chat Completions)",
+        "noAuthNote": "This proxy needs no client key; Cartethyia removes CLI subscription credentials before forwarding.",
+        "bridgedNote": "Cartethyia bridge (Chat Completions)",
         "docsLink": "View setup docs",
         "fetching": "Verifying connection and fetching models…",
         "fetchFailed": "Couldn't fetch the model list — you can finish with the preset's recommended models and refresh later in details",
@@ -1882,7 +1884,7 @@
           "note": "This source provides image generation models and does not join chats. The API key is stored only on this device (encrypted by the system keychain) and never uploaded."
         },
         "groupLocal": "Local models",
-        "metaLocalRecommended": "Recommended · download in Cindy",
+        "metaLocalRecommended": "Recommended · download in Cartethyia",
         "metaLocalConnect": "Connect a running local server",
         "moreLocal": "More local servers"
       },
@@ -1949,9 +1951,9 @@
           }
         },
         "onboardingTitle": "Install the Ollama runtime",
-        "onboardingBody": "After you install Ollama, you can download and use local models in Cindy without opening the Ollama app. Ollama is a free, open-source third-party runtime.",
-        "installInCindy": "Install in Cindy",
-        "installConsent": "Cindy will download the official Ollama runtime (about {{size}}) into Cindy’s data folder and start it. It will not be added to the system apps folder. Ollama is free, open-source third-party software.",
+        "onboardingBody": "After you install Ollama, you can download and use local models in Cartethyia without opening the Ollama app. Ollama is a free, open-source third-party runtime.",
+        "installInCindy": "Install in Cartethyia",
+        "installConsent": "Cartethyia will download the official Ollama runtime (about {{size}}) into Cartethyia’s data folder and start it. It will not be added to the system apps folder. Ollama is free, open-source third-party software.",
         "installCancel": "Cancel install",
         "installFailed": "Couldn’t install Ollama",
         "installPhase": {
@@ -1978,7 +1980,7 @@
           "refused": "Can’t reach the local model service. Make sure Ollama is running.",
           "generic": "Couldn’t download the model"
         },
-        "added": "Model added to Cindy",
+        "added": "Model added to Cartethyia",
         "status": {
           "absent": "Ollama is not installed",
           "stopped": "Installed · not running",
@@ -2018,12 +2020,12 @@
         "sizeHint": "About {{size}} · needs {{memory}} GB unified memory",
         "sizeHintApple": "About {{size}} · needs {{memory}} GB unified memory",
         "sizeHintGeneric": "About {{size}} · needs {{memory}} GB memory",
-        "deleteFromCindy": "Remove from Cindy",
-        "deleteConfirmTitle": "Remove Ollama from Cindy?",
-        "deleteConfirmBody": "This only removes the Cindy connection. Models already downloaded in Ollama stay on disk, and the service keeps running.",
+        "deleteFromCindy": "Remove from Cartethyia",
+        "deleteConfirmTitle": "Remove Ollama from Cartethyia?",
+        "deleteConfirmBody": "This only removes the Cartethyia connection. Models already downloaded in Ollama stay on disk, and the service keeps running.",
         "deleteModel": "Delete This Model",
         "deleteModelConfirmTitle": "Delete {{name}}?",
-        "deleteModelConfirmBody": "This deletes the downloaded model files from this computer and removes them from Cindy. You can download the model again later.",
+        "deleteModelConfirmBody": "This deletes the downloaded model files from this computer and removes them from Cartethyia. You can download the model again later.",
         "deleteModelConfirm": "Delete",
         "deleteModelDone": "Deleted {{name}}",
         "deleteModelFailed": "Couldn’t delete the model. Make sure Ollama is running, then try again."
@@ -2032,7 +2034,7 @@
         "badge": "Recommended",
         "desc": "The official service — all models work out of the box, no keys to manage.",
         "grantBadge": "Promotional balance for new users",
-        "cta": "Sign in to Cindy"
+        "cta": "Sign in to Cartethyia"
       },
       "menu": {
         "disableProvider": "Disable This Provider",
@@ -2091,14 +2093,14 @@
       "badge": "Beta",
       "description": "Join the beta channel to receive upcoming client updates early. Takes effect after restart.",
       "toggleAria": "Beta channel toggle",
-      "restartTitle": "Restart Cindy",
+      "restartTitle": "Restart Cartethyia",
       "restartDescription": "The beta channel requires a restart to take effect. Restart now?",
       "restartNow": "Restart now",
       "restartLater": "Later",
       "restartBusyDescription": "Tasks are currently in progress and restarting will interrupt them. Restart now anyway?",
       "unavailable": "The beta channel is unavailable — could not reach the beta update server.",
       "toast": {
-        "disabled": "Beta channel disabled. Cindy will keep the current version and switch when a newer release is available",
+        "disabled": "Beta channel disabled. Cartethyia will keep the current version and switch when a newer release is available",
         "toggleFailed": "Failed to toggle beta channel"
       }
     },
@@ -2187,32 +2189,32 @@
         "disabled": "Unavailable",
         "error": "Connection failed"
       },
-      "intro": "After connecting, private messages sent to this WeChat connection enter Cindy on this computer. Tencent provides the authorization page, which may display OpenClaw.",
-      "errorNote": "The connection was not completed. Check your network and scan again. Cindy never stores plaintext credentials after a failed connection.",
+      "intro": "After connecting, private messages sent to this WeChat connection enter Cartethyia on this computer. Tencent provides the authorization page, which may display OpenClaw.",
+      "errorNote": "The connection was not completed. Check your network and scan again. Cartethyia never stores plaintext credentials after a failed connection.",
       "disabledNote": "Personal WeChat is paused in this version by the compatibility policy. Saved sessions and settings are not removed.",
       "permission": {
         "label": "Permission mode",
-        "hint": "Applies to new context after /new. Risky actions still require confirmation in Cindy Desktop.",
+        "hint": "Applies to new context after /new. Risky actions still require confirmation in Cartethyia Desktop.",
         "fullAccessDisabled": "Personal WeChat does not support Full Access yet because actions that cannot be confirmed in WeChat must not run directly.",
-        "permissionModeDisabled": "Personal WeChat always uses Cindy Desktop's confirmation policy, so this permission mode is unavailable."
+        "permissionModeDisabled": "Personal WeChat always uses Cartethyia Desktop's confirmation policy, so this permission mode is unavailable."
       },
       "authorization": {
         "title": "Authorize WeChat",
-        "rebindTitle": "Connect a new Cindy to WeChat",
-        "description": "Tencent's webpage will open for authorization. After scanning, you can talk to Cindy from WeChat.",
-        "rebindDescription": "This WeChat account already has a connection. Continuing may replace its existing Cindy or OpenClaw connection.",
+        "rebindTitle": "Connect a new Cartethyia to WeChat",
+        "description": "Tencent's webpage will open for authorization. After scanning, you can talk to Cartethyia from WeChat.",
+        "rebindDescription": "This WeChat account already has a connection. Continuing may replace its existing Cartethyia or OpenClaw connection.",
         "confirm": "Authorize",
         "cancel": "Cancel",
         "steps": {
           "1": "Select Authorize to open the WeChat binding page in your system browser.",
           "2": "Scan with the WeChat app and confirm the connection in WeChat.",
-          "3": "Return to Cindy after binding; the connection status updates automatically.",
+          "3": "Return to Cartethyia after binding; the connection status updates automatically.",
           "4": "Tencent provides the authorization page, which may display OpenClaw."
         }
       },
       "waiting": {
         "heading": "Waiting for confirmation in WeChat",
-        "note": "Finish scanning and confirmation in your system browser. Cindy updates automatically when it succeeds, or you can cancel this attempt.",
+        "note": "Finish scanning and confirmation in your system browser. Cartethyia updates automatically when it succeeds, or you can cancel this attempt.",
         "cancel": "Cancel authorization"
       },
       "bound": {
@@ -2222,7 +2224,7 @@
           "disconnected": "The connection is saved but is not currently running.",
           "authorizing": "Preparing a new WeChat authorization.",
           "waiting_confirmation": "Waiting for scan confirmation in WeChat.",
-          "connected": "WeChat private messages go directly to Cindy on this computer and are not relayed through Cindy servers.",
+          "connected": "WeChat private messages go directly to Cartethyia on this computer and are not relayed through Cartethyia servers.",
           "reconnecting": "This computer is restoring the WeChat connection. No new scan is needed.",
           "needs_reauth": "The WeChat authorization expired or was replaced by another connection. Scan again.",
           "disabled_by_policy": "The connection is paused by this version's compatibility policy; credentials and sessions remain saved.",
@@ -2237,13 +2239,13 @@
       "workingDir": {
         "title": "Working directory for new conversations",
         "hint": "Used for the first WeChat conversation and after /new. Changing it does not move the current context.",
-        "managed": "Use a Cindy-managed directory",
+        "managed": "Use a Cartethyia-managed directory",
         "reset": "Restore default",
-        "unavailable": "The selected directory is unavailable. New conversations temporarily use a Cindy-managed directory."
+        "unavailable": "The selected directory is unavailable. New conversations temporarily use a Cartethyia-managed directory."
       },
       "unbind": {
         "title": "Unbind personal WeChat?",
-        "description": "Unbinding stops messaging, removes local WeChat credentials, and clears unfinished tasks. Existing Cindy sessions, history, and saved attachments remain.",
+        "description": "Unbinding stops messaging, removes local WeChat credentials, and clears unfinished tasks. Existing Cartethyia sessions, history, and saved attachments remain.",
         "confirm": "Unbind",
         "cancel": "Cancel"
       },
@@ -2605,24 +2607,24 @@
       "title": "Memory",
       "description": "Powers workspace-scoped memory. After changing settings you usually need to start a new agent session for it to take effect. If memory misbehaves, click Reset or turn it off.",
       "maker": {
-        "label": "Cindy",
+        "label": "Cartethyia",
         "description": "Memory is managed by the agent entry, not by each model. Claude Code and Codex sessions can share memory within the same working directory.",
-        "toggleAria": "Toggle Cindy memory",
-        "resetAria": "Reset Cindy memories",
+        "toggleAria": "Toggle Cartethyia memory",
+        "resetAria": "Reset Cartethyia memories",
         "resetConfirm": {
-          "title": "Reset Cindy memories?",
-          "description": "This will permanently delete all Cindy memories across every project (stored under user-data, not in your repos). This action cannot be undone.",
+          "title": "Reset Cartethyia memories?",
+          "description": "This will permanently delete all Cartethyia memories across every project (stored under user-data, not in your repos). This action cannot be undone.",
           "confirm": "Reset",
           "cancel": "Cancel"
         },
         "toast": {
-          "enabled": "Cindy memory enabled",
-          "disabled": "Cindy memory disabled",
+          "enabled": "Cartethyia memory enabled",
+          "disabled": "Cartethyia memory disabled",
           "deferredSuffix": " — running Codex sessions will apply this after their current task finishes",
-          "toggleFailed": "Failed to toggle Cindy memory",
-          "resetSuccess_one": "Cindy memories reset — removed {{count}} workdir",
-          "resetSuccess_other": "Cindy memories reset — removed {{count}} workdirs",
-          "resetFailed": "Failed to reset Cindy memories"
+          "toggleFailed": "Failed to toggle Cartethyia memory",
+          "resetSuccess_one": "Cartethyia memories reset — removed {{count}} workdir",
+          "resetSuccess_other": "Cartethyia memories reset — removed {{count}} workdirs",
+          "resetFailed": "Failed to reset Cartethyia memories"
         }
       },
       "agents": {
@@ -2636,7 +2638,7 @@
         },
         "pi": {
           "label": "Pi",
-          "description": "Saves long-session compression summaries to Cindy memory for future Pi sessions."
+          "description": "Saves long-session compression summaries to Cartethyia memory for future Pi sessions."
         }
       },
       "agent": {
@@ -2666,15 +2668,15 @@
       "unspecified": "Use default setting",
       "hint": "Claude Code changes apply to new sessions. Codex changes apply automatically when it is idle.",
       "codexV2ModelHint": "Claude Code uses the selected model as its default. All local Codex Subagents are locked to the selected model and reasoning effort.",
-      "codexOauthCompatibilityHint": "Fixed Subagent routing cannot safely share a task with ChatGPT OAuth. When the main Codex task uses ChatGPT OAuth, or a non-OAuth main task selects a ChatGPT OAuth Subagent, Cindy ignores the model, provider, and reasoning effort selected here and uses that task’s default Codex Subagent.",
+      "codexOauthCompatibilityHint": "Fixed Subagent routing cannot safely share a task with ChatGPT OAuth. When the main Codex task uses ChatGPT OAuth, or a non-OAuth main task selects a ChatGPT OAuth Subagent, Cartethyia ignores the model, provider, and reasoning effort selected here and uses that task’s default Codex Subagent.",
       "saveFailed": "Failed to save subagent settings",
       "guardrails": {
         "title": "Codex subagent guardrails",
         "enableHint": "Allow Codex to spawn one-off subagents while working. Turning this off applies to both legacy multi-agent (V1) and Sol / Terra (V2).",
         "enableAria": "Allow Codex subagents",
-        "cindyPolicyLabel": "Use Cindy’s custom subagent policy",
-        "cindyPolicyHint": "When enabled, Cindy injects guidance that encourages Codex to use subagents proactively for exploratory tasks. For models that already plan and delegate well, the extra guidance may be counterproductive. Turn it off to use Codex’s native default behavior instead.",
-        "cindyPolicyAria": "Use Cindy’s custom subagent policy",
+        "cindyPolicyLabel": "Use Cartethyia’s custom subagent policy",
+        "cindyPolicyHint": "When enabled, Cartethyia injects guidance that encourages Codex to use subagents proactively for exploratory tasks. For models that already plan and delegate well, the extra guidance may be counterproductive. Turn it off to use Codex’s native default behavior instead.",
+        "cindyPolicyAria": "Use Cartethyia’s custom subagent policy",
         "concurrencyLabel": "Concurrent subagent limit",
         "concurrencyHint": "Maximum number of subagents running at the same time. Each subagent consumes model quota; Codex warns when concurrency reaches 8 at Ultra reasoning.",
         "concurrencyFollowDefault": "Follow Codex default (6 for legacy V1, 3 for Sol / Terra)",
@@ -2707,7 +2709,7 @@
       },
       "chooseAgent": "Choose an Agent",
       "backToAgents": "Back to Agent selection",
-      "explicitRouteHint": "An explicit selection uses only that Agent and model. If unavailable, Cindy will not switch automatically.",
+      "explicitRouteHint": "An explicit selection uses only that Agent and model. If unavailable, Cartethyia will not switch automatically.",
       "searchPlaceholder": "Search models or providers",
       "noResults": "No available models",
       "unavailable": "Currently unavailable",
@@ -2909,19 +2911,19 @@
     "piPackages": {
       "title": "Pi extensions",
       "entryTitle": "Pi extension settings",
-      "entryDescription": "Install, enable, or uninstall extensions for Cindy's Pi",
+      "entryDescription": "Install, enable, or uninstall extensions for Cartethyia's Pi",
       "backToGeneral": "Back to General",
-      "description": "Extensions stay in Cindy on this device. Any ordinary Pi task executed here can use them, even when started from a phone or another connected client. Review does not load them.",
+      "description": "Extensions stay in Cartethyia on this device. Any ordinary Pi task executed here can use them, even when started from a phone or another connected client. Review does not load them.",
       "installSectionTitle": "Install an extension",
       "installSectionDescription": "Paste the install source from a pi.dev page, or enter an npm package name, Git URL, or absolute local path.",
       "installedSectionTitle": "Installed",
       "sourcePlaceholder": "npm package, Git URL, or absolute local path",
-      "inspectionHint": "Packages are installed and loaded by Pi’s native package system. Cindy only displays advisory compatibility details; unknown, unsupported, or failed analysis never blocks installation or enablement.",
+      "inspectionHint": "Packages are installed and loaded by Pi’s native package system. Cartethyia only displays advisory compatibility details; unknown, unsupported, or failed analysis never blocks installation or enablement.",
       "install": "Install",
       "update": "Update",
       "remove": "Uninstall",
-      "empty": "No extensions are installed for Cindy's Pi yet.",
-      "piUnavailable": "Cindy's Pi is not installed, so extensions cannot be managed yet.",
+      "empty": "No extensions are installed for Cartethyia's Pi yet.",
+      "piUnavailable": "Cartethyia's Pi is not installed, so extensions cannot be managed yet.",
       "toggleAria": "Enable or disable {{name}}",
       "updateAria": "Update {{name}}",
       "removeAria": "Uninstall {{name}}",
@@ -2934,7 +2936,7 @@
       },
       "operationFailed": "The Pi extension operation failed. Check the source or network and try again.",
       "loading": "Loading Pi extensions…",
-      "loadFailed": "Cindy couldn't load Pi extensions. Check the connection and try again.",
+      "loadFailed": "Cartethyia couldn't load Pi extensions. Check the connection and try again.",
       "retry": "Retry",
       "operationInProgress": "Working on {{name}}…",
       "relativePathUnsupported": "Use an absolute path for local extensions in Settings. Relative paths such as ./extension can be installed from a Pi task.",
@@ -2951,20 +2953,20 @@
         "theme": "Theme"
       },
       "status": {
-        "supported": "Fully supported by Cindy",
+        "supported": "Fully supported by Cartethyia",
         "extensionSupported": "No known Pi TUI dependency found",
         "partial": "Compatibility limits found",
-        "unsupported": "Installed, but not loaded by Cindy",
+        "unsupported": "Installed, but not loaded by Cartethyia",
         "unknown": "Compatibility check incomplete"
       },
       "compatibility": {
         "supported": "Skills and prompt templates are fully supported. Extension source is inspected after install instead of being classified only by resource type.",
-        "partial": "When Pi TUI APIs are detected, Cindy lists the specific limits. The extension can still be installed and you decide whether to keep it enabled.",
-        "unsupported": "Themes: kept in the extension, but Cindy does not use Pi's TUI themes."
+        "partial": "When Pi TUI APIs are detected, Cartethyia lists the specific limits. The extension can still be installed and you decide whether to keep it enabled.",
+        "unsupported": "Themes: kept in the extension, but Cartethyia does not use Pi's TUI themes."
       },
       "issues": {
-        "interactive-dialogs": "Selection, confirmation, input, and multi-line editor dialogs are shown as Cindy question cards. Only dialogs with a timer are cancelled.",
-        "notifications": "Pi notifications are added to the Cindy task transcript instead of being shown as Pi TUI toasts.",
+        "interactive-dialogs": "Selection, confirmation, input, and multi-line editor dialogs are shown as Cartethyia question cards. Only dialogs with a timer are cancelled.",
+        "notifications": "Pi notifications are added to the Cartethyia task transcript instead of being shown as Pi TUI toasts.",
         "status-display": "Pi working indicators and status-bar content are not shown.",
         "widgets": "Pi editor widgets are not shown.",
         "terminal-title": "Terminal window title changes are ignored.",
@@ -2972,29 +2974,29 @@
         "tui-layout": "Pi headers, footers, and tool-panel layout changes are unavailable.",
         "custom-ui": "Custom Pi TUI views are unavailable.",
         "theme-control": "Pi TUI theme discovery or switching is unavailable.",
-        "terminal-input": "Terminal key-input listeners are unavailable in Cindy's RPC interface.",
-        "tui-rendering": "Shortcuts and custom message, Markdown, or entry renderers target Pi TUI and are not shown by Cindy.",
-        "cli-flags": "Command-line flags registered by an Extension cannot be configured through Cindy's fixed Pi launch settings.",
-        "analysis-incomplete": "Cindy could not inspect every reachable local source file, so other limits may exist."
+        "terminal-input": "Terminal key-input listeners are unavailable in Cartethyia's RPC interface.",
+        "tui-rendering": "Shortcuts and custom message, Markdown, or entry renderers target Pi TUI and are not shown by Cartethyia.",
+        "cli-flags": "Command-line flags registered by an Extension cannot be configured through Cartethyia's fixed Pi launch settings.",
+        "analysis-incomplete": "Cartethyia could not inspect every reachable local source file, so other limits may exist."
       },
       "detectedApis": "Detected Pi APIs: {{apis}}",
       "runtimeRequirementTitle": "Pi version requirement",
-      "runtimeMismatch": "{{packageName}} requires Pi {{range}}, but Cindy currently uses {{currentVersion}}.",
-      "runtimeLegacyPackage": "{{packageName}} belongs to Pi's legacy runtime namespace. Extensions built against it may not load in Cindy's current Pi.",
-      "runtimeUnknown": "{{packageName}} requires Pi {{range}}, but Cindy could not determine whether its current Pi version satisfies it.",
+      "runtimeMismatch": "{{packageName}} requires Pi {{range}}, but Cartethyia currently uses {{currentVersion}}.",
+      "runtimeLegacyPackage": "{{packageName}} belongs to Pi's legacy runtime namespace. Extensions built against it may not load in Cartethyia's current Pi.",
+      "runtimeUnknown": "{{packageName}} requires Pi {{range}}, but Cartethyia could not determine whether its current Pi version satisfies it.",
       "warning": {
         "no-resources": "No Pi resources were found in this extension.",
-        "inspection-failed": "Cindy could not inspect the installed contents. This does not disable the package; Pi still handles it natively.",
-        "inspection-limit": "Cindy stopped displaying analysis after its inspection limit. The package remains available through Pi’s native loader.",
-        "unsupported-filter": "Cindy cannot display this Pi resource filter yet. Pi still handles the package and filter natively.",
-        "unsafe-source": "The saved source contains credentials or private URL parameters. Cindy hid those fields in this view without blocking Pi’s package behavior."
+        "inspection-failed": "Cartethyia could not inspect the installed contents. This does not disable the package; Pi still handles it natively.",
+        "inspection-limit": "Cartethyia stopped displaying analysis after its inspection limit. The package remains available through Pi’s native loader.",
+        "unsupported-filter": "Cartethyia cannot display this Pi resource filter yet. Pi still handles the package and filter natively.",
+        "unsafe-source": "The saved source contains credentials or private URL parameters. Cartethyia hid those fields in this view without blocking Pi’s package behavior."
       },
       "failure": {
         "sourceUnavailable": "The source is unavailable. Check the network or URL, or try another source.",
         "packageNotFound": "The package was not found. Check the package name or repository URL.",
         "versionNotFound": "That version was not found. Choose an available version and try again.",
-        "stateUnavailable": "Cindy could not read the Pi extension state. Restart Cindy and try again.",
-        "runtimeConvergencePartial": "The Pi extension change was saved, but some local Pi tasks may still be running the old extension. Restart Cindy before using Pi again.",
+        "stateUnavailable": "Cartethyia could not read the Pi extension state. Restart Cartethyia and try again.",
+        "runtimeConvergencePartial": "The Pi extension change was saved, but some local Pi tasks may still be running the old extension. Restart Cartethyia before using Pi again.",
         "nativeCommandFailed": "Pi's package command failed. Check the source or version and try again."
       },
       "success": {
@@ -3026,17 +3028,17 @@
           "toggleFailed": "Failed to toggle browser automation",
           "openedForLogin": "Automation browser opened — sign into the sites you need",
           "openForLoginFailed": "Failed to open the browser",
-          "foreignInstance": "Another Cindy window is already using the agent browser. Quit the other instance and try again.",
+          "foreignInstance": "Another Cartethyia window is already using the agent browser. Quit the other instance and try again.",
           "profileLocked": "Quit Chrome, Edge, or Brave completely (including its tray icon), then try again.",
           "noChromium": "Chrome, Edge, Brave, or Chromium could not be found on this computer.",
           "noAuthDb": "No browser login data was found to copy. Sign in to your regular browser first, or turn off “Use my browser logins” and sign in to the agent browser.",
           "copyFailed": "Couldn’t copy your browser logins. Quit your regular browser completely and try again, or turn off “Use my browser logins.”",
           "headlessForbidden": "Your browser logins can’t be used while the agent browser is running in headless mode.",
           "stopFailed": "Close the agent browser completely, then try again.",
-          "appBoundEncryptionUnsupported": "Windows protects these browser logins with App-Bound Encryption, so Cindy can’t copy them. Turn off “Use my browser logins,” open the agent browser, and sign in there once."
+          "appBoundEncryptionUnsupported": "Windows protects these browser logins with App-Bound Encryption, so Cartethyia can’t copy them. Turn off “Use my browser logins,” open the agent browser, and sign in there once."
         },
         "openForLogin": "Open agent browser",
-        "openForLoginHint": "This is a dedicated browser for agents: it runs on your installed Chrome but with a separate profile (shown as “Cindy”), so it never touches your everyday Chrome's tabs, bookmarks, or logins. Agents open pages, read, click, and take screenshots here on your behalf. For sites that need a login, click “Open agent browser” above and sign in once — your session is kept, so the agent can keep acting as you afterward."
+        "openForLoginHint": "This is a dedicated browser for agents: it runs on your installed Chrome but with a separate profile (shown as “Cartethyia”), so it never touches your everyday Chrome's tabs, bookmarks, or logins. Agents open pages, read, click, and take screenshots here on your behalf. For sites that need a login, click “Open agent browser” above and sign in once — your session is kept, so the agent can keep acting as you afterward."
       },
       "realProfile": {
         "title": "Use my browser logins",
@@ -3048,7 +3050,7 @@
         "confirmDescriptionMac": "The agent will be able to open sites with your signed-in accounts, including email, cloud drives, and work consoles. Reading Chrome’s login files also needs Full Disk Access. You can turn this off anytime; the copy will be deleted.",
         "confirm": "Use my logins",
         "readDeniedTitle": "Full Disk Access Needed",
-        "readDeniedDescription": "Cindy needs this permission to read Chrome’s login files. Turn on Cindy under Privacy & Security → Full Disk Access, then try again.",
+        "readDeniedDescription": "Cartethyia needs this permission to read Chrome’s login files. Turn on Cartethyia under Privacy & Security → Full Disk Access, then try again.",
         "openFullDiskAccess": "Open System Settings",
         "readDeniedLater": "Not Now",
         "toast": {
@@ -3112,19 +3114,19 @@
         "connectionGuide": {
           "connect": {
             "title": "How to connect an Android phone",
-            "adbNote": "Cindy prepares ADB automatically; you do not need to install the Android SDK. Custom ADB path is for advanced users.",
+            "adbNote": "Cartethyia prepares ADB automatically; you do not need to install the Android SDK. Custom ADB path is for advanced users.",
             "step1": "Connect the phone to the computer with a USB cable that supports data transfer.",
             "step2": "On the phone, open Settings → About phone and tap the build number repeatedly to enable Developer options.",
             "step3": "Open Developer options and turn on USB debugging.",
-            "step4": "Keep the phone unlocked, return to Cindy, and click Recheck."
+            "step4": "Keep the phone unlocked, return to Cartethyia, and click Recheck."
           },
           "unauthorized": {
             "title": "Allow USB debugging",
-            "body": "On the phone, choose Allow in the USB debugging permission dialog. We recommend checking Always allow from this computer, then return to Cindy and click Recheck."
+            "body": "On the phone, choose Allow in the USB debugging permission dialog. We recommend checking Always allow from this computer, then return to Cartethyia and click Recheck."
           },
           "offline": {
             "title": "The device is offline",
-            "body": "Reconnect the USB cable, keep the phone unlocked, then return to Cindy and click Recheck."
+            "body": "Reconnect the USB cable, keep the phone unlocked, then return to Cartethyia and click Recheck."
           }
         },
         "device": {
@@ -3206,9 +3208,9 @@
           "draggingHint": "Drop into {{permission}}",
           "appName": "CuaDriver",
           "turnOnTitle": "Turn on {{permission}}",
-          "turnOnDescription": "Turn on this permission in System Settings. Cindy will continue automatically.",
+          "turnOnDescription": "Turn on this permission in System Settings. Cartethyia will continue automatically.",
           "readyTitle": "Computer Use is ready",
-          "readyDescription": "Cindy can now operate this computer when you ask."
+          "readyDescription": "Cartethyia can now operate this computer when you ask."
         },
         "permissions": {
           "title": "System access",
@@ -3276,7 +3278,7 @@
         "user": "user default",
         "userTooltip": "Inherited from new session defaults",
         "product": "product default",
-        "productTooltip": "Inherited from Cindy product defaults"
+        "productTooltip": "Inherited from Cartethyia product defaults"
       },
       "toast": {
         "enabled": "{{name}} enabled — takes effect on next session",
@@ -3302,7 +3304,7 @@
           "description": "Task scheduling — cron-based recurring jobs and one-shot reminders"
         },
         "memory": {
-          "name": "Cindy Memory",
+          "name": "Cartethyia Memory",
           "description": "Cross-agent long-term memory for persistent context across sessions"
         },
         "docs": {
@@ -3310,7 +3312,7 @@
           "description": "Turn content into real files — PDF, Word, Excel, and PowerPoint — and read them back to verify the result. No extra software to install."
         },
         "xdt_helper": {
-          "name": "Cindy Helper",
+          "name": "Cartethyia Helper",
           "description": "Host capability disclosure — tells agents what tools and models are available"
         },
         "collab": {
@@ -3369,11 +3371,11 @@
       "sections": {
         "myDevices": "My devices",
         "ssh": "SSH remote hosts",
-        "hook": "Cindy IM bots"
+        "hook": "Cartethyia IM bots"
       },
       "hook": {
-        "description": "Connect Slack and Telegram to the same Cindy. Messages are dispatched to this device and share its project list and session runner; each provider keeps its own account and preferences.",
-        "slackDescription": "Bind Slack workspaces and hand tasks to Cindy from Slack.",
+        "description": "Connect Slack and Telegram to the same Cartethyia. Messages are dispatched to this device and share its project list and session runner; each provider keeps its own account and preferences.",
+        "slackDescription": "Bind Slack workspaces and hand tasks to Cartethyia from Slack.",
         "slackDisabledHint": "Turn on the switch to start Slack authorization; once bound you can dispatch tasks from Slack.",
         "slackBoundHint": "Binding complete. Turning the switch off unbinds this device; turning it back on requires authorizing again.",
         "lifecycleAnnouncement": {
@@ -3437,7 +3439,7 @@
           "actionFailed": "Operation failed"
         },
         "loginRequired": "Sign in to your {{appName}} account first; the connection resumes automatically after login.",
-        "standbyHint": "Another Cindy instance on this computer is using the Slack connection. Close it, then turn this switch back on to take over.",
+        "standbyHint": "Another Cartethyia instance on this computer is using the Slack connection. Close it, then turn this switch back on to take over.",
         "authorizing": "Authorizing…",
         "transportStatus": "Transport: {{status}}",
         "accountStatus": "Slack Account: {{status}}",
@@ -3445,11 +3447,11 @@
         "statusBoundTeam": "Linked to {{team}} as @{{name}}",
         "statusUnbound": "Not linked",
         "notInstalled": {
-          "title": "The Cindy app isn't installed in the Slack workspace you authorized",
-          "hint": "Install the Cindy app to the workspace so the bot can send and receive messages and dispatch tasks. After installing, turn the switch on again to finish binding.",
+          "title": "The Cartethyia app isn't installed in the Slack workspace you authorized",
+          "hint": "Install the Cartethyia app to the workspace so the bot can send and receive messages and dispatch tasks. After installing, turn the switch on again to finish binding.",
           "status": "App install required",
-          "confirmTitle": "Install the Cindy app to your Slack workspace",
-          "confirmDescription": "The Slack workspace you authorized doesn't have the Cindy app installed. The bot needs it to send and receive messages and dispatch tasks. Install now? Binding completes automatically once installed.",
+          "confirmTitle": "Install the Cartethyia app to your Slack workspace",
+          "confirmDescription": "The Slack workspace you authorized doesn't have the Cartethyia app installed. The bot needs it to send and receive messages and dispatch tasks. Install now? Binding completes automatically once installed.",
           "confirmInstall": "Install",
           "confirmCancel": "Cancel",
           "waitingHint": "Waiting for the installation to finish… Binding completes automatically once installed, no re-authorization needed."
@@ -3474,7 +3476,7 @@
           "alreadyBound": "You authorized {{team}}, which is already linked. To add another workspace, switch workspaces in the top-right corner of the Slack authorization page before allowing."
         },
         "telegram": {
-          "description": "Link your Telegram account and dispatch tasks to Cindy via the official bot.",
+          "description": "Link your Telegram account and dispatch tasks to Cartethyia via the official bot.",
           "disabledHint": "Turn on the switch, then follow the prompts in Telegram to link your account.",
           "toggleAria": "Toggle the Telegram connection",
           "connect": "Link Telegram",
@@ -3554,7 +3556,7 @@
           }
         },
         "x": {
-          "description": "Link your X (Twitter) account and dispatch tasks by mentioning the Cindy bot on X.",
+          "description": "Link your X (Twitter) account and dispatch tasks by mentioning the Cartethyia bot on X.",
           "disabledHint": "Turn on the switch, then follow the prompts to authorize your X account.",
           "toggleAria": "Toggle X connection",
           "guide": {
@@ -3646,7 +3648,7 @@
         "replaced": "Connection replaced by another instance of this device",
         "too-many-connections": "Connection limit reached for this account",
         "version-mismatch": "Protocol version mismatch — please update the app",
-        "unstable": "Connection keeps dropping and reconnecting — check the network, or restart Cindy if it persists"
+        "unstable": "Connection keeps dropping and reconnecting — check the network, or restart Cartethyia if it persists"
       },
       "refresh": "Refresh",
       "empty": "No other devices yet. Sign in to {{appName}} with the same account on another computer and it will show up here.",
@@ -3688,7 +3690,7 @@
         "remoteSessionEnded": "The remote device ended this session"
       },
       "control": "Control",
-      "standbyHint": "Another Cindy instance on this computer is using the remote connection. Close it and this instance takes over automatically."
+      "standbyHint": "Another Cartethyia instance on this computer is using the remote connection. Close it and this instance takes over automatically."
     },
     "imBot": {
       "beta": "Beta",
@@ -3697,7 +3699,7 @@
         "personal": "Personal"
       },
       "tips": {
-        "cindy": "Provided and maintained by Cindy. No need to create a bot or supply credentials—follow the connection steps to get started.",
+        "cindy": "Provided and maintained by Cartethyia. No need to create a bot or supply credentials—follow the connection steps to get started.",
         "personal": "Use your own account or bot and manage the required credentials yourself. Each channel keeps its own account, permissions, and settings."
       },
       "defaults": {
@@ -3756,11 +3758,11 @@
           },
           "descriptions": {
             "unsupported": "This protection is available on macOS only.",
-            "disabled": "While Cindy is running, stop Codex from connecting to Codex Micro. Cindy itself is not restricted.",
+            "disabled": "While Cartethyia is running, stop Codex from connecting to Codex Micro. Cartethyia itself is not restricted.",
             "protecting": "Protection is ready. Completely quit and reopen Codex; an already-running Codex is unaffected.",
-            "intercepted": "Codex's Work Louder service was blocked. Cindy can keep using the device.",
+            "intercepted": "Codex's Work Louder service was blocked. Cartethyia can keep using the device.",
             "recovery-required": "Protection stopped, but NODE_OPTIONS has not been safely restored. Retry the recovery before enabling it again.",
-            "error": "Cindy could not update Codex protection. Your previous NODE_OPTIONS value was preserved or queued for recovery."
+            "error": "Cartethyia could not update Codex protection. Your previous NODE_OPTIONS value was preserved or queued for recovery."
           }
         },
         "commands": {
@@ -3798,7 +3800,7 @@
           },
           "feedback": {
             "name": "Send feedback",
-            "description": "Send product feedback to the Cindy team"
+            "description": "Send product feedback to the Cartethyia team"
           },
           "toggleTerminal": {
             "name": "Open terminal",
@@ -3837,7 +3839,7 @@
           },
           "settings": {
             "name": "Settings",
-            "description": "Open Cindy settings"
+            "description": "Open Cartethyia settings"
           },
           "manageTasks": {
             "name": "Manage scheduled tasks",
@@ -3853,7 +3855,7 @@
           },
           "openFolder": {
             "name": "Open folder",
-            "description": "Add a local project to Cindy"
+            "description": "Add a local project to Cartethyia"
           },
           "composer.addFiles": {
             "name": "Attach files and folders",
@@ -3910,9 +3912,9 @@
           "firmware": "Firmware {{version}}",
           "inputMonitoring": {
             "label": "Input Monitoring",
-            "granted": "macOS allows Cindy to receive keyboard input.",
-            "denied": "macOS is blocking keyboard input. Allow Cindy in System Settings.",
-            "unknown": "Cindy has not checked the macOS Input Monitoring permission yet.",
+            "granted": "macOS allows Cartethyia to receive keyboard input.",
+            "denied": "macOS is blocking keyboard input. Allow Cartethyia in System Settings.",
+            "unknown": "Cartethyia has not checked the macOS Input Monitoring permission yet.",
             "not-required": "Input Monitoring is not required on this platform.",
             "open": "Open System Settings"
           }
@@ -3925,7 +3927,7 @@
           "label": "Connection",
           "toggle": {
             "label": "Enable",
-            "aria": "Let this Cindy use Codex Micro"
+            "aria": "Let this Cartethyia use Codex Micro"
           },
           "status": {
             "connecting": "Connecting",
@@ -3937,17 +3939,17 @@
             "unavailable": "SDK unavailable"
           },
           "descriptions": {
-            "connecting": "Cindy is starting the Work Louder device service.",
-            "connected": "USB is connected. Cindy is listening for key presses and syncing task lighting.",
-            "disabled": "When enabled, Cindy listens for key presses and shows task status with lighting.",
-            "present": "When enabled, Cindy listens for key presses and shows task status with lighting.",
+            "connecting": "Cartethyia is starting the Work Louder device service.",
+            "connected": "USB is connected. Cartethyia is listening for key presses and syncing task lighting.",
+            "disabled": "When enabled, Cartethyia listens for key presses and shows task status with lighting.",
+            "present": "When enabled, Cartethyia listens for key presses and shows task status with lighting.",
             "not-detected": "Connect the keyboard with a data-capable USB cable. Close ChatGPT if it is using the device.",
-            "error": "Cindy could not communicate with the keyboard and is retrying automatically.",
-            "unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cindy.",
-            "connection-timeout": "The Work Louder service did not respond in time. Cindy will retry automatically.",
-            "connection-failed": "The Work Louder service failed to start. Cindy will retry automatically.",
-            "permission-required": "macOS denied keyboard access. Allow Cindy in Input Monitoring, then try again.",
-            "sdk-unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cindy."
+            "error": "Cartethyia could not communicate with the keyboard and is retrying automatically.",
+            "unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cartethyia.",
+            "connection-timeout": "The Work Louder service did not respond in time. Cartethyia will retry automatically.",
+            "connection-failed": "The Work Louder service failed to start. Cartethyia will retry automatically.",
+            "permission-required": "macOS denied keyboard access. Allow Cartethyia in Input Monitoring, then try again.",
+            "sdk-unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cartethyia."
           }
         },
         "lighting": {
@@ -3993,9 +3995,9 @@
             }
           },
           "singleTap": {
-            "label": "Focus Cindy with a single tap",
-            "description": "When enabled, one tap opens the task and brings Cindy forward. When disabled, one tap still switches tasks in the background; a second tap within 350 ms brings Cindy forward.",
-            "aria": "Focus Cindy with a single Agent-key tap"
+            "label": "Focus Cartethyia with a single tap",
+            "description": "When enabled, one tap opens the task and brings Cartethyia forward. When disabled, one tap still switches tasks in the background; a second tap within 350 ms brings Cartethyia forward.",
+            "aria": "Focus Cartethyia with a single Agent-key tap"
           },
           "newTask": "New task",
           "slot": "Recent {{position}}",
@@ -4105,20 +4107,20 @@
             "openAria": "Open Work Louder Creator Micro 2 settings",
             "connection": {
               "toggle": {
-                "aria": "Let this Cindy use Creator Micro 2"
+                "aria": "Let this Cartethyia use Creator Micro 2"
               },
               "descriptions": {
-                "connecting": "Cindy is starting the Work Louder device service.",
-                "connected": "USB is connected. Cindy is listening for key presses and syncing task lighting.",
-                "disabled": "When enabled, Cindy rewrites the current layer, listens for key presses, and shows task status with lighting.",
-                "present": "When enabled, Cindy rewrites the current layer, listens for key presses, and shows task status with lighting.",
+                "connecting": "Cartethyia is starting the Work Louder device service.",
+                "connected": "USB is connected. Cartethyia is listening for key presses and syncing task lighting.",
+                "disabled": "When enabled, Cartethyia rewrites the current layer, listens for key presses, and shows task status with lighting.",
+                "present": "When enabled, Cartethyia rewrites the current layer, listens for key presses, and shows task status with lighting.",
                 "not-detected": "Connect the keyboard with a data-capable USB cable. Close ChatGPT if it is using the device.",
-                "error": "Cindy could not communicate with the keyboard and is retrying automatically.",
-                "unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cindy.",
-                "connection-timeout": "The Work Louder service did not respond in time. Cindy will retry automatically.",
-                "connection-failed": "The Work Louder service failed to start. Cindy will retry automatically.",
-                "permission-required": "macOS denied keyboard access. Allow Cindy in Input Monitoring, then try again.",
-                "sdk-unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cindy.",
+                "error": "Cartethyia could not communicate with the keyboard and is retrying automatically.",
+                "unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cartethyia.",
+                "connection-timeout": "The Work Louder service did not respond in time. Cartethyia will retry automatically.",
+                "connection-failed": "The Work Louder service failed to start. Cartethyia will retry automatically.",
+                "permission-required": "macOS denied keyboard access. Allow Cartethyia in Input Monitoring, then try again.",
+                "sdk-unavailable": "The official Work Louder SDK was not found. Keep a supported ChatGPT or Codex app installed, then restart Cartethyia.",
                 "device-in-use": "Another app is using this keyboard. Close ChatGPT or Input, then try again."
               }
             },
@@ -4275,7 +4277,7 @@
           "clickToEdit": "Click to set",
           "editor": {
             "title": "Control",
-            "description": "Choose a Cindy action for this control. Unmapped controls do nothing.",
+            "description": "Choose a Cartethyia action for this control. Unmapped controls do nothing.",
             "done": "Done",
             "assigned": "Action",
             "assignedDescription": "Fires on press. Hold-to-talk ends when you release."
@@ -4427,7 +4429,7 @@
           "label": "Connection",
           "toggle": {
             "label": "Enable",
-            "aria": "Let this Cindy use an Xbox controller while it is in the foreground"
+            "aria": "Let this Cartethyia use an Xbox controller while it is in the foreground"
           },
           "status": {
             "connecting": "Connecting",
@@ -4439,12 +4441,12 @@
             "unavailable": "Not supported on this system"
           },
           "descriptions": {
-            "connecting": "Cindy is looking for an Xbox controller.",
-            "connected": "Cindy listens to this controller while it is in the foreground.",
-            "disabled": "Turn it on to listen while Cindy is in the foreground.",
-            "present": "Turn it on to listen while Cindy is in the foreground.",
+            "connecting": "Cartethyia is looking for an Xbox controller.",
+            "connected": "Cartethyia listens to this controller while it is in the foreground.",
+            "disabled": "Turn it on to listen while Cartethyia is in the foreground.",
+            "present": "Turn it on to listen while Cartethyia is in the foreground.",
             "not-detected": "Connect an Xbox controller with USB or Bluetooth.",
-            "error": "Cindy cannot read the controller right now and is retrying.",
+            "error": "Cartethyia cannot read the controller right now and is retrying.",
             "unavailable": "This computer cannot read an Xbox controller yet."
           }
         },
@@ -4461,15 +4463,15 @@
         "entryDescription": "Scroll, talk, send, and switch tasks with a controller",
         "connection": {
           "toggle": {
-            "aria": "Let this Cindy use a PlayStation controller while it is in the foreground"
+            "aria": "Let this Cartethyia use a PlayStation controller while it is in the foreground"
           },
           "descriptions": {
-            "connecting": "Cindy is looking for a PlayStation controller.",
-            "connected": "Cindy listens to this controller while it is in the foreground.",
-            "disabled": "Turn it on to listen while Cindy is in the foreground.",
-            "present": "Turn it on to listen while Cindy is in the foreground.",
+            "connecting": "Cartethyia is looking for a PlayStation controller.",
+            "connected": "Cartethyia listens to this controller while it is in the foreground.",
+            "disabled": "Turn it on to listen while Cartethyia is in the foreground.",
+            "present": "Turn it on to listen while Cartethyia is in the foreground.",
             "not-detected": "Connect a DualSense or DualShock with USB or Bluetooth.",
-            "error": "Cindy cannot read the controller right now and is retrying.",
+            "error": "Cartethyia cannot read the controller right now and is retrying.",
             "unavailable": "This computer cannot read a PlayStation controller yet."
           }
         }
@@ -4480,15 +4482,15 @@
         "entryDescription": "Scroll, talk, send, and switch tasks with a controller",
         "connection": {
           "toggle": {
-            "aria": "Let this Cindy use a Switch controller while it is in the foreground"
+            "aria": "Let this Cartethyia use a Switch controller while it is in the foreground"
           },
           "descriptions": {
-            "connecting": "Cindy is looking for a Switch controller.",
-            "connected": "Cindy listens to this controller while it is in the foreground.",
-            "disabled": "Turn it on to listen while Cindy is in the foreground.",
-            "present": "Turn it on to listen while Cindy is in the foreground.",
+            "connecting": "Cartethyia is looking for a Switch controller.",
+            "connected": "Cartethyia listens to this controller while it is in the foreground.",
+            "disabled": "Turn it on to listen while Cartethyia is in the foreground.",
+            "present": "Turn it on to listen while Cartethyia is in the foreground.",
             "not-detected": "Connect a Switch Pro or Joy-Con with USB or Bluetooth.",
-            "error": "Cindy cannot read the controller right now and is retrying.",
+            "error": "Cartethyia cannot read the controller right now and is retrying.",
             "unavailable": "This computer cannot read a Switch controller yet."
           }
         }
@@ -4499,15 +4501,15 @@
         "entryDescription": "Scroll, talk, send, and switch tasks with a controller",
         "connection": {
           "toggle": {
-            "aria": "Let this Cindy use a generic controller while it is in the foreground"
+            "aria": "Let this Cartethyia use a generic controller while it is in the foreground"
           },
           "descriptions": {
-            "connecting": "Cindy is looking for a controller.",
-            "connected": "Cindy listens to this controller while it is in the foreground.",
-            "disabled": "Turn it on to listen while Cindy is in the foreground.",
-            "present": "Turn it on to listen while Cindy is in the foreground.",
+            "connecting": "Cartethyia is looking for a controller.",
+            "connected": "Cartethyia listens to this controller while it is in the foreground.",
+            "disabled": "Turn it on to listen while Cartethyia is in the foreground.",
+            "present": "Turn it on to listen while Cartethyia is in the foreground.",
             "not-detected": "Connect a controller with USB or Bluetooth.",
-            "error": "Cindy cannot read the controller right now and is retrying.",
+            "error": "Cartethyia cannot read the controller right now and is retrying.",
             "unavailable": "This computer cannot read a controller yet."
           }
         }
@@ -4515,7 +4517,7 @@
     },
     "ghosts": {
       "title": "Plugins",
-      "description": "Tools and integrations that extend Cindy.",
+      "description": "Tools and integrations that extend Cartethyia.",
       "page": {
         "search": "Search plugins",
         "clearSearch": "Clear Plugin Search",
@@ -4532,8 +4534,8 @@
         "ignoreRound": "Ignore this round",
         "updateTo": "Update to v{{version}}",
         "updateAria": "Update {{name}} to v{{version}}",
-        "createWithCindy": "Create with Cindy",
-        "createPrompt": "I want to create a Cindy plugin. First call ghost_forge_guide to get the handbook's table of contents, read chapter 0 (design alignment) first, then read the relevant chapters via the section parameter (at minimum the capability overview, sandbox red-lines, and packaging chapters) before writing any code; do not start implementing yet. Begin by asking questions: prefer option-based question cards, one key decision per card with your recommended choice marked, and proactively surface design options I may not know about — such as the UI form (docked panel, panel inside the Plugins page, chat card, or no UI), a $ command word, launch mode, background abilities (event listening, in-app toast notifications, unread badges, confirmation dialogs), network access, whether a settings page is needed, whether a bundled Node process should do heavy lifting, and whether image/video media abilities are needed. Step by step, confirm the problem to solve, target users, interaction flow, required tools and connections, permission boundaries, and acceptance criteria. After I confirm the design, implement and validate it according to the specification, then call ghost_forge_pack to validate and produce the .cindy package; do not claim that it was installed.",
+        "createWithCindy": "Create with Cartethyia",
+        "createPrompt": "I want to create a Cartethyia plugin. First call ghost_forge_guide to get the handbook's table of contents, read chapter 0 (design alignment) first, then read the relevant chapters via the section parameter (at minimum the capability overview, sandbox red-lines, and packaging chapters) before writing any code; do not start implementing yet. Begin by asking questions: prefer option-based question cards, one key decision per card with your recommended choice marked, and proactively surface design options I may not know about — such as the UI form (docked panel, panel inside the Plugins page, chat card, or no UI), a $ command word, launch mode, background abilities (event listening, in-app toast notifications, unread badges, confirmation dialogs), network access, whether a settings page is needed, whether a bundled Node process should do heavy lifting, and whether image/video media abilities are needed. Step by step, confirm the problem to solve, target users, interaction flow, required tools and connections, permission boundaries, and acceptance criteria. After I confirm the design, implement and validate it according to the specification, then call ghost_forge_pack to validate and produce the .cindy package; do not claim that it was installed.",
         "filterAll": "All",
         "filtersAria": "Filter plugins by source",
         "origin": {
@@ -4575,7 +4577,7 @@
         "replaceDescription": "A plugin with the same ID is already installed. Continuing will replace it with this marketplace version and keep its data.",
         "unavailable": "The plugin market is temporarily unavailable. Installed plugins remain available.",
         "customSourcesUnavailable": "These custom marketplaces are temporarily unavailable: {{names}}. Other marketplaces are unaffected.",
-        "authenticationRequired": "Sign in to Cindy to view the plugin market.",
+        "authenticationRequired": "Sign in to Cartethyia to view the plugin market.",
         "notConfigured": "The plugin market is not configured for this environment. Installed plugins remain available.",
         "removalNotice": {
           "single": "The organization removed the plugin “{{name}}”. Its local copy and data on this device have been cleaned up.",
@@ -4590,12 +4592,12 @@
           "stateChanged": "The account, plugin, or release changed during this operation. Review the latest state and try again.",
           "accessDenied": "This plugin operation is not permitted or was cancelled.",
           "notConfigured": "The plugin market is not available in this environment.",
-          "invalidPackage": "This plugin package is invalid or is not supported by this version of Cindy.",
+          "invalidPackage": "This plugin package is invalid or is not supported by this version of Cartethyia.",
           "brokerRedirectPortRequired": "This plugin declares an authorization broker but is missing redirectPort in the same OAuth configuration, so it cannot be installed from the plugin marketplace. Contact the publisher to add the field and publish a new release."
         },
         "securityTitle": "Install and permissions",
-        "securityDescription": "Cindy verifies package size and SHA-256 in the main process, validates the plugin manifest, then installs atomically. First-time installs are enabled automatically and can be disabled anytime on the Plugins page; updates keep the current enabled state.",
-        "customSecurityDescription": "This plugin comes from a custom marketplace you added and has not been verified by the Cindy server. Its manifest is validated in the main process before install. First-time installs are enabled automatically and can be disabled anytime on the Plugins page.",
+        "securityDescription": "Cartethyia verifies package size and SHA-256 in the main process, validates the plugin manifest, then installs atomically. First-time installs are enabled automatically and can be disabled anytime on the Plugins page; updates keep the current enabled state.",
+        "customSecurityDescription": "This plugin comes from a custom marketplace you added and has not been verified by the Cartethyia server. Its manifest is validated in the main process before install. First-time installs are enabled automatically and can be disabled anytime on the Plugins page.",
         "noPermissions": "This plugin declares no additional capabilities.",
         "sources": {
           "addMarketplace": "Add Plugin Marketplace…",
@@ -4640,7 +4642,7 @@
           },
           "guide": {
             "title": "Custom Plugin Marketplace Guide",
-            "intro": "A plugin marketplace is a Git repository or local folder with a manifest file, used to distribute a set of Cindy plugins.",
+            "intro": "A plugin marketplace is a Git repository or local folder with a manifest file, used to distribute a set of Cartethyia plugins.",
             "structureTitle": "Directory Structure",
             "structureBody": "A marketplace needs one manifest file plus one directory per plugin. Every plugin directory must contain a valid ghost.json (the plugin identity card).",
             "structureLabelManifest": "manifest",
@@ -4652,7 +4654,7 @@
             "sourceTitle": "Source Formats",
             "sourceBody": "Accepted sources: GitHub shorthand owner/repo, full Git URLs (https / ssh / git@), and local folder paths (~ supported). Git ref accepts a branch, tag, or commit; leave empty for the default branch. Sparse paths (one per line) check out only the listed subdirectories — useful for large repositories.",
             "authTitle": "Private Repositories",
-            "authBody": "Authentication relies entirely on your system Git configuration — Cindy never stores Git credentials. SSH: a working key must be configured on this machine; if the organization enforces SAML SSO, authorize the key for that organization via Configure SSO in your GitHub SSH key settings. HTTPS: use a Personal Access Token stored by the system credential helper.",
+            "authBody": "Authentication relies entirely on your system Git configuration — Cartethyia never stores Git credentials. SSH: a working key must be configured on this machine; if the organization enforces SAML SSO, authorize the key for that organization via Configure SSO in your GitHub SSH key settings. HTTPS: use a Personal Access Token stored by the system credential helper.",
             "rulesTitle": "Install Rules",
             "rulesBody": "Plugin ids are globally unique, first come first served — conflicts with installed plugins are called out explicitly. Plugins whose ids use the official reserved prefixes ({{reservedGhostIdPrefixes}}) cannot be installed by dragging in a package, choosing a file, or using a custom plugin marketplace. Declared permissions are shown on the detail page; clicking Install completes installation and enables the plugin without another permission confirmation dialog.",
             "copy": "Copy guide",
@@ -4669,24 +4671,24 @@
         "action": "Reinstall",
         "actionAria": "Reinstall plugin {{name}}",
         "noticeTitle": "Installation recovery needed",
-        "bodyLegacy": "Cindy cannot verify this plugin's complete installation record, so the plugin is paused. Reinstall the marketplace release or select the matching .cindy package again.",
+        "bodyLegacy": "Cartethyia cannot verify this plugin's complete installation record, so the plugin is paused. Reinstall the marketplace release or select the matching .cindy package again.",
         "bodyInvalid": "This plugin's installation verification record is damaged, so the plugin is paused. Reinstall the marketplace release or select the matching .cindy package again.",
-        "bodyBuiltinRestart": "Something went wrong with this built-in plugin's installation verification record. Restart Cindy to recover automatically — no other action is needed."
+        "bodyBuiltinRestart": "Something went wrong with this built-in plugin's installation verification record. Restart Cartethyia to recover automatically — no other action is needed."
       },
       "install": "Install Plugin…",
       "empty": "No plugins installed yet",
       "emptyHint": "Install from the market, or import a .cindy file from the menu above",
       "legacyRecovery": {
         "title": "Plugins from an older version are waiting to be restored",
-        "deferred": "Found {{count}} older plugin directory. Cindy deferred restoration to avoid moving data while another instance may still be using it.",
-        "deferred_one": "Found {{count}} older plugin directory. Cindy deferred restoration to avoid moving data while another instance may still be using it.",
-        "deferred_other": "Found {{count}} older plugin directories. Cindy deferred restoration to avoid moving data while another instance may still be using it.",
+        "deferred": "Found {{count}} older plugin directory. Cartethyia deferred restoration to avoid moving data while another instance may still be using it.",
+        "deferred_one": "Found {{count}} older plugin directory. Cartethyia deferred restoration to avoid moving data while another instance may still be using it.",
+        "deferred_other": "Found {{count}} older plugin directories. Cartethyia deferred restoration to avoid moving data while another instance may still be using it.",
         "partial": "Found {{count}} older plugin directory. Some data was not restored automatically, so you can retry now.",
         "partial_one": "Found {{count}} older plugin directory. Some data was not restored automatically, so you can retry now.",
         "partial_other": "Found {{count}} older plugin directories. Some data was not restored automatically, so you can retry now.",
-        "partialBlocked": "Found {{count}} older plugin directory, but Cindy could not safely restore it automatically. The data was kept unchanged.",
-        "partialBlocked_one": "Found {{count}} older plugin directory, but Cindy could not safely restore it automatically. The data was kept unchanged.",
-        "partialBlocked_other": "Found {{count}} older plugin directories, but Cindy could not safely restore them automatically. The data was kept unchanged.",
+        "partialBlocked": "Found {{count}} older plugin directory, but Cartethyia could not safely restore it automatically. The data was kept unchanged.",
+        "partialBlocked_one": "Found {{count}} older plugin directory, but Cartethyia could not safely restore it automatically. The data was kept unchanged.",
+        "partialBlocked_other": "Found {{count}} older plugin directories, but Cartethyia could not safely restore them automatically. The data was kept unchanged.",
         "claimedByOtherOwner": "Found {{count}} older plugin directory, but it belongs to the first account that claimed this device data. Switch back to that account to restore it.",
         "claimedByOtherOwner_one": "Found {{count}} older plugin directory, but it belongs to the first account that claimed this device data. Switch back to that account to restore it.",
         "claimedByOtherOwner_other": "Found {{count}} older plugin directories, but it belongs to the first account that claimed this device data. Switch back to that account to restore it.",
@@ -4757,57 +4759,57 @@
         "cancel": "Cancel"
       },
       "trust": {
-        "official": "Official Cindy plugin",
-        "officialDetail": "Bundled with Cindy.",
+        "official": "Official Cartethyia plugin",
+        "officialDetail": "Bundled with Cartethyia.",
         "reviewed": "Verified publisher · This version was reviewed",
-        "reviewedDetail": "The signatures are valid and the Cindy review signature matches every file in this exact version.",
+        "reviewedDetail": "The signatures are valid and the Cartethyia review signature matches every file in this exact version.",
         "verifiedPublisher": "Verified publisher: {{publisher}}",
-        "verifiedPublisherDetail": "The signature is valid and the files are unchanged, but this exact version has no Cindy review signature.",
+        "verifiedPublisherDetail": "The signature is valid and the files are unchanged, but this exact version has no Cartethyia review signature.",
         "signedUnverified": "Signed, but publisher identity is unverified: {{publisher}}",
-        "signedUnverifiedDetail": "The signature proves the files are unchanged, but this Cindy version does not recognize the publisher key.",
+        "signedUnverifiedDetail": "The signature proves the files are unchanged, but this Cartethyia version does not recognize the publisher key.",
         "unsigned": "Unverified / unsigned",
         "unsignedDetail": "The source and whether the package changed after distribution cannot be verified.",
         "unknownPublisher": "Unknown publisher",
-        "unknownReviewerDetail": "The package claims a review, but this Cindy version does not recognize the reviewer key, so it is not shown as reviewed."
+        "unknownReviewerDetail": "The package claims a review, but this Cartethyia version does not recognize the reviewer key, so it is not shown as reviewed."
       },
       "perm": {
         "grantsTitle": "After installing it will have:",
         "toolsGroup": "Registered Tools",
         "toolsDiffGroup": "Registered Tool Changes",
         "itemCount": "{{count}} total",
-        "cindyImageGenerate": "Image generation (delegated to Cindy)",
-        "cindyImageEdit": "Image editing (delegated to Cindy, its own images only)",
-        "cindyVideoGenerate": "Video generation (delegated to Cindy)",
-        "cindyVideoEdit": "Image-to-video (delegated to Cindy, reference images from its own media only)",
+        "cindyImageGenerate": "Image generation (delegated to Cartethyia)",
+        "cindyImageEdit": "Image editing (delegated to Cartethyia, its own images only)",
+        "cindyVideoGenerate": "Video generation (delegated to Cartethyia)",
+        "cindyVideoEdit": "Image-to-video (delegated to Cartethyia, reference images from its own media only)",
         "cindyMediaDeposit": "Can save images, video or audio it holds into your media library",
         "cindyMediaDepositDetail": "This lets AI work on material you paste or drop into the plugin. Saved items are recorded under this plugin, use at most {{quota}}, and are cleaned up when you uninstall it.",
-        "cindyTextOneshot": "Can ask Cindy's fast lane a question and receive a text answer",
+        "cindyTextOneshot": "Can ask Cartethyia's fast lane a question and receive a text answer",
         "cindyTextOneshotDetail": "Uses the system's lightweight utility model chain (the same lane as auto titles). No Agent involved and no file access. Model charges may apply.",
         "cindyEmbedText": "Can send text to be turned into vectors (for semantic search)",
         "cindyEmbedTextDetail": "Text is sent to the system embedding model and turned into numbers, up to {{max}} items per call. Model charges may apply. The vectors go only to the plugin — nothing is written to your own library.",
-        "cindySearchWeb": "Can search the public web with Cindy AI",
-        "cindySearchWebDetail": "Search requests access the public web and may consume Cindy AI quota.",
+        "cindySearchWeb": "Can search the public web with Cartethyia AI",
+        "cindySearchWebDetail": "Search requests access the public web and may consume Cartethyia AI quota.",
         "cindyTextOneshotModelDetail": "Uses the system's lightweight utility model chain (the same lane as auto titles). No Agent involved and no file access. Model charges may apply. The plugin declares a preferred model: {{model}} (effective when available in the current catalog; your pin takes precedence).",
         "agentUserAction": "Can start a new Agent turn after you click a plugin card",
         "agentUserActionDetail": "Each click permits one turn only, and only in the session that owns the card.",
         "agentBackground": "Can automatically start new Agent turns in the background",
         "agentBackgroundDetail": "Does not require a click each time, but can only use sessions you previously connected to this plugin. Model charges may apply.",
-        "agentErrand": "Can hand tasks to the Cindy Agent and collect the result",
+        "agentErrand": "Can hand tasks to the Cartethyia Agent and collect the result",
         "agentErrandDetail": "Tasks run in this plugin's dedicated session, always visible in the sidebar and stoppable at any time. Read-only by default; raising the level requires your change in the plugin settings. Model charges may apply.",
         "agentSchedule": "Can ask you to create an automation",
-        "agentScheduleDetail": "It can only open the new-automation panel with the fields filled in; whether it is created is up to you — pick a model and save it yourself. Once created, Cindy runs it on the schedule you set. Model charges may apply.",
+        "agentScheduleDetail": "It can only open the new-automation panel with the fields filled in; whether it is created is up to you — pick a model and save it yourself. Once created, Cartethyia runs it on the schedule you set. Model charges may apply.",
         "nodeRuntime": "Can run a bundled Node program on this computer",
         "nodeMcp": "Can run a bundled stdio MCP on this computer",
-        "nodeRuntimeDetail": "High risk: it has the same local access as your user account, including files, network, and starting other programs. Cindy cannot contain it in the browser sandbox.",
+        "nodeRuntimeDetail": "High risk: it has the same local access as your user account, including files, network, and starting other programs. Cartethyia cannot contain it in the browser sandbox.",
         "nodeSecret": "Can provide the stored credential “{{name}}” to the local Node program",
-        "nodeSecretDetail": "Cindy stores it encrypted and injects it only while the declared Worker methods below run. The Node program receives the plaintext and can return, log, save, or otherwise expose it to browser-side plugin code or Agent parameters. Only install plugins you trust.",
+        "nodeSecretDetail": "Cartethyia stores it encrypted and injects it only while the declared Worker methods below run. The Node program receives the plaintext and can return, log, save, or otherwise expose it to browser-side plugin code or Agent parameters. Only install plugins you trust.",
         "nodeResident": "The Node program can stay running in the background",
-        "nodeResidentDetail": "Runs while the plugin is enabled and stops when disabled, updated, uninstalled, or when Cindy exits.",
+        "nodeResidentDetail": "Runs while the plugin is enabled and stops when disabled, updated, uninstalled, or when Cartethyia exits.",
         "tool": "Tool \"{{name}}\"",
         "command": "Chat command ${{command}}",
         "panelLeft": "Panel \"{{title}}\" · docked left of the chat",
         "panelTab": "Panel \"{{title}}\" · opens inside the Plugins page",
-        "mainView": "Can add a “{{title}}” entry to Cindy's sidebar",
+        "mainView": "Can add a “{{title}}” entry to Cartethyia's sidebar",
         "mainViewDetail": "Opening it displays the main view in the plugin sandbox and does not grant file, network, or credential access.",
         "code": "Executable code",
         "codeDetail": "Runs in an isolated sandbox with no access to your files or network.",
@@ -4828,11 +4830,11 @@
         "badge": "Can light an unread mark on the Plugins entry",
         "badgeDetail": "When it has something new, it can show a green dot on the sidebar Plugins entry and on its own card, with a one-line summary. Opening its panel clears the dot. The dot makes no sound, does not vibrate, never reaches your system notification center, and is a permission separate from system tips.",
         "confirm": "Can ask for your confirmation in a dialog",
-        "confirmDetail": "Before acting it can open a dialog that looks like Cindy's own to ask you. The question comes from the plugin and the dialog is labeled with its name; only you can click confirm or cancel — the plugin cannot. At most one dialog at a time, and asking too often is blocked.",
+        "confirmDetail": "Before acting it can open a dialog that looks like Cartethyia's own to ask you. The question comes from the plugin and the dialog is labeled with its name; only you can click confirm or cancel — the plugin cannot. At most one dialog at a time, and asking too often is blocked.",
         "fsWrite": "Can write files (create / modify)",
         "fsWriteDetail": "Its own private data folder is always writable. Writes into the current session's working directory follow the session's permission mode (auto-approve modes write directly; per-action modes ask you first). Any other folder always requires your confirmation. Files are always written by the host — the plugin itself never touches your file system.",
         "libraryPersist": "Can use a durable library (large files and databases)",
-        "libraryPersistDetail": "It gets a Cindy-managed storage area for your work (canvases, images, databases) with no normal plugin data quota. All file and database operations are executed by the host; the plugin only uses relative paths inside its own library and cannot touch your other files. It can also ask Cindy to show a library file in Finder or Explorer, or open the system Save As dialog so you choose where a copy goes; cancelling Save As copies nothing. Uninstalling the plugin does not delete this data; deletion requires separate confirmation in Cindy settings.",
+        "libraryPersistDetail": "It gets a Cartethyia-managed storage area for your work (canvases, images, databases) with no normal plugin data quota. All file and database operations are executed by the host; the plugin only uses relative paths inside its own library and cannot touch your other files. It can also ask Cartethyia to show a library file in Finder or Explorer, or open the system Save As dialog so you choose where a copy goes; cancelling Save As copies nothing. Uninstalling the plugin does not delete this data; deletion requires separate confirmation in Cartethyia settings.",
         "networkHost": "Accesses the network domain {{host}}",
         "networkSecret": "Needs a credential from you: \"{{name}}\"",
         "networkSecretGhostInputDetail": "Collected by this plugin's own settings UI — the plugin page sees the value at entry time. It is then handed to the host in one step for encrypted storage; once stored, the plugin can never read it back, and the host injects it only for the domains it declares.",
@@ -4840,8 +4842,8 @@
         "networkSecretIdentityDetail": "The value comes from your signed-in account's email, derived and injected by the host at request time; nothing to fill in. The plugin can read this email to show the current identity in its settings UI.",
         "networkSecretGhCli": "Will prefer your local GitHub CLI login for the credential \"{{name}}\"",
         "networkSecretGhCliDetail": "The host reads the local gh login token only when needed and injects it only into GitHub API requests; plugin code cannot read or store the token. If gh is unavailable, you can configure a fallback Personal Access Token in the plugin settings.",
-        "networkSecretOrganizationIdentity": "Will use your Cindy organization identity as the credential \"{{name}}\"",
-        "networkSecretOrganizationIdentityDetail": "Cindy issues a short-lived identity assertion when needed, and the host sends it only to the explicitly listed service hosts. The plugin code cannot read or store the token.",
+        "networkSecretOrganizationIdentity": "Will use your Cartethyia organization identity as the credential \"{{name}}\"",
+        "networkSecretOrganizationIdentityDetail": "Cartethyia issues a short-lived identity assertion when needed, and the host sends it only to the explicitly listed service hosts. The plugin code cannot read or store the token.",
         "networkSecretOauth": "Will guide you through OAuth authorization at {{host}} ({{name}})",
         "networkSecretOauthDetail": "The authorization flow and all tokens are managed by the host and can never be read by the plugin code; you provide the client credentials on the plugin detail page. The requested permission scopes are listed verbatim below — review them before approving.",
         "networkConnections": "Can connect to {{label}} addresses you add",
@@ -4854,7 +4856,7 @@
         "unchanged": "{{count}} other permissions unchanged",
         "noChange": "No permission changes.",
         "pick": "Can ask you to pick a folder for it",
-        "pickDetail": "When it asks, Cindy shows the system folder picker; you decide what to share, and cancelling gives it nothing.",
+        "pickDetail": "When it asks, Cartethyia shows the system folder picker; you decide what to share, and cancelling gives it nothing.",
         "workspace": "Can ask to create a session entry for a project folder in the sidebar",
         "workspaceDetail": "When it asks, you either pick the folder yourself or see the full path on a confirmation card before deciding; while it is handling a call you started, subfolders inside the current session's working directory are used directly without an extra prompt. Folders that already have a session are reused, and what gets created is an empty session — nothing starts running on its own.",
         "sessionContext": "Can learn which project folder the current session is working in",
@@ -4862,7 +4864,7 @@
         "preview": "Can open preview pages from the sites below in the sidebar browser",
         "previewDetail": "Only the sites listed below can be opened; every page it opens is attributed to this plugin.",
         "iosSimulator": "Can view the current task's embedded iOS Simulator status and open its controls",
-        "iosSimulatorDetail": "The Cindy Host still owns simulator lifecycle, WDA, Native Sidecar, video, and input. The plugin receives no frame bytes, input privileges, native Helper access, or IDs from other tasks.",
+        "iosSimulatorDetail": "The Cartethyia Host still owns simulator lifecycle, WDA, Native Sidecar, video, and input. The plugin receives no frame bytes, input privileges, native Helper access, or IDs from other tasks.",
         "nodeChildSpawn": "Its Node program can ask the host to start declared sub-processes from its package",
         "nodeChildSpawnDetail": "Only JS files declared inside its own package can be started (same local permissions as the main program); arbitrary commands cannot be executed. Sub-processes are closed together when the plugin is disabled or exits.",
         "skill": "Adds the skill \"{{name}}\" to your AI assistants",
@@ -4877,10 +4879,10 @@
       },
       "errors": {
         "fileInvalid": "Not a valid .cindy plugin file",
-        "hostUnsupported": "This Cindy version cannot read this plugin's manifest format.",
+        "hostUnsupported": "This Cartethyia version cannot read this plugin's manifest format.",
         "alreadyInstalled": "This plugin is already installed",
         "commandConflict": "Its command conflicts with an installed plugin. Uninstall the other one or rename the command.",
-        "idReserved": "{{reservedGhostIdPrefixes}} are reserved for official plugins and can’t be installed by dragging in a package, choosing a file, or using a custom plugin marketplace. Install the corresponding official plugin from the Cindy plugin market",
+        "idReserved": "{{reservedGhostIdPrefixes}} are reserved for official plugins and can’t be installed by dragging in a package, choosing a file, or using a custom plugin marketplace. Install the corresponding official plugin from the Cartethyia plugin market",
         "brokerManualInstallNotAuthorized": "A locally installed .cindy package is not authorized to use the authorization broker. Install it from your organization’s plugin market.",
         "brokerRedirectPortRequired": "This plugin declares an authorization broker but does not declare redirectPort in the same OAuth configuration. Ask the author to add the field so the final authorization hop can return to the local listening port.",
         "sourceMissing": "The selected file could not be found",
@@ -4914,8 +4916,8 @@
         "updateTitle": "Update version",
         "updateDesc": "Pick a new .cindy file to replace the installed version in place; enabled state and panel position are preserved.",
         "cindyPrefs": {
-          "title": "Cindy abilities",
-          "desc": "Each Cindy delegation ability this plugin requested can be pinned to a specific model; defaults follow the system (built-in proxy).",
+          "title": "Cartethyia abilities",
+          "desc": "Each Cartethyia delegation ability this plugin requested can be pinned to a specific model; defaults follow the system (built-in proxy).",
           "cap": {
             "image.generate": "Image generation",
             "image.edit": "Image editing",
@@ -4932,7 +4934,7 @@
         },
         "errandPrefs": {
           "title": "AI errands",
-          "desc": "How this plugin's tasks run when it hands work to the Cindy Agent. Unset fields follow your new-draft preferences; the helper is read-only by default and works in a dedicated folder.",
+          "desc": "How this plugin's tasks run when it hands work to the Cartethyia Agent. Unset fields follow your new-draft preferences; the helper is read-only by default and works in a dedicated folder.",
           "agent": "Agent",
           "model": "Model",
           "permission": "Write access",
@@ -4956,7 +4958,7 @@
         "moreActions": "More Plugin Actions",
         "updateFromFile": "Update from .cindy File…",
         "exportPackage": "Export .cindy File…",
-        "exportFileType": "Cindy Plugin",
+        "exportFileType": "Cartethyia Plugin",
         "settingsTitle": "{{name}} Settings",
         "settingsUnavailableUntilRestore": "Restore the plugin to use this configuration again.",
         "oauthScopeStale": "This authorization does not include newly added permissions. Reconnect to grant them.",
@@ -4977,7 +4979,7 @@
         "panel": "Panel",
         "settingsUi": "Custom settings UI",
         "code": "Executable code",
-        "slotCindy": "Cindy delegation",
+        "slotCindy": "Cartethyia delegation",
         "slotAgent": "Starts Agent turns",
         "slotNode": "Local Node program",
         "slotTool": "Tools",
@@ -4999,7 +5001,7 @@
         "loadFailed": "Failed to load library info",
         "refresh": "Refresh",
         "locationLabel": "Storage location",
-        "locationDefault": "Cindy-managed location (system data folder)",
+        "locationDefault": "Cartethyia-managed location (system data folder)",
         "locationCustomPrefix": "Custom:",
         "usageLabel": "Usage",
         "filesUnit": "files",
@@ -5021,7 +5023,7 @@
         "revertConfirmTitle": "Move back to the default location?",
         "revertConfirmText": "Move back",
         "unbindConfirmTitle": "Forget the custom location?",
-        "unbindConfirmDescription": "The library will return to the Cindy-managed default location. Data in the old custom folder is neither deleted nor moved; recover it manually if needed.",
+        "unbindConfirmDescription": "The library will return to the Cartethyia-managed default location. Data in the old custom folder is neither deleted nor moved; recover it manually if needed.",
         "unbindConfirmText": "Forget location",
         "cloudWarningTitle": "Cloud-synced folder reminder",
         "cloudWarningProceed": "Use this location anyway",
@@ -5035,7 +5037,7 @@
         "deleteFailed": "Delete failed",
         "pickFailed": "The selected location is not usable",
         "installLocationLabel": "Library storage location",
-        "installLocationDefault": "Default (Cindy-managed location)",
+        "installLocationDefault": "Default (Cartethyia-managed location)",
         "installLocationPickedPrefix": "Selected:",
         "installLocationChange": "Change…",
         "bindAfterInstallFailed": "Failed to set the custom storage location; fell back to the default",
@@ -5198,7 +5200,7 @@
         },
         "status": {
           "loading": "Reading sync status…",
-          "signInRequired": "Sign in to your Cindy account to sync between devices",
+          "signInRequired": "Sign in to your Cartethyia account to sync between devices",
           "off": "Sync is off",
           "waiting": "Waiting for another sync-enabled desktop to come online",
           "syncing": "Syncing securely…",
@@ -5362,7 +5364,7 @@
       "label": "Permission mode",
       "hint": "Remote IM keeps confirmation enabled for actions that need approval.",
       "fullAccessDisabled": "Full Access is unavailable for remote IM because actions that cannot be safely confirmed must not run directly.",
-      "permissionModeDisabled": "This permission mode is unavailable because remote IM uses Cindy Desktop's confirmation policy."
+      "permissionModeDisabled": "This permission mode is unavailable because remote IM uses Cartethyia Desktop's confirmation policy."
     }
   },
   "remoteDevice": {
@@ -5402,7 +5404,7 @@
     "entryButton": "Delete account",
     "entryAria": "Delete the current account",
     "introTitle": "Delete your account?",
-    "introDescription": "This schedules permanent deletion of your Cindy sign-in account.",
+    "introDescription": "This schedules permanent deletion of your Cartethyia sign-in account.",
     "confirmTitle": "Confirm account deletion",
     "sendCodeButton": "Send deletion code",
     "confirmButton": "Delete account",
@@ -5416,11 +5418,11 @@
       "sms": "SMS"
     },
     "sessionNotice": "This computer signs out immediately. Other clients sign out when their current access credential expires and they attempt to refresh it.",
-    "gracePeriodNotice": "After confirmation, your account enters a 30-day waiting period. Signing in during that period cancels deletion; afterwards, your Cindy sign-in account is permanently deleted.",
+    "gracePeriodNotice": "After confirmation, your account enters a 30-day waiting period. Signing in during that period cancels deletion; afterwards, your Cartethyia sign-in account is permanently deleted.",
     "verificationNotice": "A deletion code will be sent to {{target}} via {{channel}}.",
-    "appleRevocationNotice": "If you used Sign in with Apple, you must also revoke Cindy's access in your Apple ID settings.",
-    "acknowledgement": "I understand that after the waiting period, my Cindy sign-in account will be permanently deleted and cannot be recovered.",
-    "restoredNotice": "Account deletion was cancelled. Your Cindy sign-in account will be retained.",
+    "appleRevocationNotice": "If you used Sign in with Apple, you must also revoke Cartethyia's access in your Apple ID settings.",
+    "acknowledgement": "I understand that after the waiting period, my Cartethyia sign-in account will be permanently deleted and cannot be recovered.",
+    "restoredNotice": "Account deletion was cancelled. Your Cartethyia sign-in account will be retained.",
     "errors": {
       "fallback": "The deletion request could not be completed. Check your network and try again.",
       "UNAUTHENTICATED": "Your login expired. Sign in and try again.",
@@ -5445,8 +5447,8 @@
       "processingTitle": "Account deletion in progress",
       "completedTitle": "Account deleted",
       "pendingCopy": "Scheduled for permanent deletion on {{date}}. Sign in before then to cancel deletion.",
-      "processingCopy": "The waiting period ended. Your Cindy sign-in account is being removed.",
-      "completedCopy": "Your Cindy sign-in account has been removed.",
+      "processingCopy": "The waiting period ended. Your Cartethyia sign-in account is being removed.",
+      "completedCopy": "Your Cartethyia sign-in account has been removed.",
       "dismissButton": "Got it"
     }
   },
@@ -5458,9 +5460,9 @@
     },
     "dialog": {
       "title": "System credential storage unavailable",
-      "intro": "Cindy cannot read its sign-in credentials from the system credential storage, so the signed-in state and related integrations will keep failing. Try the following steps to recover:",
-      "stepMacKeychain": "Quit Cindy, open Keychain Access, search for \"Cindy Safe Storage\" and check its access control; delete the entry if necessary (saved integration credentials will be invalidated and need to be reconnected)",
-      "stepRestart": "Restart Cindy",
+      "intro": "Cartethyia cannot read its sign-in credentials from the system credential storage, so the signed-in state and related integrations will keep failing. Try the following steps to recover:",
+      "stepMacKeychain": "Quit Cartethyia, open Keychain Access, search for \"Cartethyia Safe Storage\" and check its access control; delete the entry if necessary (saved integration credentials will be invalidated and need to be reconnected)",
+      "stepRestart": "Restart Cartethyia",
       "stepRelogin": "If it still does not recover, sign out and sign in again",
       "confirm": "OK"
     }
@@ -5472,7 +5474,7 @@
     "backToLogin": "Back to sign-in"
   },
   "login": {
-    "title": "Welcome to Cindy",
+    "title": "Welcome to Cartethyia",
     "subtitle": "Choose a secure way to sign in",
     "phonePlaceholder": "Enter your phone number",
     "emailPlaceholder": "Enter your email",
@@ -5500,11 +5502,11 @@
     "ssoEntry": "Sign in with enterprise SSO",
     "localModeEntry": "Skip Sign-In",
     "localModeOpening": "Skipping sign-in…",
-    "localModeDescription": "No Cindy account required. Data stays on this device; cloud models, cross-device access, and marketplace services are unavailable.",
+    "localModeDescription": "No Cartethyia account required. Data stays on this device; cloud models, cross-device access, and marketplace services are unavailable.",
     "consentStatement": "I have read and agree to the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>",
     "consentDialog": {
       "title": "Terms of Service & Privacy Policy",
-      "body": "Read and agree to Cindy's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy> to continue.",
+      "body": "Read and agree to Cartethyia's <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy> to continue.",
       "agree": "Agree",
       "disagree": "Not Now"
     },
@@ -5515,8 +5517,8 @@
     "ssoOrgDetected": "Choose a single sign-on connection for \"{{org}}\"",
     "realmConsent": {
       "title": "Connect to your enterprise region",
-      "bodyCn": "Your enterprise is in Mainland China.\nContinue to connect Cindy to this region.",
-      "bodyGlobal": "Your enterprise is in the Global region.\nContinue to connect Cindy to this region.",
+      "bodyCn": "Your enterprise is in Mainland China.\nContinue to connect in this region.",
+      "bodyGlobal": "Your enterprise is in the Global region.\nContinue to connect in this region.",
       "agree": "Continue sign-in",
       "disagree": "Cancel"
     },
@@ -5580,7 +5582,7 @@
       "SSO_LOGIN_REQUIRED": "This organization requires SSO sign-in.",
       "ORG_SSO_NOT_FOUND": "Company not found, or it has no SSO connection enabled",
       "ORG_REALM_AMBIGUOUS": "This enterprise identifier exists in both regions. Contact your administrator.",
-      "ORG_REALM_UNAVAILABLE": "Cindy cannot verify the enterprise region right now. Check your connection and retry.",
+      "ORG_REALM_UNAVAILABLE": "Cartethyia cannot verify the enterprise region right now. Check your connection and retry.",
       "SSO_EMAIL_REQUIRED": "Your work identity did not provide a valid email. Ask your admin to check the IdP configuration.",
       "INVALID_SSO_VERIFICATION_TICKET": "Work identity verification expired. Start SSO sign-in again.",
       "SOCIAL_TOKEN_INVALID": "The provider authorization expired. Please try again.",
@@ -5604,10 +5606,10 @@
   "splash": {
     "tips": {
       "checkingUpdate": "Checking for updates…",
-      "updating": "Updating Cindy…",
+      "updating": "Updating Cartethyia…",
       "updateDone": "Update complete, restarting shortly…",
       "checkingEnv": "Checking runtime environment…",
-      "waking": "Waking Cindy…",
+      "waking": "Waking Cartethyia…",
       "envFailed": "Environment setup failed — click to retry"
     },
     "downloadStats": "{{percent}}% · {{speed}} MB/s · {{done}} MB / {{total}} MB",
@@ -5630,12 +5632,12 @@
         "seconds": "{{count}} sec",
         "minutes": "{{count}} min"
       },
-      "cancelAction": "Cancel cleanup and open Cindy",
+      "cancelAction": "Cancel cleanup and open Cartethyia",
       "cancellingAction": "Cancelling cleanup…",
       "finalizingAction": "Finishing up…",
-      "cancelHint": "You can cancel safely. Cindy will keep the original database and continue starting.",
+      "cancelHint": "You can cancel safely. Cartethyia will keep the original database and continue starting.",
       "cancellingHint": "Stopping cleanup. The original database will not be changed.",
-      "finalizingHint": "Safely replacing the database. Do not close Cindy."
+      "finalizingHint": "Safely replacing the database. Do not close Cartethyia."
     },
     "envFailed": {
       "title": "Environment initialization failed",
@@ -5793,7 +5795,7 @@
     }
   },
   "usageHistory": {
-    "description": "Token usage produced inside Cindy on this device. Records start accumulating when the feature ships; earlier history is not backfilled.",
+    "description": "Token usage produced inside Cartethyia on this device. Records start accumulating when the feature ships; earlier history is not backfilled.",
     "empty": "No usage recorded yet. This fills in once you start a chat.",
     "cacheHitTooltip": "Cache read / (input + cache read + cache write) — the same formula as the message card.",
     "summary": {
@@ -5897,6 +5899,7 @@
       "checkForUpdates": "Check for Updates"
     },
     "updateCheckToast": {
+      "available": "A new version is available — see the sidebar for details",
       "alreadyLatest": "You're on the latest version",
       "downloading": "Downloading new version, please wait…",
       "ready": "New version ready — click the sidebar to apply",
@@ -5936,8 +5939,8 @@
       "confirm": "Disable"
     },
     "externalLinkConfirm": {
-      "title": "Allow Cindy to open an external website?",
-      "message": "Allow Cindy to open an external website?",
+      "title": "Allow Cartethyia to open an external website?",
+      "message": "Allow Cartethyia to open an external website?",
       "open": "Open Website",
       "cancel": "Cancel"
     }
@@ -6050,7 +6053,7 @@
       "agentControlApproval": {
         "attachTitle": "Allow the Agent to connect to and control this simulator?",
         "createTitle": "Allow the Agent to create and control a simulator?",
-        "description": "After this succeeds, the Agent can use this simulator for the current Cindy task: start or stop it, install or launch apps, tap, swipe, type, take screenshots, and change simulator settings without another device-control prompt. This access ends when you disconnect the device, end the task, restart Cindy, or revoke Agent control in the simulator panel. Other sensitive actions may still require separate approval."
+        "description": "After this succeeds, the Agent can use this simulator for the current Cartethyia task: start or stop it, install or launch apps, tap, swipe, type, take screenshots, and change simulator settings without another device-control prompt. This access ends when you disconnect the device, end the task, restart Cartethyia, or revoke Agent control in the simulator panel. Other sensitive actions may still require separate approval."
       },
       "refresh": "Refresh",
       "checking": "Checking",
@@ -6059,22 +6062,22 @@
       "allowTaskAccess": "Allow Session Control",
       "requestingAccess": "Requesting Access…",
       "accessDialogTitle": "Allow iOS Simulator Control?",
-      "accessDialogMessage": "Allow this Cindy window to view and control the iOS Simulator for “{{task}}”?",
+      "accessDialogMessage": "Allow this Cartethyia window to view and control the iOS Simulator for “{{task}}”?",
       "accessDialogDetail": "This permission applies only to this session. Switching away retains viewing access but pauses control; allow control again after you return.",
       "accessDialogAllow": "Allow Simulator Control",
       "accessDialogCancel": "Cancel",
       "accessDialogUntitledTask": "Untitled Session",
       "readyTitle": "Simulator environment ready",
       "unavailableTitle": "Simulator unavailable",
-      "connectionError": "Cindy could not connect to the iOS Simulator Host. Try again.",
-      "pluginNotInstalled": "The iOS Simulator plugin is not installed in this Cindy instance. Install and enable it from the Plugin Marketplace, then try again.",
-      "pluginDisabled": "The iOS Simulator plugin is installed in this Cindy instance but disabled. Enable it on the Plugins page, then try again.",
+      "connectionError": "Cartethyia could not connect to the iOS Simulator Host. Try again.",
+      "pluginNotInstalled": "The iOS Simulator plugin is not installed in this Cartethyia instance. Install and enable it from the Plugin Marketplace, then try again.",
+      "pluginDisabled": "The iOS Simulator plugin is installed in this Cartethyia instance but disabled. Enable it on the Plugins page, then try again.",
       "pluginDisabledForProject": "The iOS Simulator plugin is disabled for this working directory. Enable it in the project plugin settings, then try again.",
-      "pluginSessionUnavailable": "The plugin is installed and enabled, but this Cindy instance temporarily cannot use the shared plugin capability. Another Cindy instance or an account switch may be using it; refresh shortly.",
-      "pluginStateChanging": "Cindy is switching account or plugin state. Refresh shortly.",
-      "statusInternalError": "Cindy encountered an internal error while reading iOS Simulator status. Try again.",
+      "pluginSessionUnavailable": "The plugin is installed and enabled, but this Cartethyia instance temporarily cannot use the shared plugin capability. Another Cartethyia instance or an account switch may be using it; refresh shortly.",
+      "pluginStateChanging": "Cartethyia is switching account or plugin state. Refresh shortly.",
+      "statusInternalError": "Cartethyia encountered an internal error while reading iOS Simulator status. Try again.",
       "remoteUnsupported": "iOS Simulator is available only to local macOS sessions, not SSH or remote sessions.",
-      "sessionUnavailable": "This Cindy session is no longer available.",
+      "sessionUnavailable": "This Cartethyia session is no longer available.",
       "setupTitle": "Setup checklist",
       "devicesTitle": "Available devices",
       "instancesTitle": "Session Simulators",
@@ -6102,31 +6105,31 @@
       "deleteDevice": "Delete Device",
       "deleteDeviceConfirmTitle": "Delete {{device}}?",
       "deleteDeviceConfirmDescription": "This permanently deletes the simulator and all apps, accounts, and data stored on it. This cannot be undone.",
-      "deleteRunningDeviceConfirmDescription": "This simulator is running. Cindy will clean up its resources, stop it, and then permanently delete all apps, accounts, and data stored on it. This cannot be undone.",
-      "attachedDescription": "This device is bound to the current Cindy session.",
+      "deleteRunningDeviceConfirmDescription": "This simulator is running. Cartethyia will clean up its resources, stop it, and then permanently delete all apps, accounts, and data stored on it. This cannot be undone.",
+      "attachedDescription": "This device is bound to the current Cartethyia session.",
       "agentControlTitle": "Agent Control",
       "agentControlDescription": "Agents can start, stop, or interact with this device only when allowed.",
       "allowAgentControl": "Allow Agent Control",
       "disableAgentControl": "Disable Agent Control",
       "agentControlDialogTitle": "Allow Agent control?",
       "agentControlDialogMessage": "Allow Agents to control {{simulator}}?",
-      "agentControlDialogDetail": "This request came from \"{{task}}\". Agents may start, stop, tap, type, install, and launch apps on this simulator. Cindy saves this permission for this profile, including after restart, until you turn it off.",
+      "agentControlDialogDetail": "This request came from \"{{task}}\". Agents may start, stop, tap, type, install, and launch apps on this simulator. Cartethyia saves this permission for this profile, including after restart, until you turn it off.",
       "agentControlDialogAllow": "Allow",
       "agentControlDialogCancel": "Cancel",
-      "operationError": "Cindy could not complete the simulator operation.",
+      "operationError": "Cartethyia could not complete the simulator operation.",
       "retryHint": "Refresh the status and try again.",
-      "operationErrorWithRecovery": "Cindy could not complete the simulator operation. Refresh the status and try again.",
-      "deviceInUseByOtherTask": "Another Cindy task is using this device. Choose another device, or disconnect it from the original task first.",
+      "operationErrorWithRecovery": "Cartethyia could not complete the simulator operation. Refresh the status and try again.",
+      "deviceInUseByOtherTask": "Another Cartethyia task is using this device. Choose another device, or disconnect it from the original task first.",
       "taskDeviceLimitReached": "This task already has {{limit}} connected devices. Disconnect one before connecting another device.",
-      "runningDeviceLimitReached": "Cindy is already running {{limit}} simulators. Stop one before connecting this booted device.",
+      "runningDeviceLimitReached": "Cartethyia is already running {{limit}} simulators. Stop one before connecting this booted device.",
       "resourceSoftLimitTitle": "{{count}} simulators are currently running",
-      "resourceSoftLimitDescription": "Before starting more devices, Cindy checks system memory. Existing devices stay active if a new start is blocked.",
+      "resourceSoftLimitDescription": "Before starting more devices, Cartethyia checks system memory. Existing devices stay active if a new start is blocked.",
       "resourceHardLimitTitle": "Concurrent simulator limit reached ({{limit}})",
       "resourceHardLimitDescription": "Stop a running simulator before starting another device.",
       "errors": {
-        "attachedElsewhere": "Another Cindy task is using this device. Choose another device, or disconnect it from the original task first.",
+        "attachedElsewhere": "Another Cartethyia task is using this device. Choose another device, or disconnect it from the original task first.",
         "taskLimitReached": "This task can connect up to {{taskLimit}} devices. Disconnect one and try again.",
-        "resourceLimitReached": "Cindy has reached the concurrent simulator limit ({{hardLimit}}). Stop a simulator and try again.",
+        "resourceLimitReached": "Cartethyia has reached the concurrent simulator limit ({{hardLimit}}). Stop a simulator and try again.",
         "memoryPressure": "System memory pressure is too high to start another simulator. Stop a simulator or try again later.",
         "deviceNotFound": "The selected device no longer exists. Refresh the status and choose another device.",
         "deviceStateChanged": "The device state changed. Refresh the status and try again."
@@ -6213,7 +6216,7 @@
         "screenshot": "Copying simulator screenshot…"
       },
       "setup": {
-        "localMac": "Open this project in a local Cindy session on a Mac.",
+        "localMac": "Open this project in a local Cartethyia session on a Mac.",
         "installXcode": "Install Xcode from the Mac App Store or Apple Developer downloads.",
         "selectXcode": "Open Xcode once and select its command line developer tools.",
         "installRuntime": "Install an iOS Simulator runtime in Xcode Settings.",
@@ -6654,7 +6657,7 @@
       "systemLog": "Runtime log",
       "noSystemLog": "No runtime log lines were reported.",
       "loadMoreTranscript": "Load more transcript",
-      "transcriptUnavailable": "This Harness has not exposed a full child transcript to Cindy yet. Returned results and lifecycle activity remain available.",
+      "transcriptUnavailable": "This Harness has not exposed a full child transcript to Cartethyia yet. Returned results and lifecycle activity remain available.",
       "tool": {
         "fallbackName": "Tool",
         "running": "Running…",
@@ -6777,7 +6780,12 @@
       "confirmAria": "Restart anyway and apply the update, interrupting the running task",
       "cancelAria": "Cancel update",
       "dismiss": "Later",
-      "dismissAria": "Dismiss update banner for now"
+      "dismissAria": "Dismiss update banner for now",
+      "availableTitle": "Version {{version}} is available",
+      "availableSubtitle": "It will not download or install automatically",
+      "availableButton": "Open Official Download",
+      "availableTooltip": "Official update available — open the download page{{versionSuffix}}",
+      "availableAria": "Official version {{version}} is available; open the download page"
     },
     "notice": {
       "title": "What's New",
@@ -6840,7 +6848,7 @@
       "regionCodeDev": "Dev",
       "viewReleaseNotes": "View release notes",
       "reopenUpdateBanner": "Update ready — click to review",
-      "downloadMobile": "Download Cindy Mobile"
+      "downloadMobile": "Download Cartethyia Mobile"
     },
     "accountSwitcher": {
       "title": "Switch account",
@@ -6857,16 +6865,16 @@
       "close": "Close"
     },
     "mobileDownload": {
-      "title": "Control Cindy Remotely",
+      "title": "Control Cartethyia Remotely",
       "subtitle": "Connect your phone to this desktop",
-      "qrAlt": "QR code to download Cindy mobile",
+      "qrAlt": "QR code to download Cartethyia mobile",
       "preparing": "Preparing QR code…",
       "error": "Couldn’t create the QR code. Try again later.",
       "openPage": "Open Download Page",
       "openFailed": "Couldn’t open the download page. Check your system browser settings.",
-      "scanToOpen": "Scan to open the Cindy app and sign in with the same account",
+      "scanToOpen": "Scan to open the Cartethyia app and sign in with the same account",
       "scanAnother": "Scan Another Device",
-      "scanAnotherHint": "Open Cindy on another phone",
+      "scanAnotherHint": "Open Cartethyia on another phone",
       "myDevices": "My Devices",
       "deviceOffline": "Offline",
       "allowControl": "Allow same-account devices to control this machine",
@@ -7028,7 +7036,7 @@
         "AUTH_NETWORK": "Couldn't reach the authorization service. Check your network and try again.",
         "AUTH_SERVICE_UNAVAILABLE": "The authorization service is temporarily unavailable. Try again later.",
         "INLINE_INVALID": "This configuration is invalid. Check it and try again.",
-        "INLINE_UNAVAILABLE": "This Cindy version can't save this configuration in chat. Update Cindy and try again.",
+        "INLINE_UNAVAILABLE": "This Cartethyia version can't save this configuration in chat. Update Cartethyia and try again.",
         "SAVE_FAILED": "Couldn't save this configuration. Try again.",
         "WINDOW_CLOSED": "The window that started setup was closed. Return to the session and try again.",
         "TARGET_UNAVAILABLE": "This plugin is disabled, uninstalled, or unavailable. Check the plugin and try again.",
@@ -7458,7 +7466,7 @@
       "permissionSwitchFailed": "Permission mode change failed; the previous setting was kept",
       "fullAccessConfirmation": {
         "title": "Enable Full access?",
-        "description": "Full access disables the workspace sandbox and skips routine approvals. Cindy can then do the following without asking:",
+        "description": "Full access disables the workspace sandbox and skips routine approvals. Cartethyia can then do the following without asking:",
         "items": {
           "files": {
             "title": "Files and Folders",
@@ -7486,8 +7494,8 @@
       "modelSwitchContextGuard": {
         "title": "This model can't fit the current conversation",
         "warnToast": "This conversation already uses {{used}} — about {{pct}}% of the new model's {{total}} capacity",
-        "overflowDescription": "This conversation already uses {{used}}, more than the new model can hold ({{total}}, about {{pct}}%). If you switch, Cindy will make a short summary and continue. Your chat history stays; it just won't all be passed through verbatim.",
-        "overflowDescriptionRemote": "This remote task already uses {{used}} / {{total}} of the smaller model's context (about {{pct}}%), so Cindy cannot switch safely. Keep the current model or start a new task before choosing this model.",
+        "overflowDescription": "This conversation already uses {{used}}, more than the new model can hold ({{total}}, about {{pct}}%). If you switch, Cartethyia will make a short summary and continue. Your chat history stays; it just won't all be passed through verbatim.",
+        "overflowDescriptionRemote": "This remote task already uses {{used}} / {{total}} of the smaller model's context (about {{pct}}%), so Cartethyia cannot switch safely. Keep the current model or start a new task before choosing this model.",
         "confirmSwitch": "Switch and continue",
         "cancelSwitch": "Keep this model"
       },
@@ -7572,10 +7580,10 @@
   },
   "onboarding": {
     "homeZeroModel": {
-      "title": "Sign in to Cindy to continue",
-      "desc": "You don’t have any models yet. Sign in to Cindy to use dozens of top-tier models.",
-      "cta": "Sign in to Cindy",
-      "cloudTitle": "Continue with Cindy",
+      "title": "Sign in to Cartethyia to continue",
+      "desc": "You don’t have any models yet. Sign in to Cartethyia to use dozens of top-tier models.",
+      "cta": "Sign in to Cartethyia",
+      "cloudTitle": "Continue with Cartethyia",
       "cloudDesc": "You don’t have any models yet. Enable the official service to use dozens of top-tier models.",
       "cloudCta": "Get started",
       "ownApi": "I have my own model API"
@@ -7585,10 +7593,10 @@
       "desc": "No models are available yet. Connect a provider to start chatting.",
       "recommendedLabel": "Recommended",
       "cindy": {
-        "title": "Cindy AI",
+        "title": "Cartethyia AI",
         "desc": "Official service · all models · works with Claude Code and Codex",
-        "loginTitle": "Sign in to Cindy",
-        "loginDesc": "Sign in to enable the official Cindy AI service with access to all models — new users get a promotional balance"
+        "loginTitle": "Sign in to Cartethyia",
+        "loginDesc": "Sign in to enable the official Cartethyia AI service with access to all models — new users get a promotional balance"
       },
       "othersToggle": "Other providers ({{count}})",
       "presetSub": "Paste an API key to connect",
@@ -7597,7 +7605,7 @@
       "banner": {
         "text": "No models available — connect a provider to start chatting.",
         "connectCta": "Connect a provider",
-        "loginCta": "Sign in to Cindy",
+        "loginCta": "Sign in to Cartethyia",
         "dismissAria": "Dismiss"
       },
       "detectedLabel": "Detected",
@@ -7605,13 +7613,13 @@
     },
     "inheritedSubscription": {
       "title": "Using the {{products}} sign-in already on this computer",
-      "desc": "Cindy picked up the account you're already signed in to locally — no separate authorization was needed. Switch or disconnect it under model providers.",
+      "desc": "Cartethyia picked up the account you're already signed in to locally — no separate authorization was needed. Switch or disconnect it under model providers.",
       "openProviders": "Open Model Providers",
       "acknowledge": "Got it",
       "separator": ", "
     },
     "promotionalGrant": {
-      "title": "Cindy AI is ready",
+      "title": "Cartethyia AI is ready",
       "desc": "A promotional balance of {{amount}} has been added and is valid until {{date}}. You can add funds any time after it runs out or expires.",
       "openBilling": "View usage",
       "acknowledge": "Got it"
@@ -7660,7 +7668,7 @@
     "closeWithShortcut": "Close and discard ({{shortcut}})",
     "codexRequired": "Connect Codex in {{appName}} before using voice input.",
     "apiKeyRequired": "Configure an API Key before using voice input.",
-    "cindyServiceUnavailable": "The Cindy voice service is unavailable. Check your network or switch service source.",
+    "cindyServiceUnavailable": "The Cartethyia voice service is unavailable. Check your network or switch service source.",
     "asrServiceUnavailable": "Voice recognition service failed to connect. Check your network and try again.",
     "emptyTranscript": "Speech was detected, but no text was recognized. Please try again.",
     "connectionInterrupted": "The voice connection was interrupted. Check your network and try again.",
@@ -7670,14 +7678,14 @@
   },
   "chatgptAuthRecovery": {
     "title": "ChatGPT Sign-In Is No Longer Valid",
-    "systemSharedInvalidated": "Cindy is using this computer’s ChatGPT sign-in. Restore it in the ChatGPT App first; this avoids creating a second credential or signing this computer out.",
-    "instanceIsolatedInvalidated": "Cindy is currently using a separately signed-in ChatGPT account. That sign-in is no longer valid. Sign in again in Cindy, then retry.",
-    "unknownInvalidated": "Cindy’s current ChatGPT sign-in is no longer valid. Sign in again, then retry.",
+    "systemSharedInvalidated": "Cartethyia is using this computer’s ChatGPT sign-in. Restore it in the ChatGPT App first; this avoids creating a second credential or signing this computer out.",
+    "instanceIsolatedInvalidated": "Cartethyia is currently using a separately signed-in ChatGPT account. That sign-in is no longer valid. Sign in again in Cartethyia, then retry.",
+    "unknownInvalidated": "Cartethyia’s current ChatGPT sign-in is no longer valid. Sign in again, then retry.",
     "recovered": "ChatGPT sign-in has been restored. Please retry.",
     "openApp": "Open ChatGPT App",
     "relogin": "Sign In to ChatGPT Again",
-    "reloginRiskTitle": "Still sign in through Cindy?",
-    "reloginRiskDescription": "Cindy will create a new OpenAI OAuth authorization. The ChatGPT App is usually unaffected; if it still shares credentials with system Codex, those apps may ask you to sign in again.",
+    "reloginRiskTitle": "Still sign in through Cartethyia?",
+    "reloginRiskDescription": "Cartethyia will create a new OpenAI OAuth authorization. The ChatGPT App is usually unaffected; if it still shares credentials with system Codex, those apps may ask you to sign in again.",
     "reloginRiskConfirm": "Accept Risk and Continue",
     "devWriteBlocked": "Development builds use this computer’s ChatGPT sign-in read-only by default and cannot start OAuth or change its credentials. To test OAuth, use an isolated sandbox and explicitly set XDT_ALLOW_DEV_OAUTH_WRITE=1.",
     "devReadOnly": "Read-only in Development",
@@ -7685,7 +7693,7 @@
     "recheck": "Check Again",
     "later": "Later",
     "openAppFailed": "Couldn’t open the ChatGPT App. Open it manually and sign in again.",
-    "verificationFailed": "Cindy couldn’t confirm whether the ChatGPT sign-in has recovered. Check again."
+    "verificationFailed": "Cartethyia couldn’t confirm whether the ChatGPT sign-in has recovered. Check again."
   },
   "chat": {
     "jumpToBottom": "Jump to bottom",
@@ -7853,7 +7861,7 @@
       "codexOrganizationUsageLimit": "The connected Codex account is managed by your organization and has reached its usage limit. Wait for the limit to reset, or switch to another available account before retrying.",
       "codexUsageLimitWithReset": "The connected Codex account has reached its usage limit. Usage is expected to reset at {{resetAt}}.",
       "codexUsageLimit": "The connected Codex account has reached its usage limit. Wait for the limit to reset, or switch to another available account before retrying.",
-      "gatewayQuotaExhausted": "Your Cindy AI balance is used up. Add funds to continue.",
+      "gatewayQuotaExhausted": "Your Cartethyia AI balance is used up. Add funds to continue.",
       "viewBalance": "View balance",
       "viewBalanceTitle": "Open Usage & Billing to check your balance and add funds",
       "credentialSwitchBusy": "Another Codex task is still running, so the provider for this session can't be applied yet (the shared Codex process needs a restart). Retry after those tasks finish.",
@@ -7866,13 +7874,13 @@
       "switchingClaudeSubscription": "Switching to Claude.ai…",
       "claudeSubscriptionSwitchFailed": "Couldn’t switch to Claude.ai or retry this session: {{msg}}",
       "codexAppServerRetired": "The Codex service was restarted or replaced. The current request was interrupted; run it again.",
-      "codexAuthMissing": "Remote Codex hasn't been signed in yet (401 Unauthorized). Click \"Sync auth\" to push your local Codex credentials to the remote Cindy Codex home, then retry.",
+      "codexAuthMissing": "Remote Codex hasn't been signed in yet (401 Unauthorized). Click \"Sync auth\" to push your local Codex credentials to the remote Cartethyia Codex home, then retry.",
       "codexAuthMissingLocal": "Codex credentials missing or expired (401 Unauthorized). Re-login in {{appName}} Settings → Codex (the app-server will auto-restart on login), or run `codex login` in your terminal and toggle the auth mode in Settings once to restart the app-server. Then start a new session.",
       "codexSessionExpired": "The OpenAI connection needs an update. Reconnect ChatGPT to continue; {{appName}} won’t sign your system Codex CLI out or ask you to reconnect other model sources.",
       "codexAuthSynced": "Auth synced. Click \"Retry\" to resend.",
       "syncAuth": "Sync auth",
       "syncAuthSyncing": "Syncing…",
-      "syncAuthTitle": "Push local Codex credentials to remote Cindy Codex home",
+      "syncAuthTitle": "Push local Codex credentials to remote Cartethyia Codex home",
       "syncAuthSuccess": "Synced — click \"Retry\" to resend",
       "syncAuthFailed": "Sync failed: {{msg}}",
       "syncAuthDaemonRestartFailed": "Credentials pushed, but the old daemon did not restart — reconnect to the remote before retrying",
@@ -7897,14 +7905,14 @@
       "streamInterruptedNoRetry": "The model stream was interrupted. This is usually a temporary upstream issue. Try again in a little while.",
       "networkShowRaw": "Show raw error",
       "networkHideRaw": "Hide raw error",
-      "gatewayProxyTokenInvalid": "Cindy AI credentials are no longer valid. Click Retry. If it happens again, sign out and sign back in",
-      "gatewayProxyTokenInvalidNoRetry": "Cindy AI credentials are no longer valid. If it happens again, sign out and sign back in",
+      "gatewayProxyTokenInvalid": "Cartethyia AI credentials are no longer valid. Click Retry. If it happens again, sign out and sign back in",
+      "gatewayProxyTokenInvalidNoRetry": "Cartethyia AI credentials are no longer valid. If it happens again, sign out and sign back in",
       "silentStopContinue": "Continue",
       "silentStopContinueTitle": "Continue the current task",
       "piTransportClosed": "Remote Pi connection interrupted (SSH channel closed). The remote task is still running — reconnect to continue.",
       "piManagerUnavailable": "Remote Pi manager is not ready. Retry shortly; if it keeps failing, reinstall Pi under Settings → Remote Machines.",
       "piBundledNodeMissing": "The remote host is missing its runtime (Node.js). Expand the host under Settings → Remote Machines and click Install on Claude Code or Codex first (they bundle Node.js), then start a Pi task.",
-      "contextOverflow": "This message itself exceeds the model's context window, so Cindy cannot continue it in a fresh agent session. Shorten the input or remove a large attachment, then try again."
+      "contextOverflow": "This message itself exceeds the model's context window, so Cartethyia cannot continue it in a fresh agent session. Shorten the input or remove a large attachment, then try again."
     },
     "backgroundActivity": {
       "status": "Background subtasks running, still consuming model usage…",
@@ -8264,12 +8272,12 @@
         "failure": {
           "reviewerClosed": "The review task closed before it finished",
           "cancelledBeforeStart": "The review was cancelled before it started",
-          "interrupted": "The review was interrupted when Cindy closed. Run /review again.",
+          "interrupted": "The review was interrupted when Cartethyia closed. Run /review again.",
           "sourceWorkspaceChanged": "The source task workspace changed. Run /review again in the current workspace.",
           "sourceConversationChanged": "The source task changed. Run /review again for the current task.",
           "sourceFilesChanged": "The source task files changed. Run /review again for the current result.",
           "artifactChanged": "A review artifact changed. Run /review again for the current result.",
-          "artifactUnavailable": "Cindy couldn't safely read the review artifacts. Check the workspace or attachments, then run /review again.",
+          "artifactUnavailable": "Cartethyia couldn't safely read the review artifacts. Check the workspace or attachments, then run /review again.",
           "providerFailed": "The review task failed"
         }
       }
@@ -8315,9 +8323,9 @@
       "mention": "Plugin mentioned · {{names}}",
       "mentionExpandAria": "Show the hint appended for the model",
       "mentionDirectiveLabel": "Hint appended for the model",
-      "hostCapabilityExpandAria": "Show the selected Cindy capability route",
-      "hostCapabilityDirectiveLabel": "Cindy capability route sent to the agent",
-      "hostCapabilityLegend": "Highlighted = current selection · the rest is Cindy's fixed routing text",
+      "hostCapabilityExpandAria": "Show the selected Cartethyia capability route",
+      "hostCapabilityDirectiveLabel": "Cartethyia capability route sent to the agent",
+      "hostCapabilityLegend": "Highlighted = current selection · the rest is Cartethyia's fixed routing text",
       "semanticExpandAria": "Show how this plugin was used",
       "semanticNote": "The AI used this plugin on its own based on the meaning of your message; no machine directive was appended to it.",
       "listSeparator": ", ",
@@ -8368,7 +8376,7 @@
       }
     },
     "threadContext": {
-      "cindyFrom": "Cindy · from {{platform}}",
+      "cindyFrom": "Cartethyia · from {{platform}}",
       "viewThread": "View thread context ({{count}})"
     },
     "rewind": {
@@ -8421,8 +8429,8 @@
       "AUTO_REVIEW_UNAVAILABLE": "Auto-review could not reach a decision (network or service hiccup), so actions that need review are being handed to you to confirm. Switch this task to Default permissions if you would rather not be interrupted.",
       "AUTO_REVIEW_CONFIRM_UNDELIVERED": "Automatic review was unavailable, and the confirmation request was not completed. This is not a user rejection.",
       "REMOTE_COMPAT_MODE_UNSUPPORTED": "Remote Claude Code sessions can't route through the local compat proxy (internal error).",
-      "REMOTE_GATEWAY_ENDPOINT_UNAVAILABLE": "Cindy AI credentials are not ready yet (issued automatically after sign-in). Please retry shortly; if this persists, check the Cindy AI status in Settings → Model Providers.",
-      "REMOTE_LOCAL_ONLY_PROVIDER": "This model provider is a local-only service (e.g. Ollama) that a remote SSH task cannot reach. Switch to the Cindy AI gateway, or pick a provider reachable from the remote host.",
+      "REMOTE_GATEWAY_ENDPOINT_UNAVAILABLE": "Cartethyia AI credentials are not ready yet (issued automatically after sign-in). Please retry shortly; if this persists, check the Cartethyia AI status in Settings → Model Providers.",
+      "REMOTE_LOCAL_ONLY_PROVIDER": "This model provider is a local-only service (e.g. Ollama) that a remote SSH task cannot reach. Switch to the Cartethyia AI gateway, or pick a provider reachable from the remote host.",
       "LOCAL_OLLAMA_NOT_READY": "Local Ollama isn't ready. Open Settings → Model Providers → Ollama.",
       "DEVICE_LINK_CONTROL_DISABLED": "Control for this device is off; the message was not sent.",
       "DEVICE_LINK_MEDIA_TRANSFER_FAILED": "Attachment transfer failed; the message was not sent. Please try again."
@@ -8461,7 +8469,7 @@
       "undoPartialSuccess": "Exactly captured changes were undone; uncaptured changes were not undone",
       "reapplyPartialSuccess": "Exactly captured changes were reapplied; uncaptured changes were not reapplied",
       "actionRunning": "Wait for the current response to finish before changing the workspace",
-      "gitUnavailable": "Git was not detected. Install Git, make sure it is on the system PATH, and restart Cindy to use the full Undo and Reapply functionality.",
+      "gitUnavailable": "Git was not detected. Install Git, make sure it is on the system PATH, and restart Cartethyia to use the full Undo and Reapply functionality.",
       "actionConflict": "The workspace has changed, so this patch cannot be applied safely. Review the current changes first",
       "actionUnavailable": "This message includes file changes that cannot be safely undone",
       "actionFailed": "The changes could not be applied. Try again",
@@ -8586,7 +8594,7 @@
         "replaced": "This connection was replaced by another instance of the same device — reconnecting…",
         "too-many-connections": "Too many devices online for this account — the server refused the connection",
         "version-mismatch": "Protocol version doesn't match the server — update the app and retry",
-        "unstable": "This computer keeps losing and re-establishing its connection, so remote actions may keep timing out — check the network, or restart Cindy and retry"
+        "unstable": "This computer keeps losing and re-establishing its connection, so remote actions may keep timing out — check the network, or restart Cartethyia and retry"
       }
     },
     "common": {
@@ -8638,8 +8646,8 @@
       "markedAsRead_other": "Marked {{count}} runs as read",
       "markAllReadFailed": "Failed to mark all read: {{error}}",
       "apiKeyDialog": {
-        "title": "Cindy AI required",
-        "description": "Connect Cindy AI in Model Providers before sending messages — tap below to open settings",
+        "title": "Cartethyia AI required",
+        "description": "Connect Cartethyia AI in Model Providers before sending messages — tap below to open settings",
         "confirm": "Open Settings",
         "cancel": "Cancel"
       },
@@ -8665,7 +8673,7 @@
     },
     "remoteDesktopConfirmation": {
       "title": "Confirmation required on the controlled computer",
-      "description": "Open Cindy on the controlled computer to review and respond."
+      "description": "Open Cartethyia on the controlled computer to review and respond."
     },
     "handoff": {
       "card": {
@@ -8701,7 +8709,7 @@
       "remoteProviderUnsupported": "This provider is not supported in SSH remote sessions — pick another source",
       "remoteNativeOauthUnavailable": "Claude.ai subscription is not connected — connect it first or pick a gateway model",
       "deviceStillLoading": "Remote device is still loading, please wait",
-      "remoteDefaultsLoadFailed": "Could not load the remote device settings. Check the connection; Cindy is retrying.",
+      "remoteDefaultsLoadFailed": "Could not load the remote device settings. Check the connection; Cartethyia is retrying.",
       "worktreeMissingRepo": "Can't create a worktree: the current directory's repo root is missing",
       "worktreeRepoHint": "Try picking the working directory again, and retry once the folder badge at the bottom right refreshes",
       "sessionInactive": "Session is no longer active",
@@ -9018,7 +9026,7 @@
       "sessionBranches": {
         "title": "Session branches",
         "close": "Close session branches",
-        "description": "Cindy session forks and Pi's in-session branches live in one tree.",
+        "description": "Cartethyia session forks and Pi's in-session branches live in one tree.",
         "current": "Current",
         "empty": "This session has no Pi branches to switch yet.",
         "emptyEntry": "No visible content",
@@ -9670,7 +9678,7 @@
         "aiGenerating": "Generating…",
         "aiDone": "Script written to {{path}} — run Test to verify",
         "aiFailure": {
-          "no_candidate": "No utility model is currently available. Connect OpenAI or Cindy AI, then try again.",
+          "no_candidate": "No utility model is currently available. Connect OpenAI or Cartethyia AI, then try again.",
           "all_candidates_failed": "Every utility model request failed. Check the provider connection and try again.",
           "empty_response": "The utility models returned no usable content. Try again or check the provider connection.",
           "timeout": "The utility model request timed out. Check the connection and try again.",
@@ -9682,8 +9690,8 @@
             "modelUnavailable": "the selected model is unavailable for this provider",
             "notAuthenticated": "OpenAI login required",
             "authProbeFailed": "could not verify OpenAI login",
-            "apiKeyMissing": "Cindy AI key is unavailable",
-            "endpointMissing": "Cindy AI endpoint is unavailable",
+            "apiKeyMissing": "Cartethyia AI key is unavailable",
+            "endpointMissing": "Cartethyia AI endpoint is unavailable",
             "timeout": "request timed out",
             "emptyResponse": "empty response",
             "httpError": "HTTP {{status}}",
@@ -9921,7 +9929,7 @@
       "emptyTitleUnverified": "Couldn't find your issues right now",
       "startIssueChat": "Start a new session with /issue",
       "statusUnknown": "Status unknown",
-      "sourceCindy": "Submitted from Cindy",
+      "sourceCindy": "Submitted from Cartethyia",
       "sourceGithub": "GitHub account",
       "commentCount_one": "{{count}} comment",
       "commentCount_other": "{{count}} comments",
@@ -9929,10 +9937,10 @@
       "viewerGithub": "GitHub account @{{login}}",
       "platformUnavailableHint": "Showing only submissions recorded on this device. Issues you filed on other devices, and their live status on GitHub, aren't available in the app yet.",
       "platformUnavailablePartialHint": "Issues you filed on other devices aren't available in the app yet, so this list may be incomplete.",
-      "notSignedInHint": "Sign in to your Cindy account to see every issue you've filed, along with its current status.",
+      "notSignedInHint": "Sign in to your Cartethyia account to see every issue you've filed, along with its current status.",
       "fetchFailedHint": "Couldn't load the latest status. Showing only submissions recorded on this device, so this list may be incomplete.",
       "fetchFailedPartialHint": "Couldn't load the latest status, so some issues may show incomplete status.",
-      "enhancementFailedHint": "Couldn't read the issues filed from your GitHub account. The Cindy GitHub plugin's access token may not have enough permissions — check it on the plugin page.",
+      "enhancementFailedHint": "Couldn't read the issues filed from your GitHub account. The Cartethyia GitHub plugin's access token may not have enough permissions — check it on the plugin page.",
       "enhancementFailedGenericHint": "Couldn't read the issues filed from your GitHub account — likely a network hiccup or GitHub rate limit. Try refreshing in a moment.",
       "truncatedHint": "There are more issues than shown here — open GitHub for the full list."
     },
@@ -10123,7 +10131,7 @@
   },
   "issueAgent": {
     "command": {
-      "instruction": "I'd like to file feedback for {{appName}}. Help me turn it into a clear GitHub issue: figure out whether it is a bug or a suggestion, and ask only what is actually missing—do not run a fixed questionnaire. Ordinary suggestions do not need a bug checklist; skip Harness, model, and Effort questions when they are unrelated. Summarize or generalize user-provided quotes and examples by default instead of copying information that could identify a person, conversation, or business context. Screenshots in this chat are not uploaded to GitHub—never write that screenshots were attached; describe what they showed instead. With my consent, include redacted diagnostic summaries; never include passwords, tokens, email addresses, personal paths, or unrelated files. For feature requests, write the visible use case and ask; do not write repo paths, implementation plans, or acceptance checklists unless I ask. Once the information is sufficient, submit it with the submit_github_issue tool via cindy_helper call_tool (category=feedback; you can run list_tools first to check the parameters; a confirmation card will be shown to me before submitting). No GitHub plugin or account setup is required: Cindy's official bot is the default, and a working GitHub account appears only as an optional identity in the confirmation card. After creation, tell me the issue number and link, explain that Cindy is open source, and offer to help me reproduce, fix, test, or extend it from source. If the submission fails, tell me the reason honestly.{{details}}",
+      "instruction": "I'd like to file feedback for {{appName}}. Help me turn it into a clear GitHub issue: figure out whether it is a bug or a suggestion, and ask only what is actually missing—do not run a fixed questionnaire. Ordinary suggestions do not need a bug checklist; skip Harness, model, and Effort questions when they are unrelated. Summarize or generalize user-provided quotes and examples by default instead of copying information that could identify a person, conversation, or business context. Screenshots in this chat are not uploaded to GitHub—never write that screenshots were attached; describe what they showed instead. With my consent, include redacted diagnostic summaries; never include passwords, tokens, email addresses, personal paths, or unrelated files. For feature requests, write the visible use case and ask; do not write repo paths, implementation plans, or acceptance checklists unless I ask. Once the information is sufficient, submit it with the submit_github_issue tool via cindy_helper call_tool (category=feedback; you can run list_tools first to check the parameters; a confirmation card will be shown to me before submitting). No GitHub plugin or account setup is required: Cartethyia's official bot is the default, and a working GitHub account appears only as an optional identity in the confirmation card. After creation, tell me the issue number and link, explain that Cartethyia is open source, and offer to help me reproduce, fix, test, or extend it from source. If the submission fails, tell me the reason honestly.{{details}}",
       "detailsPrefix": "\nMy initial description: {{details}}"
     },
     "confirm": {
@@ -10137,7 +10145,7 @@
       "submissionMethodLabel": "Submission Identity",
       "identityGithubUser": "My GitHub account @{{login}}",
       "identityGithubUserHint": "You will be the GitHub author and can edit or close this Issue on GitHub",
-      "identityPlatform": "Cindy official bot @{{login}} (default)",
+      "identityPlatform": "Cartethyia official bot @{{login}} (default)",
       "identityPlatformHint": "No GitHub account setup is required. The official bot creates the Issue, and you can add a public attribution in the body",
       "publicNameLabel": "Public Attribution",
       "publicNameHint": "This attribution will appear publicly in the Issue body",
@@ -10180,7 +10188,7 @@
       "descriptionSaveDir": "The directory below is outside this session's working directory. If you allow, this plugin can save downloaded files into it (existing files are never overwritten).",
       "descriptionRevealPath": "The path is returned to the current Agent only after you allow it and will enter the conversation record; paired devices may sync that record. This does not grant any plugin access to the file.",
       "descriptionFsWrite": "This plugin requests to write the files below into the current session's working directory. If you allow, further writes to the same directory in this session won't ask again.",
-      "descriptionWorkspace": "This folder is outside this session's working directory. If you allow, Cindy creates an empty session for it in the sidebar (an existing session is reused) without reading any files inside.",
+      "descriptionWorkspace": "This folder is outside this session's working directory. If you allow, Cartethyia creates an empty session for it in the sidebar (an existing session is reused) without reading any files inside.",
       "dirMeta": "{{count}} files · {{size}}",
       "directory": "Directory",
       "allowDirs": "Also allow their folders (media files in the same folders won't ask again this session)",
@@ -10822,7 +10830,7 @@
       "telegramBotWentOnline": "Back online",
       "telegramBotToggleOnlineFailed": "Could not switch: {{message}}",
       "telegramRemoteWentOffline": "That device is now offline",
-      "telegramRemoteUnsupported": "That device's Cindy is too old for remote offline — update it first",
+      "telegramRemoteUnsupported": "That device's Cartethyia is too old for remote offline — update it first",
       "telegramRemoteFailed": "Could not take it offline: {{message}}",
       "dingtalkBotConnected": "DingTalk bot connected",
       "dingtalkBotConnectFailed": "DingTalk bot connection failed; check credentials, Stream mode, and your network",
@@ -10844,19 +10852,19 @@
       "registrationFailed": "Creation failed, please retry later",
       "silentStopExhausted": "The model returned empty responses repeatedly; auto-resume is paused. Click \"Continue\" to resume the task.",
       "permissionTightenInterruptFailed": "Failed to stop the running task while tightening permissions; it may keep running without approval prompts until it finishes. Stop it manually if needed.",
-      "codexAutoReviewUnavailable": "Auto-review is temporarily unavailable. The current action was blocked and permissions switched to Default. Retry the request; Cindy will ask when needed.",
-      "hostShellCommandBlocked": "Cindy blocked a shell command that would bypass the embedded iOS Simulator. Use the iOS Simulator tool for device control, app launches, interaction, screenshots, and diagnostics.",
+      "codexAutoReviewUnavailable": "Auto-review is temporarily unavailable. The current action was blocked and permissions switched to Default. Retry the request; Cartethyia will ask when needed.",
+      "hostShellCommandBlocked": "Cartethyia blocked a shell command that would bypass the embedded iOS Simulator. Use the iOS Simulator tool for device control, app launches, interaction, screenshots, and diagnostics.",
       "upstreamResponseIdleTimeout": "The model stopped responding for a long time, so this turn was interrupted to avoid hanging forever. Completed tool calls are preserved — send the next message to continue.",
-      "codexHistoryOversized": "This task’s history includes oversized images, so remote compaction cannot finish. Cindy will omit those images and continue in this task.",
-      "codexHistoryOversizedRemote": "This task’s history includes oversized images, so remote compaction cannot finish. Open the task on the machine running Codex and send again; Cindy will omit those images there.",
+      "codexHistoryOversized": "This task’s history includes oversized images, so remote compaction cannot finish. Cartethyia will omit those images and continue in this task.",
+      "codexHistoryOversizedRemote": "This task’s history includes oversized images, so remote compaction cannot finish. Open the task on the machine running Codex and send again; Cartethyia will omit those images there.",
       "codexCompactionNotConverging": "Codex kept compacting the context without making progress, so this turn was interrupted to stop the loop. What's taking up the space usually isn't the conversation — the system prompt and tool definitions can't be compacted away. Start a new task to continue.",
       "codexCompactionNotConvergingModelSwitch": "Codex kept compacting the context without making progress, so this turn was interrupted to stop the loop. This task switched model midway, and Codex still evaluates the context limit against the previous model. Switch back to that model to continue, or start a new task.",
       "turnNoEventTimeout": "This turn showed no activity for a long time (model, tools and background processes were all silent), so it was interrupted to avoid hanging forever. Send the next message to continue.",
-      "toolUseLoopDetected": "The model repeated a tool call too many times, so Cindy stopped this turn to prevent an infinite loop. Send a new message to continue.",
-      "toolUseLoopDetectedWithCount": "The model kept repeating invalid tool calls, so Cindy stopped this turn after {{count}} failures to prevent an infinite loop. Send a new message to continue.",
-      "toolUseLoopDetectedConsecutiveWithCount": "The model repeated the same tool call {{count}} times, so Cindy stopped this turn to prevent an infinite loop. Send a new message to continue.",
-      "toolUseLoopDetectedPingPongWithCount": "The model kept cycling between tool calls, so Cindy stopped this turn after detecting {{count}} calls in the loop. Send a new message to continue.",
-      "toolUseLoopDetectedRotationWithCount": "The model kept rotating through tool calls, so Cindy stopped this turn after detecting {{count}} calls in the loop. Send a new message to continue."
+      "toolUseLoopDetected": "The model repeated a tool call too many times, so Cartethyia stopped this turn to prevent an infinite loop. Send a new message to continue.",
+      "toolUseLoopDetectedWithCount": "The model kept repeating invalid tool calls, so Cartethyia stopped this turn after {{count}} failures to prevent an infinite loop. Send a new message to continue.",
+      "toolUseLoopDetectedConsecutiveWithCount": "The model repeated the same tool call {{count}} times, so Cartethyia stopped this turn to prevent an infinite loop. Send a new message to continue.",
+      "toolUseLoopDetectedPingPongWithCount": "The model kept cycling between tool calls, so Cartethyia stopped this turn after detecting {{count}} calls in the loop. Send a new message to continue.",
+      "toolUseLoopDetectedRotationWithCount": "The model kept rotating through tool calls, so Cartethyia stopped this turn after detecting {{count}} calls in the loop. Send a new message to continue."
     },
     "validation": {
       "feishuFieldsRequired": "App ID and App Secret are both required",
@@ -10882,8 +10890,8 @@
         "device-mismatch": "Your login no longer matches this device. Please log in again.",
         "account-unavailable": "Your account is unavailable (it may have been disabled or deleted). Contact your administrator if needed."
       },
-      "voiceApiKeyAuthTitle": "Cindy AI required",
-      "voiceApiKeyAuthDescription": "The current voice input provider uses Cindy AI. Cindy AI is not connected yet, so voice input cannot start. Open Model Providers to connect it?",
+      "voiceApiKeyAuthTitle": "Cartethyia AI required",
+      "voiceApiKeyAuthDescription": "The current voice input provider uses Cartethyia AI. Cartethyia AI is not connected yet, so voice input cannot start. Open Model Providers to connect it?",
       "voiceDirectApiKeyAuthTitle": "Voice input API key required",
       "voiceDirectApiKeyAuthDescription": "The current voice input provider requires a direct API key. Add it in API Keys to start voice input?",
       "codexVoiceAuthTitle": "ChatGPT Connection Required",
@@ -11314,7 +11322,7 @@
     },
     "orders": {
       "title": "Order history",
-      "description": "Only top-up and subscription orders started inside Cindy are listed. Orders awaiting payment are canceled automatically once they time out.",
+      "description": "Only top-up and subscription orders started inside Cartethyia are listed. Orders awaiting payment are canceled automatically once they time out.",
       "count": "{{count}} orders",
       "incomplete": "There are many order records. Only the latest {{count}} are shown.",
       "orderId": "NO. {{id}}",
@@ -11440,7 +11448,7 @@
       "scanHint": "Scan with the corresponding payment app",
       "checkingExpiry": "Checking expiration…",
       "expiresIn": "QR code expires in {{minutes}}:{{seconds}}",
-      "redirectHint": "Complete payment on the provider page, then return to Cindy.",
+      "redirectHint": "Complete payment on the provider page, then return to Cartethyia.",
       "openPayment": "Open payment page",
       "refreshingAction": "Loading payment instructions…",
       "paymentCompleted": "Your payment was completed.",
@@ -11464,7 +11472,7 @@
       "confirmingTitle": "Submitting plan change",
       "confirmingBody": "Submitting your plan change…",
       "pendingProviderTitle": "Processing plan change",
-      "pendingProviderBody": "The payment provider is processing this change. Cindy will keep checking the result…",
+      "pendingProviderBody": "The payment provider is processing this change. Cartethyia will keep checking the result…",
       "awaitingTitle": "Pay the difference",
       "scheduledTitle": "Downgrade scheduled",
       "scheduledBody": "The new plan takes effect on {{date}}. Your current plan stays active until then.",
@@ -11497,7 +11505,7 @@
   "fileAccess": {
     "epermGuidance": {
       "title": "macOS folder access denied",
-      "message": "Cindy cannot access your {{folder}} folder",
+      "message": "Cartethyia cannot access your {{folder}} folder",
       "detail": "macOS denied access. Open System Settings to grant permission, then run your agent command again.",
       "openSystemSettings": "Open System Settings",
       "cancel": "Cancel",
@@ -11506,6 +11514,11 @@
         "documents": "Documents",
         "downloads": "Downloads"
       }
+    }
+  },
+  "composerModes": {
+    "cartethyiaBattle": {
+      "menuItem": "Cartethyia battle mode"
     }
   }
 }

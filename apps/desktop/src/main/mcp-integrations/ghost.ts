@@ -34,6 +34,7 @@ import type {
 } from 'cindy-tools';
 import type { PermissionMode } from '@cindy/maker-core';
 import { getLiziMcpSessionContext, type LiziMcpSessionContext } from '@cindy/mcps';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   GrantPolicyError,
@@ -1848,7 +1849,7 @@ export function getCindyGhostsMcpDeps(
           return {
             ok: false,
             errorCode: 'INVALID_INPUT',
-            message: 'minCindyVersion 必须是插件实际依赖的首个 Cindy 正式版本（major.minor.patch）',
+            message: `minCindyVersion 必须是插件实际依赖的首个 ${BRAND_NAME} 正式版本（major.minor.patch）`,
           };
         }
         const currentCindyVersion = hostDeps.getAppVersion?.().trim();
@@ -1864,7 +1865,7 @@ export function getCindyGhostsMcpDeps(
             ok: false,
             errorCode: 'INVALID_INPUT',
             message:
-              '当前是未发布或预发布 Cindy 构建，请明确填写 minCindyVersion（插件实际依赖的首个 Cindy 正式版本）',
+              `当前是未发布或预发布 ${BRAND_NAME} 构建，请明确填写 minCindyVersion（插件实际依赖的首个 ${BRAND_NAME} 正式版本）`,
           };
         }
         const result = await scaffoldGhostDir({ ...request, minCindyVersion }, {

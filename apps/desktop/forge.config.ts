@@ -647,7 +647,7 @@ function signPackagedExes(buildPath: string): void {
 
 /**
  * macOS 打包显示名(与 win32metadata 同构):packaged 后把
- * .app 的 Info.plist 里 CFBundleDisplayName 改成 Cindy——Dock 名、Cmd+Tab、
+ * .app 的 Info.plist 里 CFBundleDisplayName 改成 Cartethyia——Dock 名、Cmd+Tab、
  * Finder、系统通知读的都是它(显示优先级 CFBundleDisplayName > CFBundleName)。
  *
  * ⚠️ 绝不能改 CFBundleName:Electron 启动时用主 app 的 CFBundleName 拼
@@ -657,7 +657,7 @@ function signPackagedExes(buildPath: string): void {
  * 与 Helper 目录不一致的值会让包启动即 FATAL "Unable to find helper app"
  * (SIGTRAP;2026-07-21 dev region smoke 实踩)。
  * 代价:菜单栏粗体标题取自 CFBundleName 且运行时改不了,dev 构建上显示
- * CindyDev 而非 Cindy——cn/global(packager 已写 Cindy)不受影响,可接受。
+ * CindyDev 而非 Cartethyia——cn/global(packager 已写稳定的 Cindy 可执行名)不受影响,可接受。
  *
  * 为什么在 postPackage 改而不是 packagerConfig:electron-packager 在
  * updatePlistFiles 里先合并 extendInfo、后用 appName/executableName 覆写
@@ -669,7 +669,7 @@ function signPackagedExes(buildPath: string): void {
  * cn 构建的 packager 本身就会把 CFBundleName/CFBundleDisplayName 写成 Cindy,
  * 对 cn 是冗余兜底;2026-07-26 global exe 名与 cn 统一为 'Cindy' 后 global
  * 同样只是冗余兜底;dev 构建的 packager name 仍是 'CindyDev',本步骤把
- * Dock 名、Cmd+Tab、系统通知的**显示层**拉回 Cindy(BRAND_NAME 各区共用),
+ * Dock 名、Cmd+Tab、系统通知的**显示层**拉回 Cartethyia(BRAND_NAME 各区共用),
  * 对 dev 是显示名的唯一来源。正式签名/公证(外部发布流程)发生在
  * postPackage 之后,本改动会被签名一起封印,不存在破坏签名问题。
  */
@@ -684,15 +684,16 @@ function applyMacPackagedDisplayName(buildPath: string, platform: string): void 
     // 只改 CFBundleDisplayName;CFBundleName 必须保持 packager name 原值,
     // 否则 Electron 找不到 Helper app(见函数头 ⚠️)。
     const key = 'CFBundleDisplayName';
+    const displayName = BRAND_IDENTITY.displayName;
     // packager 必写该键,Set 即可;Add 兜底防未来 packager 行为变化。
-    const set = spawnSync('/usr/libexec/PlistBuddy', ['-c', `Set :${key} Cindy`, plistPath]);
+    const set = spawnSync('/usr/libexec/PlistBuddy', ['-c', `Set :${key} ${displayName}`, plistPath]);
     if (set.status !== 0) {
-      const add = spawnSync('/usr/libexec/PlistBuddy', ['-c', `Add :${key} string Cindy`, plistPath]);
+      const add = spawnSync('/usr/libexec/PlistBuddy', ['-c', `Add :${key} string ${displayName}`, plistPath]);
       if (add.status !== 0) {
         throw new Error(`[forge:postPackage] PlistBuddy failed to set ${key} in ${plistPath}`);
       }
     }
-    console.log(`[forge:postPackage] mac display name → Cindy (${appDir}/Contents/Info.plist)`);
+    console.log(`[forge:postPackage] mac display name → ${displayName} (${appDir}/Contents/Info.plist)`);
   }
 }
 
@@ -1323,9 +1324,9 @@ if (isWin) {
         // 不设时回落 package.json 的 npm 包描述,UAC 提权弹窗、文件属性、
         // 快捷方式悬停提示上就会显示那段面向开发者的文本。
         //
-        // ⚠️ 取 displayName 而非 CINDY_EXE:展示名两区(含 dev)共用 'Cindy',
+        // ⚠️ 取 displayName 而非 CINDY_EXE:展示名两区(含 dev)共用 'Cartethyia',
         // 而 exe 名 dev 派生为 'CindyDev'。用后者会让 dev 包的安装器显示
-        // CindyDev、装完的主 exe 却显示 Cindy(win32metadata 同样取
+        // CindyDev、装完的主 exe 却显示 Cartethyia(win32metadata 同样取
         // displayName)——安装前后自相矛盾,正是本次要消除的那类不一致。
         // 文件名层的区分由 productName / shortcutName 承担,与展示层解耦。
         //
@@ -1378,7 +1379,7 @@ const config: ForgeConfig = {
     // 互覆已被 owner 接受)/ dev 'CindyDev'(显式设值防 packager 回落
     // package.json productName 让 dev 与正式包撞名)。mac 的 Dock/Cmd+Tab/
     // 通知**显示名**由 postPackage 的 applyMacPackagedDisplayName 经
-    // CFBundleDisplayName 统一拉回 Cindy(对 dev 是唯一显示名来源;
+    // CFBundleDisplayName 统一拉回 Cartethyia(对 dev 是唯一显示名来源;
     // CFBundleName 不可动,Electron 靠它找 Helper,见该函数注释)。
     name: CINDY_EXE,
     executableName: CINDY_EXE,
@@ -1386,13 +1387,13 @@ const config: ForgeConfig = {
     // 的系统身份,与 mobile 的 com.xd.cindycn / com.xd.cindy 同一套)。
     appBundleId: CINDY_APP_ID,
     // exe 资源元数据(任务管理器进程名、文件右键属性的显示层)。只影响展示,
-    // 与 exe 文件名 / AUMID / userData 等标识符解耦;显示层两区共用 Cindy
+    // 与 exe 文件名 / AUMID / userData 等标识符解耦;显示层两区共用 Cartethyia
     // (与 mac 显示名口径一致)。FileDescription 走 BRAND_IDENTITY.displayName,
     // 与 NSIS maker 的 extraMetadata.description 同一表达式——安装器/卸载器
     // 与主 exe 的「说明」字段必须同值,否则 dev 包会安装前后显示两个名字。
     win32metadata: {
       CompanyName: 'XD',
-      ProductName: 'Cindy',
+      ProductName: BRAND_IDENTITY.displayName,
       FileDescription: BRAND_IDENTITY.displayName,
     },
     icon: 'resources/icon',
@@ -1403,10 +1404,10 @@ const config: ForgeConfig = {
     //          main/deepLink.ts registerDeepLinkProtocol()。
     protocols: [
       // 双 scheme 注册:cindy:// 主 + xdt-maker:// 永久兼容(存量分享链接不死)。
-      { name: 'Cindy Deep Link', schemes: [...allDeepLinkSchemes()] },
+      { name: `${BRAND_IDENTITY.displayName} Deep Link`, schemes: [...allDeepLinkSchemes()] },
     ],
-    // macOS 文件夹右键 "打开方式 → Cindy" 入口:
-    //   声明 app 能接受 public.folder, Finder 自动把 Cindy 出现在 "打开方式" 列表。
+    // macOS 文件夹右键 "打开方式 → Cartethyia" 入口:
+    //   声明 app 能接受 public.folder, Finder 自动把 Cartethyia 出现在 "打开方式" 列表。
     //   LSHandlerRank=Alternate: 不抢 Finder 默认 handler, 仅作为可选项之一。
     //   CFBundleTypeRole=Editor: 用户对该类型有 "打开+操作" 能力 (而非 Viewer 只看)。
     //   触发后 macOS 通过 app.on('open-file') 事件把目录路径推给 main 进程,
@@ -1419,19 +1420,19 @@ const config: ForgeConfig = {
       // agent 会话中访问受 TCC 保护的目录(桌面/文稿/下载)时，macOS 需要这些声明才能向
       // 用户展示授权弹窗；缺失时系统直接静默拒绝，不弹窗。
       NSDesktopFolderUsageDescription:
-        "Cindy's AI agent needs access to read and write files on your Desktop.",
+        `${BRAND_IDENTITY.displayName}'s AI agent needs access to read and write files on your Desktop.`,
       NSDocumentsFolderUsageDescription:
-        "Cindy's AI agent needs access to read and write files in your Documents folder.",
+        `${BRAND_IDENTITY.displayName}'s AI agent needs access to read and write files in your Documents folder.`,
       NSDownloadsFolderUsageDescription:
-        "Cindy's AI agent needs access to read and write files in your Downloads folder.",
+        `${BRAND_IDENTITY.displayName}'s AI agent needs access to read and write files in your Downloads folder.`,
       // 智能通讯录导入: 经 osascript 向"通讯录"发 Apple Events(只读拉取)。
       // 缺这条声明 macOS 会不弹授权窗直接拒绝(-1743), 用户只看到静默失败。
       NSAppleEventsUsageDescription:
-        'Cindy uses Apple Events to read Contacts you import and to add or update Contacts you explicitly export.',
+        `${BRAND_IDENTITY.displayName} uses Apple Events to read Contacts you import and to add or update Contacts you explicitly export.`,
       NSContactsUsageDescription:
-        'Cindy accesses Contacts only when you import them or explicitly export additions or updates.',
+        `${BRAND_IDENTITY.displayName} accesses Contacts only when you import them or explicitly export additions or updates.`,
       NSLocalNetworkUsageDescription:
-        'Cindy uses your local network to sync end-to-end encrypted Smart Contacts directly between your online desktop devices.',
+        `${BRAND_IDENTITY.displayName} uses your local network to sync end-to-end encrypted Smart Contacts directly between your online desktop devices.`,
       CFBundleDocumentTypes: [
         {
           CFBundleTypeName: 'Folder',
@@ -1439,14 +1440,14 @@ const config: ForgeConfig = {
           LSHandlerRank: 'Alternate',
           LSItemContentTypes: ['public.folder'],
         },
-        // Cindy 卡带 (.cindy):Finder 双击 → open-file 事件 → 装入 + 停靠
+        // Cartethyia 卡带 (.cindy):Finder 双击 → open-file 事件 → 装入 + 停靠
         // (卡带系统;Windows 半边走注册表自注册,见 brain/fileAssociation.ts)。
         // LSItemContentTypes 指向下方 UTExportedTypeDeclarations 声明的自有 UTI
         // (UTI 里带扩展名 + MIME 映射);CFBundleTypeExtensions 保留作旧系统
         // 兜底(LSItemContentTypes 存在时会被忽略)。Owner 表示本 app 是该类型
         // 的归属方。⚠️ 仅打包生效,mac 真机轮验证。
         {
-          CFBundleTypeName: 'Cindy Cartridge',
+          CFBundleTypeName: `${BRAND_IDENTITY.displayName} Cartridge`,
           CFBundleTypeRole: 'Viewer',
           LSHandlerRank: 'Owner',
           LSItemContentTypes: [`${CINDY_UTI_PREFIX}.cindy`],
@@ -1461,7 +1462,7 @@ const config: ForgeConfig = {
       UTExportedTypeDeclarations: [
         {
           UTTypeIdentifier: `${CINDY_UTI_PREFIX}.cindy`,
-          UTTypeDescription: 'Cindy Cartridge',
+          UTTypeDescription: `${BRAND_IDENTITY.displayName} Cartridge`,
           UTTypeConformsTo: ['public.data'],
           UTTypeTagSpecification: {
             'public.filename-extension': ['cindy'],
@@ -1470,7 +1471,7 @@ const config: ForgeConfig = {
         },
         {
           UTTypeIdentifier: `${CINDY_UTI_PREFIX}.cshare`,
-          UTTypeDescription: 'Cindy Session Share',
+          UTTypeDescription: `${BRAND_IDENTITY.displayName} Session Share`,
           UTTypeConformsTo: ['public.data'],
           UTTypeTagSpecification: {
             'public.filename-extension': ['cshare'],
@@ -1485,11 +1486,11 @@ const config: ForgeConfig = {
     extendHelperInfo: {
       NSMicrophoneUsageDescription: 'This app needs access to the microphone for voice input.',
       NSDesktopFolderUsageDescription:
-        "Cindy's AI agent needs access to read and write files on your Desktop.",
+        `${BRAND_IDENTITY.displayName}'s AI agent needs access to read and write files on your Desktop.`,
       NSDocumentsFolderUsageDescription:
-        "Cindy's AI agent needs access to read and write files in your Documents folder.",
+        `${BRAND_IDENTITY.displayName}'s AI agent needs access to read and write files in your Documents folder.`,
       NSDownloadsFolderUsageDescription:
-        "Cindy's AI agent needs access to read and write files in your Downloads folder.",
+        `${BRAND_IDENTITY.displayName}'s AI agent needs access to read and write files in your Downloads folder.`,
     },
     // chat-data-localization F1：drizzle SQL migration 文件需要随包发出，
     // main 通过 process.resourcesPath/drizzle 读取。dev 模式 main 走源码路径，

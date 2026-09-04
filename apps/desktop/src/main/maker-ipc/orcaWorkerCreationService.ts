@@ -1,5 +1,6 @@
 import type { AgentKind } from '@cindy/maker-core';
 import type { AuthStrategy } from '@cindy/model-providers';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { isCredentialModeSwitchBusyError } from '../maker-host/codex-credential-switch.js';
 import { isSubscriptionDirectModel } from '../../shared/subscriptionModels.js';
@@ -519,7 +520,7 @@ export function budgetModelRequiresApiKey(agent: AgentKind, model: string, hasAp
 }
 
 export function budgetModelRequiresApiKeyMessage(model: string): string {
-  return `模型 "${model}"（codex/ 路由）需要先在设置里连接 Cindy AI 才能使用。`;
+  return `模型 "${model}"（codex/ 路由）需要先在设置里连接 ${BRAND_NAME} AI 才能使用。`;
 }
 
 /** agent 的人类可读名,用于 preflight 失败信息。 */

@@ -62,8 +62,8 @@ The left sidebar lists your sessions. It's the main way to navigate and organize
 
 **Removing a project from the sidebar:**
 
-- Open a local project's overflow menu and choose **Remove Project from Sidebar**. Cindy asks for confirmation, removes the project from the sidebar, and keeps its existing sessions available as projectless chats in the main list. Individually pinned sessions remain in **Pinned**. Those sessions are not archived or stopped, and files on your computer are not deleted.
-- To restore the project, choose **Add Project** and select the same directory again. Cindy restores the existing sessions under their original project grouping instead of creating an empty session.
+- Open a local project's overflow menu and choose **Remove Project from Sidebar**. Cartethyia asks for confirmation, removes the project from the sidebar, and keeps its existing sessions available as projectless chats in the main list. Individually pinned sessions remain in **Pinned**. Those sessions are not archived or stopped, and files on your computer are not deleted.
+- To restore the project, choose **Add Project** and select the same directory again. Cartethyia restores the existing sessions under their original project grouping instead of creating an empty session.
 
 **Session statuses:**
 
@@ -72,4 +72,4 @@ The left sidebar lists your sessions. It's the main way to navigate and organize
 **Notes:**
 
 - Click the sidebar collapse arrow to shrink it to an icon-only strip — that's purely visual, you don't lose any features.
-- **Pin state, order, hidden projects, project filters, and identity-based collapse/selection state are isolated per Cindy account.** Pin and hidden-project changes sync across open windows for the same account. Display-only preferences (list style, grouping toggles, sorting, session info) remain local to each window, so they don't sync between, say, a dev window and the installed app.
+- **Pin state, order, hidden projects, project filters, and identity-based collapse/selection state are isolated per Cartethyia account.** Pin and hidden-project changes sync across open windows for the same account. Display-only preferences (list style, grouping toggles, sorting, session info) remain local to each window, so they don't sync between, say, a dev window and the installed app.

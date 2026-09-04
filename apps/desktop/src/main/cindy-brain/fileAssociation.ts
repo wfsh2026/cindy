@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { app } from 'electron';
 
 import { brandExecutableName } from '@cindy/maker-shared/brand-identity';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { CINDY_MIME_TYPE, SHARE_MIME_TYPE } from '../../shared/fileTypes.js';
 import { CURRENT_CINDY_REGION } from '../../shared/brandRegion.js';
 import { createLogger } from '../logger.js';
@@ -96,7 +97,8 @@ export function registerCindyFileAssociation(): void {
 
       await regSetDefault(KEY_EXT, PROG_ID);
       await regSetNamed(KEY_EXT, 'Content Type', CINDY_MIME);
-      await regSetDefault(KEY_PROG, 'Cindy Ghost');
+      const fileTypeDisplayName = `${BRAND_NAME} Ghost`;
+      await regSetDefault(KEY_PROG, fileTypeDisplayName);
       await regSetDefault(`${KEY_PROG}\\DefaultIcon`, `"${exe}",0`);
       await regSetDefault(commandKey, command);
       await regSetNamed(KEY_EXT_SHARE, 'Content Type', SHARE_MIME);

@@ -15,4 +15,4 @@
  */
 
 /** 产品对用户 / LLM 展示的品牌名（唯一规范写法，不要再派生其它变体）。 */
-export const BRAND_NAME = 'Cindy';
+export const BRAND_NAME = 'Cartethyia';

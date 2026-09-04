@@ -21,6 +21,7 @@ import fs from 'node:fs';
 import { promises as fsp, existsSync } from 'node:fs';
 import { spawn, execFile, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type {
   AgentLoginMode,
@@ -623,7 +624,7 @@ export class DesktopClaudeAuthAdapter implements AuthAdapter {
     if (options?.credentialMode === 'gateway-key') {
       const apiKey = readClaudeApiKey();
       return apiKey
-        ? { authenticated: true, identity: 'API Key · Cindy AI', authSource: 'api-key' }
+        ? { authenticated: true, identity: `API Key · ${BRAND_NAME} AI`, authSource: 'api-key' }
         : { authenticated: false, errorReason: 'no_key' };
     }
     if (options?.credentialMode === 'provider-oauth') {
@@ -1376,7 +1377,7 @@ export class DesktopCodexAuthAdapter implements AuthAdapter {
       // gated against the isolated plugin enablement. A rejection here is an
       // unexpected invariant failure, so it must remain fail-closed.
       throw new Error(
-        `Cannot start Codex safely because Cindy could not inspect downstream plugin capabilities: ${pluginsOutcome.err.message}`,
+        `Cannot start Codex safely because ${BRAND_NAME} could not inspect downstream plugin capabilities: ${pluginsOutcome.err.message}`,
       );
     }
     if (pluginsOutcome.ok && pluginsOutcome.routingFailures.length > 0) {
@@ -1385,7 +1386,7 @@ export class DesktopCodexAuthAdapter implements AuthAdapter {
         assetPrepLog.error('Codex capability routing enforcement failed', { failure });
       }
       throw new Error(
-        `Cannot start Codex safely because Cindy could not isolate a downstream plugin capability: ${pluginsOutcome.routingFailures.join('; ')}`,
+        `Cannot start Codex safely because ${BRAND_NAME} could not isolate a downstream plugin capability: ${pluginsOutcome.routingFailures.join('; ')}`,
       );
     }
   }
@@ -1453,7 +1454,7 @@ export class DesktopCodexAuthAdapter implements AuthAdapter {
     // 不在这道全局 gate 上拦。下方 reconcile → 本地 auth.json → api-key fallback 即覆盖上述语义。
     if (options?.credentialMode === 'gateway-key') {
       return readClaudeApiKey()
-        ? { authenticated: true, identity: 'API Key · Cindy AI', authSource: 'api-key' }
+        ? { authenticated: true, identity: `API Key · ${BRAND_NAME} AI`, authSource: 'api-key' }
         : { authenticated: false, errorReason: 'no_key' };
     }
     if (options?.credentialMode === 'provider-oauth') {
@@ -1506,7 +1507,7 @@ export class DesktopCodexAuthAdapter implements AuthAdapter {
       !isNativeProviderAuthBound('openai')
     ) {
       if (readClaudeApiKey()) {
-        return { authenticated: true, identity: 'API Key · Cindy AI', authSource: 'api-key' };
+        return { authenticated: true, identity: `API Key · ${BRAND_NAME} AI`, authSource: 'api-key' };
       }
       return { authenticated: false, errorReason: 'oauth_not_bound' };
     }
@@ -1525,7 +1526,7 @@ export class DesktopCodexAuthAdapter implements AuthAdapter {
     // proxy 路线: 无 OAuth 登录但配了 api key → 仍放行 codex 进程(折扣模型经 proxy 走 gateway 可用)。
     // 单条 model 的可用性由 ModelSelector + proxy 路由把关, 不在这道全局 gate 上拦。
     if (readClaudeApiKey()) {
-      return { authenticated: true, identity: 'API Key · Cindy AI', authSource: 'api-key' };
+      return { authenticated: true, identity: `API Key · ${BRAND_NAME} AI`, authSource: 'api-key' };
     }
     return localState;
   }

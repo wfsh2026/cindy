@@ -7,6 +7,7 @@
 ; 接受);dev 仍独立名,dev 安装器绝不误伤同机并存的正式安装。注册表键名
 ; Windows 大小写不敏感,shell 键 "Cindy" 与历史写入的 "cindy" 是同一个键,
 ; 行为零变化。
+!define CARTETHYIA_DISPLAY_NAME "Cartethyia"
 !macro customInit
   ; Check if the app is already running
   check_running:
@@ -14,7 +15,7 @@
     Pop $R0
     ${If} $R0 == 0
       MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-        "${PRODUCT_FILENAME} 正在运行，请先关闭后再继续安装。$\n$\n点击「确定」将在关闭后继续。" \
+        "${CARTETHYIA_DISPLAY_NAME} 正在运行，请先关闭后再继续安装。$\n$\n点击「确定」将在关闭后继续。" \
         IDOK kill_app
       Abort
       kill_app:
@@ -47,16 +48,16 @@
   ; 键名用 ${PRODUCT_FILENAME}(区域身份):cn/global 'Cindy' 与历史 'cindy'
   ; 键大小写不敏感同键(2026-07-26 起两区同键,双装互写已被 owner 接受);
   ; dev 'CindyDev' 独立键;都与老 XDMaker 安装的 xdt-maker 键并存。
-  WriteRegStr HKCU "Software\Classes\Directory\shell\${PRODUCT_FILENAME}" "" "通过 ${PRODUCT_FILENAME} 打开"
+  WriteRegStr HKCU "Software\Classes\Directory\shell\${PRODUCT_FILENAME}" "" "通过 ${CARTETHYIA_DISPLAY_NAME} 打开"
   WriteRegStr HKCU "Software\Classes\Directory\shell\${PRODUCT_FILENAME}" "Icon" "$INSTDIR\${APP_EXECUTABLE_FILENAME},0"
   WriteRegStr HKCU "Software\Classes\Directory\shell\${PRODUCT_FILENAME}\command" "" '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --open-folder "%V"'
-  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\${PRODUCT_FILENAME}" "" "通过 ${PRODUCT_FILENAME} 打开"
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\${PRODUCT_FILENAME}" "" "通过 ${CARTETHYIA_DISPLAY_NAME} 打开"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\${PRODUCT_FILENAME}" "Icon" "$INSTDIR\${APP_EXECUTABLE_FILENAME},0"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\${PRODUCT_FILENAME}\command" "" '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --open-folder "%V"'
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.cshare\shell\${PRODUCT_FILENAME}" "" "通过 ${PRODUCT_FILENAME} 打开"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.cshare\shell\${PRODUCT_FILENAME}" "" "通过 ${CARTETHYIA_DISPLAY_NAME} 打开"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.cshare\shell\${PRODUCT_FILENAME}" "Icon" "$INSTDIR\${APP_EXECUTABLE_FILENAME},0"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.cshare\shell\${PRODUCT_FILENAME}\command" "" '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --open-share-file "%1"'
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xdtshare\shell\${PRODUCT_FILENAME}" "" "通过 ${PRODUCT_FILENAME} 打开"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xdtshare\shell\${PRODUCT_FILENAME}" "" "通过 ${CARTETHYIA_DISPLAY_NAME} 打开"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xdtshare\shell\${PRODUCT_FILENAME}" "Icon" "$INSTDIR\${APP_EXECUTABLE_FILENAME},0"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xdtshare\shell\${PRODUCT_FILENAME}\command" "" '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --open-share-file "%1"'
 

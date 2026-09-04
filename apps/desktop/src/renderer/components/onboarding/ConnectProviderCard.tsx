@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, KeyRound } from 'lucide-react';
 
 import { presetDisplayName } from '@cindy/model-providers';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { localCliDisplayName } from '../../../shared/localCliDetect';
 import { cn } from '@/lib/utils';
@@ -106,7 +107,7 @@ export function ConnectProviderCard({ className }: { className?: string }) {
         })}
         {/* 推荐行:Cindy AI(cloud)/ 登录 Cindy(signed-out・local) */}
         <ProviderRow
-          icon={rowIcon('xd', xdProvider?.name ?? 'Cindy AI')}
+          icon={rowIcon('xd', xdProvider?.name ?? `${BRAND_NAME} AI`)}
           label={
             cloudMode
               ? (xdProvider?.name ?? t('onboarding.connectProvider.cindy.title'))

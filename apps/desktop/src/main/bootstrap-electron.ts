@@ -33,6 +33,7 @@ import {
   WINDOW_BACKDROP_MATERIAL_CHANGED_CHANNEL,
 } from '../shared/windowBackdrop.js';
 import { isAllowedBillingMailtoRequest } from '../shared/billing.js';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -40,7 +41,6 @@ import { pipeline } from 'node:stream/promises';
 import { execFile, execFileSync, spawn } from 'node:child_process';
 import { machineIdSync } from 'node-machine-id';
 import windowStateKeeper from 'electron-window-state';
-import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import {
   shouldRequestSingleInstanceLock,
   resolveSingleInstanceLockUserDataDir,
@@ -3500,7 +3500,7 @@ if (
   if (!gotTheLock) {
     markDesktopDevStartupFailed(
       'SINGLE_INSTANCE_OWNED',
-      'Another Cindy instance already owns this single-instance lock scope.',
+      `Another ${BRAND_NAME} instance already owns this single-instance lock scope.`,
       { userDataDir: realUserDataDir, lockScopeDir },
     );
     app.quit();
@@ -4036,7 +4036,7 @@ const registerIpcHandlers = () => {
     requirePersonalAccount: () => {
       requireAppCapability(
         'canUseCindyAccountServices',
-        'Billing requires a personal Cindy account.',
+        `Billing requires a personal ${BRAND_NAME} account.`,
       );
       if (authManager.getAuthState().user?.membershipKind !== 'personal') {
         throwIpcError('PERMISSION_DENIED', 'Billing is only available to personal accounts.');
@@ -5563,7 +5563,7 @@ const registerIpcHandlers = () => {
 
   const requireCloudProfile = (): void => {
     if (!getAppCapabilities().canUseCindyAccountServices) {
-      throwIpcError('PERMISSION_DENIED', 'Profile editing requires a Cindy account.');
+      throwIpcError('PERMISSION_DENIED', `Profile editing requires a ${BRAND_NAME} account.`);
     }
   };
 
@@ -5843,7 +5843,7 @@ const registerIpcHandlers = () => {
 
   // Environment check IPC handler — 顺序检查 claude → codex → pi 三个 vendor binary。
   // 提前 peekNeedsDownload 决定 (x/y) 标签：两个及以上需要下载时给 step/totalSteps，
-  // 否则不带标签（splash 显示单一 "唤醒 Cindy 中..." 文案）。
+  // 否则不带标签（splash 显示单一 "唤醒 Cartethyia 中..." 文案）。
   // pi 是可选实验 agent:清单无资产 / 下载失败都不算环境检查失败(失败不广播
   // failed payload),本次不注册 pi。
   ipcMain.handle('check-environment', async () => {

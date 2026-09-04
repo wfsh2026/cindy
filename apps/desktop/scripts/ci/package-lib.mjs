@@ -70,6 +70,7 @@ export function parsePackageArgs(argv, defaults = {}) {
     skipSmoke: false,
     allowUnsigned: false,
     noSign: false,
+    personalNoLogUpload: false,
   };
   let archFlag = null;
   let regionSpecified = false;
@@ -99,8 +100,9 @@ export function parsePackageArgs(argv, defaults = {}) {
       // 环境,不具备该环境的机器打版本无关包时用它;与 --allow-unsigned
       // (放行"缺配置")语义互补。
       case '--no-sign': out.noSign = true; out.allowUnsigned = true; break;
+      case '--personal-no-log-upload': out.personalNoLogUpload = true; break;
       default:
-        throw new Error(`未知参数: ${a}(支持 --platform/--arch/--region/--version/--skip-smoke/--allow-unsigned/--no-sign)`);
+        throw new Error(`未知参数: ${a}(支持 --platform/--arch/--region/--version/--skip-smoke/--allow-unsigned/--no-sign/--personal-no-log-upload)`);
     }
   }
 
@@ -146,6 +148,9 @@ export function parsePackageArgs(argv, defaults = {}) {
     !isExplicitVersion(out.versionSpec)
   ) {
     throw new Error(`非法 --version: ${out.versionSpec}(可选 x.y.z / major / minor / patch)`);
+  }
+  if (out.personalNoLogUpload && (out.platform !== 'win32' || out.region !== 'cn' || out.versionSpec === null)) {
+    throw new Error('--personal-no-log-upload 只允许用于有版本号的 Windows CN 个人包');
   }
   return out;
 }

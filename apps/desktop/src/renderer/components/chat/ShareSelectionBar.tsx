@@ -39,7 +39,7 @@ import {
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { useBrandLogo } from '@/hooks/useBrandLogo';
-import shareCharacterSrc from '@/assets/cindy-share-character.jpg';
+import shareCharacterSrc from '@/assets/cindy-share-character.png';
 import { shareSelectionStore, useShareSelectionCount } from './shareSelectionStore';
 
 const log = createLogger('ShareSelectionBar');

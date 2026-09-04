@@ -57,6 +57,7 @@ import {
   type ReadSshConfigResult,
   type RemoteAgentKind,
 } from '@cindy/maker-remote-ssh';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { createLogger } from '../logger.js';
 import { throwIpcError, requireString, requireObject, requireEnum } from '../utils/ipcValidate.js';
@@ -1601,7 +1602,7 @@ export function registerRemoteSshIpc(): void {
       if (!env) {
         throwIpcError(
           'SSH_AGENT_NOT_INSTALLED',
-          'Cindy AI is not connected in Cindy; connect it in Settings → Model Providers first',
+          `${BRAND_NAME} AI is not connected in ${BRAND_NAME}; connect it in Settings → Model Providers first`,
         );
       }
       // tunnel 模式内部会等隧道 armed (超时抛错, fail-closed 不静默直连);
@@ -1618,7 +1619,7 @@ export function registerRemoteSshIpc(): void {
       if (!apiKey || !endpoint) {
         throwIpcError(
           'SSH_AGENT_NOT_INSTALLED',
-          'Cindy AI is not connected in Cindy; connect it in Settings → Model Providers first',
+          `${BRAND_NAME} AI is not connected in ${BRAND_NAME}; connect it in Settings → Model Providers first`,
         );
       }
       // heredoc 注入防御:endpoint 进 bash heredoc(<<'PIEOF'),含换行会提前终止
@@ -1733,7 +1734,7 @@ export function registerRemoteSshIpc(): void {
     if (!localAuthPath) {
       throwIpcError(
         'SSH_AGENT_NOT_INSTALLED',
-        'no local Codex auth.json found; log in via Cindy (or `codex login`) first',
+        `no local Codex auth.json found; log in via ${BRAND_NAME} (or \`codex login\`) first`,
       );
     }
 

@@ -43,6 +43,7 @@ import { app } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { brandExecutableName } from '@cindy/maker-shared/brand-identity';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { CURRENT_CINDY_REGION } from '../shared/brandRegion.js';
 import { createLogger } from './logger';
 
@@ -59,7 +60,7 @@ const log = createLogger('folderContextMenu');
  * 文案与正式包可区分;与 installer.nsh customInstall 写入的文案保持一致,
  * 否则启动自愈会误判"值漂移"反复重写。
  */
-const MENU_LABEL = `通过 ${brandExecutableName(CURRENT_CINDY_REGION)} 打开`;
+const MENU_LABEL = `通过 ${BRAND_NAME} 打开`;
 
 /**
  * shell 子键名(2026-07-17 品牌翻转:xdt-maker → cindy;按区域 exe 基名

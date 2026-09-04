@@ -26,6 +26,7 @@
 import { app, ipcMain, nativeImage, Notification, type BrowserWindow } from 'electron';
 import type { FeishuIM } from '@cindy/im';
 import * as path from 'node:path';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import { markSessionNeedsAttention } from './appBadgeService';
 import { getMobileNotifyGeneration, sendMobileSessionNotify } from './device-link';
@@ -68,7 +69,7 @@ const devNotificationIcon = !app.isPackaged
  *   - 'error'       — agent 本轮以报错结束
  *   - 'needs-reply' — agent 抛出 ask-user / permission / plan-review，等用户处理
  */
-const CLIENT_NOTIFICATION_NAME = 'Cindy';
+const CLIENT_NOTIFICATION_NAME = BRAND_NAME;
 
 interface ShowSessionEventPayload {
   sessionId: string;

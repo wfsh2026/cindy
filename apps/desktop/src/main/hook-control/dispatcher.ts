@@ -35,6 +35,7 @@
 
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   makeInteractionCancel,
@@ -440,7 +441,7 @@ const MAX_PENDING_REOPENS = 200;
  */
 const NOTICE_SESSION_RECREATED =
   'ℹ️ 原任务已不在可用的工作目录里，这条消息起换用了新任务，原任务的上下文不会带过来。' +
-  '想接回原任务：先到 Cindy 的 设置 → 远程连接 → 工作目录映射 把它所在的目录加进来，' +
+  `想接回原任务：先到 ${BRAND_NAME} 的 设置 → 远程连接 → 工作目录映射 把它所在的目录加进来，` +
   '再在这里选择任务重新指定它。';
 /**
  * 查不到原对话时的说明。措辞刻意留了余地: inspect 返回 null 是多义的 ——

@@ -256,7 +256,7 @@
     },
     "cindy-light": {
       "id": "cindy-light",
-      "name": "CINDY Light",
+      "name": "Cartethyia Light",
       "type": "light",
       "colors": {
         "surface": "#F2F2ED",
@@ -429,7 +429,7 @@
     },
     "cindy-dark": {
       "id": "cindy-dark",
-      "name": "CINDY Dark",
+      "name": "Cartethyia Dark",
       "type": "dark",
       "colors": {
         "surface": "#181818",

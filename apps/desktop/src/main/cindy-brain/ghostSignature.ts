@@ -13,6 +13,7 @@
 import crypto from 'node:crypto';
 
 import JSZip from 'jszip';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   GHOST_MANIFEST_FILE,
@@ -373,7 +374,7 @@ export async function verifyGhostZipSignatures(
       } catch {
         reviewed = false;
       }
-      if (!reviewed) return { ok: false, reason: 'Cindy 审核签名验证失败，包可能已被修改' };
+      if (!reviewed) return { ok: false, reason: `${BRAND_NAME} 审核签名验证失败，包可能已被修改` };
       reviewerName = trustedReviewer.name;
     }
   }

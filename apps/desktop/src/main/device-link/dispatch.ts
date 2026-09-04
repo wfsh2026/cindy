@@ -64,6 +64,7 @@ import {
 } from '@cindy/model-providers/branding';
 import { app } from 'electron';
 import type { DeviceLinkClient } from '@cindy/device-link';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { createLogger } from '../logger';
 import { normalizeSessionProviderId } from '../maker-host/session-provider-store.js';
 import { readDeviceLinkSettings } from './settings-store';
@@ -2950,7 +2951,7 @@ export async function runInvoke(
       ok: false,
       error: {
         code: 'VOICE_CREDENTIAL_SYNC_REMOVED',
-        message: '手机语音输入已改用 Cindy 官方语音服务,请升级手机版。',
+        message: `手机语音输入已改用 ${BRAND_NAME} 官方语音服务,请升级手机版。`,
       },
     };
   }

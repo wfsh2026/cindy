@@ -20,6 +20,7 @@ import type {
 } from '@cindy/maker-core';
 import { app } from 'electron';
 import matter from 'gray-matter';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   isRelativeLocalPiPackageSource,
@@ -952,7 +953,7 @@ export async function runPiPackageCommand(
   options: RunPiPackageCommandOptions = {},
 ): Promise<{ stdout: string; stderr: string }> {
   const binaryPath = getReadyBinaryPath('pi');
-  if (!binaryPath) throw new Error('Pi is not installed in Cindy');
+  if (!binaryPath) throw new Error(`Pi is not installed in ${BRAND_NAME}`);
   await fs.mkdir(packageHome(), { recursive: true, mode: 0o700 });
   return runPackageProcess(binaryPath, args, packageHome(), timeoutMs, options);
 }

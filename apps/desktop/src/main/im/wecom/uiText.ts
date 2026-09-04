@@ -1,4 +1,5 @@
 import type { IMUnsupportedEntry } from '@cindy/im';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import type { ImUiTextPack } from '../shared/types';
 
@@ -28,7 +29,7 @@ export const ui = {
       const provider = providerLabel ?? providerId ?? '当前供应商';
       const reason =
         missing === 'gateway-key'
-          ? '需要先配置 Cindy AI Key'
+          ? `需要先配置 ${BRAND_NAME} AI Key`
           : missing === 'provider-key'
             ? '尚未配置该供应商的 API Key'
             : missing === 'provider-disconnected'
@@ -101,7 +102,7 @@ export const ui = {
       failed: (reason: string) => `❌ 权限模式切换失败：${reason}`,
       fullAccessConfirmTitle: '⚠️ 确认开启 Full access？',
       fullAccessConfirmBody:
-        'Full access 会关闭工作区沙箱并跳过常规审批。Cindy 可以修改工作区外文件并执行联网命令；内置高风险操作仍会要求确认。',
+        `Full access 会关闭工作区沙箱并跳过常规审批。${BRAND_NAME} 可以修改工作区外文件并执行联网命令；内置高风险操作仍会要求确认。`,
       btnConfirmFullAccess: '开启 Full access',
       btnCancelFullAccess: '保留当前权限',
       fullAccessCancelled: '已取消，保留当前权限',

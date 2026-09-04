@@ -12,6 +12,7 @@ import { cindyLight } from './builtin/cindy-light';
 import { LOCAL_THEME_SUFFIX } from '../../shared/local-themes';
 import { getLocalThemes } from './local-themes';
 import type { Theme, ThemeType } from './types';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 /**
  * 一个家族下面最多两个变体 (light + dark)。设置 UI 让用户选家族,然后按
@@ -27,12 +28,12 @@ export interface ThemeFamily {
 
 export const DEFAULT_FAMILY_ID = 'cindy';
 
-// 顺序就是设置 dropdown 的显示顺序:Cindy 作为新用户默认主题置顶,
+// 顺序就是设置 dropdown 的显示顺序:Cartethyia 作为新用户默认主题置顶,
 // 之后按 light→dark 双变体优先, 再列 dark-only 家族。
 const BUILTIN_FAMILIES: ThemeFamily[] = [
   {
     id: 'cindy',
-    name: 'Cindy',
+    name: BRAND_NAME,
     light: cindyLight,
     dark: cindyDark,
   },

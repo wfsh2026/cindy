@@ -14,6 +14,7 @@
  */
 
 import type { GhostDirectiveSegment } from './ghostCommand';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 export interface HostCapabilitySelection {
   capability: string;
@@ -37,7 +38,7 @@ export function hostCapabilityDirectiveSegments(
 ): GhostDirectiveSegment[] {
   const route = selection.route ?? routeForHostCapability(selection.capability);
   return [
-    { text: '[Cindy Host 能力] 用户显式选择了「', injected: false },
+    { text: `[${BRAND_NAME} Host 能力] 用户显式选择了「`, injected: false },
     { text: selection.name, injected: true },
     { text: '」(capability: ', injected: false },
     { text: selection.capability, injected: true },
@@ -47,7 +48,7 @@ export function hostCapabilityDirectiveSegments(
     { text: route, injected: true },
     {
       text:
-        ')。必须使用 Cindy Host 的上述 route 完成本请求；这是 Host 能力，不是普通插件命令，' +
+        `)。必须使用 ${BRAND_NAME} Host 的上述 route 完成本请求；这是 Host 能力，不是普通插件命令，` +
         '不要通过 ghost_call 调用。',
       injected: false,
     },

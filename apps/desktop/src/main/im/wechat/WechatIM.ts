@@ -12,6 +12,7 @@ import {
   type SendFileResult,
   type StreamingTextHandle,
 } from '@cindy/im';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import {
   asWechatIlinkError,
   chunkWechatText,
@@ -1251,7 +1252,7 @@ export class WechatIM extends BaseIM implements RichChannelIM {
       case '/status':
         await this.#commitSimpleReply(
           task,
-          `Cindy 微信连接正常，当前队列 ${this.#state.queuedTasks} 条。`,
+          `${BRAND_NAME} 微信连接正常，当前队列 ${this.#state.queuedTasks} 条。`,
         );
         return;
       case '/stop':
@@ -1919,7 +1920,7 @@ export function wechatPreDispatchFailureText(reason: string): string {
     return ui.error.permissionModeUnsupported;
   }
   if (reason === 'missing_auth') {
-    return '当前 Agent 尚未完成授权，请先在 Cindy 中连接模型服务。';
+    return `当前 Agent 尚未完成授权，请先在 ${BRAND_NAME} 中连接模型服务。`;
   }
   return '这条消息暂时无法启动，请稍后重试。';
 }

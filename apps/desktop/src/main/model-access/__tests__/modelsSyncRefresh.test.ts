@@ -226,7 +226,7 @@ describe('waitForModelsSyncRefresh', () => {
       });
       const bounded = withModelsSyncOverallDeadline(operation, 25);
       const rejection = expect(bounded).rejects.toThrow(
-        'Cindy AI model list refresh timed out after 25ms',
+        'Cartethyia AI model list refresh timed out after 25ms',
       );
 
       await vi.advanceTimersByTimeAsync(25);

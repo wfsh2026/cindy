@@ -20,6 +20,7 @@
 import { randomBytes } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   GHOST_LIBRARY_OPS,
@@ -390,7 +391,10 @@ export class GhostLibrarySlot {
     // 漂移占位会话:open/status 如实报 unavailable+reason,其余操作全拒
     // (绝不当空库、绝不落默认根冒充)。
     if (session.drift !== null && op !== 'open' && op !== 'status') {
-      return fail('LIBRARY_UNAVAILABLE', `Library 不可用(${session.drift});请在 Cindy 设置中重新确认存储位置`);
+      return fail(
+        'LIBRARY_UNAVAILABLE',
+        `Library 不可用(${session.drift});请在 ${BRAND_NAME} 设置中重新确认存储位置`,
+      );
     }
     if (session.drift !== null) {
       const drifted = {

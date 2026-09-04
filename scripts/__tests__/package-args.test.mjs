@@ -59,6 +59,16 @@ test('parsePackageArgs: 版本化打包必须显式指定 region', () => {
   );
 });
 
+test('parsePackageArgs: 诊断日志关闭开关只允许 Windows CN 个人版本包', () => {
+  const args = ['--platform', 'win32', '--arch', 'x64', '--region', 'cn', '--version', '0.1.72', '--personal-no-log-upload'];
+  const out = parsePackageArgs(args, { platform: 'win32', arch: 'x64' });
+  assert.equal(out.personalNoLogUpload, true);
+  const versionlessArgs = ['--platform', 'win32', '--region', 'cn', '--personal-no-log-upload'];
+  const globalArgs = ['--platform', 'win32', '--region', 'global', '--version', '0.1.72', '--personal-no-log-upload'];
+  assert.throws(() => parsePackageArgs(versionlessArgs, { platform: 'win32', arch: 'x64' }), /只允许用于有版本号的 Windows CN 个人包/);
+  assert.throws(() => parsePackageArgs(globalArgs, { platform: 'win32', arch: 'x64' }), /只允许用于有版本号的 Windows CN 个人包/);
+});
+
 test('parsePackageArgs: linux 显式 --arch 指向宿主架构时放行', () => {
   // defaults 注入宿主身份,让断言不依赖跑测试的机器。
   for (const arch of ['x64', 'arm64']) {

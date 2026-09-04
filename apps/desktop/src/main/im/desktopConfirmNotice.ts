@@ -13,6 +13,7 @@
  * 本文件只放纯逻辑(零 electron / db 依赖,单测直接引);生产接线在
  * desktopConfirmNoticeWiring.ts(按 architecture-invariants §2 顶层静态 import)。
  */
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 export interface DesktopConfirmNoticeDeps {
   /** 会话绑定的飞书 openId;非飞书会话返回 null(桌面本来就是唯一交互面)。 */
@@ -45,7 +46,7 @@ export async function resolveFeishuNoticeTarget(
 
 /** 提示文案(纯函数,便于单测锚定)。 */
 export function buildDesktopConfirmNoticeText(what: string): string {
-  return `🔔 ${what}正在桌面端 Cindy 等待你的确认;超时将自动取消,如需继续请到桌面端操作。`;
+  return `🔔 ${what}正在桌面端 ${BRAND_NAME} 等待你的确认;超时将自动取消,如需继续请到桌面端操作。`;
 }
 
 /**

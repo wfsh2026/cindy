@@ -11,6 +11,7 @@ import {
   type AppSessionMode,
 } from './appSessionState.js';
 import { throwIpcError } from './utils/ipcValidate.js';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 export interface AppCapabilities {
   canUseCindyAccountServices: boolean;
@@ -43,7 +44,7 @@ export function getAppCapabilities(): AppCapabilities {
 
 export function requireAppCapability(
   capability: keyof AppCapabilities,
-  message = 'This feature requires a Cindy account.',
+  message = `This feature requires a ${BRAND_NAME} account.`,
 ): void {
   const session = getActiveAppSession();
   const boundaryPending = isAppSessionBoundaryPending();

@@ -50,6 +50,7 @@ import {
   isGatewayProxyTokenInvalidError,
   redactSensitiveText,
 } from '@cindy/maker-shared/error-redaction';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 import { permissionModeOrAsk } from '@cindy/maker-shared/permission-mode';
 import {
   isProductTurnCompletionTailEvent,
@@ -6696,9 +6697,10 @@ export function registerMakerIpc(maker: Maker, options: RegisterMakerIpcOptions)
       // A terminal run has nothing to write, so gating it would only turn an
       // idempotent stop into an error. Refuse only where a control would land.
       if (!isPiSubagentTerminal(run.state) && !canHostControlPiSubagentRun(run, process.pid)) {
+        const ownershipMessage = `This Subagent run belongs to another running ${BRAND_NAME} instance. Control it from that window.`;
         throwIpcError(
           'PRECONDITION_FAILED',
-          'This Subagent run belongs to another running Cindy instance. Control it from that window.',
+          ownershipMessage,
         );
       }
       return (await controlPiSubagentRuns(runRoot, run.runId, 'stop')) > 0;
@@ -6767,9 +6769,10 @@ export function registerMakerIpc(maker: Maker, options: RegisterMakerIpcOptions)
     // unattributable runs stay controllable on purpose — that is the only way
     // to stop work left behind by a crashed instance.
     if (!canHostControlPiSubagentRun(run, process.pid)) {
+      const ownershipMessage = `This Subagent run belongs to another running ${BRAND_NAME} instance. Control it from that window.`;
       throwIpcError(
         'PRECONDITION_FAILED',
-        'This Subagent run belongs to another running Cindy instance. Control it from that window.',
+        ownershipMessage,
       );
     }
     const controlled = await controlPiSubagentRuns(

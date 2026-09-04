@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml';
 import yaml from 'js-yaml';
 import type { CapabilityRoutingPolicy } from '@cindy/maker-core';
+import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 import {
   ensureDirectoryLink,
@@ -939,7 +940,7 @@ async function collectCapabilityRoutingFailures(
         continue;
       }
       failures.push(
-        `cannot enforce Cindy capability routing for installed Codex plugin ${pluginName}@${marketplace} (marketplace status: ${status ?? 'unmanaged'})`,
+        `cannot enforce ${BRAND_NAME} capability routing for installed Codex plugin ${pluginName}@${marketplace} (marketplace status: ${status ?? 'unmanaged'})`,
       );
     }
   }

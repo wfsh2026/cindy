@@ -1613,189 +1613,90 @@ describe('startup update relaunch safety', () => {
   });
 });
 
-describe('Windows updater prerequisites', () => {
-  it('defers the first startup relaunch and exposes the prerequisite error', async () => {
-    vi.useFakeTimers();
-    checkWindowsUpdaterPrerequisites.mockReturnValue({
-      satisfied: false,
-      missingFiles: ['vcruntime140.dll', 'vcruntime140_1.dll'],
-    });
-    fetchManifest.mockResolvedValue(updateManifest('0.0.65'));
-    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.writeFileSync(targetPath, 'update');
-      return { path: targetPath, size: 123 };
-    });
+describe('Windows notify-only updates', () => {
+  it('reports a newer manifest without downloading or staging it', async () => {
+    const manifest = updateManifest('0.0.65');
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const result = await service.checkForUpdate(manifest);
+      const statusHandler = ipcHandlers.get('update-get-status');
+      const status = statusHandler?.();
+      expect(result).toBe('available');
+      expect(status).toMatchObject({ status: 'available', version: '0.0.65', errorCode: undefined });
+      expect(download).not.toHaveBeenCalled();
+      expect(checkWindowsUpdaterPrerequisites).not.toHaveBeenCalled();
+      expect(stageBundledWindowsUpdaterRuntime).not.toHaveBeenCalled();
+      expect(spawnProcess).not.toHaveBeenCalled();
+      const relaunchImminent = service.isUpdateRelaunchImminent();
+      expect(relaunchImminent).toBe(false);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('clears stale payloads and refuses both relaunch IPC paths', async () => {
+    const updatesDir = path.join(TEST_USER_DATA, 'updates');
+    const patchInfoPath = path.join(updatesDir, 'patch-info.json');
+    const stagedPatchPath = path.join(updatesDir, 'xdt-maker-0.0.65.zip');
+    const reloginFlagPath = path.join(TEST_USER_DATA, 'relogin-required.flag');
+    fs.mkdirSync(updatesDir, { recursive: true });
+    fs.writeFileSync(stagedPatchPath, 'update');
+    const patchInfo = { version: '0.0.65', fileName: 'xdt-maker-0.0.65.zip', sha256: 'abc' };
+    const patchInfoText = JSON.stringify(patchInfo);
+    const reloginFlagText = JSON.stringify({ version: '0.0.65' });
+    fs.writeFileSync(patchInfoPath, patchInfoText);
+    fs.writeFileSync(reloginFlagPath, reloginFlagText);
+    const manifest = updateManifest('0.0.65');
+    fetchManifest.mockResolvedValue(manifest);
 
     const service = await freshUpdateService('win32');
     service.initUpdateService();
     try {
       const startupHandler = ipcHandlers.get('update-check-startup');
-      await expect(startupHandler?.()).resolves.toMatchObject({
-        hasUpdate: true,
-        action: 'none',
-        version: '0.0.65',
-      });
-      expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
-        status: 'ready',
-        version: '0.0.65',
-        errorCode: 'windows_vc_runtime_missing',
-      });
+      const startupResult = await startupHandler?.();
+      const relaunchListener = ipcListeners.get('update-relaunch');
+      relaunchListener?.({}, 'dark');
+      const autoRelaunchHandler = ipcHandlers.get('update-relaunch-auto');
+      const autoRelaunchResult = await autoRelaunchHandler?.({}, 'dark');
+      const statusHandler = ipcHandlers.get('update-get-status');
+      const status = statusHandler?.();
+      const patchInfoExists = fs.existsSync(patchInfoPath);
+      const stagedPatchExists = fs.existsSync(stagedPatchPath);
+      const reloginFlagExists = fs.existsSync(reloginFlagPath);
+      const relaunchImminent = service.isUpdateRelaunchImminent();
+
+      expect(startupResult).toMatchObject({ hasUpdate: true, action: 'none', version: '0.0.65' });
+      expect(autoRelaunchResult).toEqual({ accepted: false, blockReason: 'not-ready' });
+      expect(status).toMatchObject({ status: 'available', version: '0.0.65' });
+      expect(patchInfoExists).toBe(false);
+      expect(stagedPatchExists).toBe(false);
+      expect(reloginFlagExists).toBe(false);
+      expect(download).not.toHaveBeenCalled();
+      expect(checkWindowsUpdaterPrerequisites).not.toHaveBeenCalled();
       expect(spawnProcess).not.toHaveBeenCalled();
-      expect(service.isUpdateRelaunchImminent()).toBe(false);
+      expect(appRelaunch).not.toHaveBeenCalled();
+      expect(appQuit).not.toHaveBeenCalled();
+      expect(relaunchImminent).toBe(false);
     } finally {
       service.stopUpdateService();
     }
   });
 
-  it('keeps Cindy and the staged patch intact when the VC++ Runtime is missing', async () => {
-    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
-    checkWindowsUpdaterPrerequisites.mockReturnValue({
-      satisfied: false,
-      missingFiles: ['vcruntime140_1.dll'],
-    });
-    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.writeFileSync(targetPath, 'update');
-      return { path: targetPath, size: 123 };
-    });
-
-    const service = await freshUpdateService('win32');
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
-    service.initUpdateService();
-    try {
-      await expect(service.checkForUpdate(updateManifest('0.0.65'))).resolves.toBe('ready');
-      const patchInfoPath = path.join(TEST_USER_DATA, 'updates', 'patch-info.json');
-      const patchInfoBefore = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
-        fileName: string;
-      };
-      const stagedPatchPath = path.join(TEST_USER_DATA, 'updates', patchInfoBefore.fileName);
-
-      ipcListeners.get('update-relaunch')?.({}, 'dark');
-
-      await vi.waitFor(() => {
-        expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
-          status: 'ready',
-          version: '0.0.65',
-          errorCode: 'windows_vc_runtime_missing',
-        });
-      });
-      const patchInfoAfter = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
-        applyAttempts?: number;
-      };
-      expect(patchInfoAfter.applyAttempts).toBeUndefined();
-      expect(fs.existsSync(stagedPatchPath)).toBe(true);
-      expect(spawnProcess).not.toHaveBeenCalled();
-      expect(exitSpy).not.toHaveBeenCalled();
-      expect(service.isUpdateRelaunchImminent()).toBe(false);
-    } finally {
-      exitSpy.mockRestore();
-      service.stopUpdateService();
-    }
-  });
-
-  it.each([
-    { stageResult: 'fallback-safe' as const, prerequisiteChecks: 2 },
-    { stageResult: 'blocked' as const, prerequisiteChecks: 1 },
-  ])('keeps the patch and retry count when Runtime staging is $stageResult', async ({
-    stageResult,
-    prerequisiteChecks,
-  }) => {
-    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
-    checkWindowsUpdaterPrerequisites
-      .mockReturnValueOnce({ satisfied: true, missingFiles: [] })
-      .mockReturnValue({
-        satisfied: false,
-        missingFiles: ['vcruntime140.dll', 'vcruntime140_1.dll'],
-      });
-    stageBundledWindowsUpdaterRuntime.mockReturnValue(stageResult);
-    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.writeFileSync(targetPath, 'update');
-      return { path: targetPath, size: 123 };
-    });
-
-    const resourcesPath = path.join(TEST_ROOT, 'resources');
-    fs.mkdirSync(resourcesPath, { recursive: true });
-    fs.writeFileSync(path.join(resourcesPath, 'cindy-updater.exe'), 'updater');
-    const resourcesPathDescriptor = Object.getOwnPropertyDescriptor(process, 'resourcesPath');
-    Object.defineProperty(process, 'resourcesPath', {
-      value: resourcesPath,
-      configurable: true,
-    });
-    const now = 1_700_000_000_000;
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now);
-    const updaterWorkDir = path.join(os.tmpdir(), `cindy-update-${now}`);
-
+  it('returns to idle when the manifest no longer advertises an upgrade', async () => {
+    const newerManifest = updateManifest('0.0.65');
+    const currentManifest = updateManifest('0.0.64');
     const service = await freshUpdateService('win32');
     service.initUpdateService();
     try {
-      await expect(service.checkForUpdate(updateManifest('0.0.65'))).resolves.toBe('ready');
-      const patchInfoPath = path.join(TEST_USER_DATA, 'updates', 'patch-info.json');
-      const patchInfoBefore = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
-        fileName: string;
-      };
-      const stagedPatchPath = path.join(TEST_USER_DATA, 'updates', patchInfoBefore.fileName);
-
-      ipcListeners.get('update-relaunch')?.({}, 'dark');
-
-      await vi.waitFor(() => {
-        expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(prerequisiteChecks);
-        expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
-          status: 'ready',
-          version: '0.0.65',
-          errorCode: 'windows_vc_runtime_missing',
-        });
-      });
-      if (stageResult === 'fallback-safe') {
-        expect(checkWindowsUpdaterPrerequisites).toHaveBeenNthCalledWith(2, undefined, '');
-      }
-      const patchInfoAfter = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
-        applyAttempts?: number;
-      };
-      expect(patchInfoAfter.applyAttempts).toBeUndefined();
-      expect(fs.existsSync(stagedPatchPath)).toBe(true);
-      expect(spawnProcess).not.toHaveBeenCalled();
-      expect(service.isUpdateRelaunchImminent()).toBe(false);
-    } finally {
-      service.stopUpdateService();
-      nowSpy.mockRestore();
-      fs.rmSync(updaterWorkDir, { recursive: true, force: true });
-      if (resourcesPathDescriptor) {
-        Object.defineProperty(process, 'resourcesPath', resourcesPathDescriptor);
-      } else {
-        Reflect.deleteProperty(process, 'resourcesPath');
-      }
-    }
-  });
-
-  it('does not repeatedly auto-relaunch a prerequisite-blocked patch', async () => {
-    vi.useFakeTimers();
-    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: true });
-    checkWindowsUpdaterPrerequisites.mockReturnValue({
-      satisfied: false,
-      missingFiles: ['vcruntime140.dll', 'vcruntime140_1.dll'],
-    });
-    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.writeFileSync(targetPath, 'update');
-      return { path: targetPath, size: 123 };
-    });
-
-    const service = await freshUpdateService('win32');
-    service.initUpdateService();
-    try {
-      await expect(service.checkForUpdate(updateManifest('0.0.65'))).resolves.toBe('ready');
-      await vi.waitFor(() => {
-        expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(1);
-      });
-
-      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
-
-      expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(1);
-      expect(spawnProcess).not.toHaveBeenCalled();
-      expect(service.getUpdateStatus()).toBe('ready');
-      expect(service.isUpdateRelaunchImminent()).toBe(false);
+      const availableResult = await service.checkForUpdate(newerManifest);
+      const idleResult = await service.checkForUpdate(currentManifest);
+      const statusHandler = ipcHandlers.get('update-get-status');
+      const status = statusHandler?.();
+      expect(availableResult).toBe('available');
+      expect(idleResult).toBe('idle');
+      expect(status).toMatchObject({ status: 'idle', version: undefined });
+      expect(download).not.toHaveBeenCalled();
     } finally {
       service.stopUpdateService();
     }
