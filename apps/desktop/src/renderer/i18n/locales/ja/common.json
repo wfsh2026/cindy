@@ -1003,15 +1003,12 @@
         },
         "refiner": {
           "label": "整えモデル",
-          "hint": "話し言葉のテキストを整えるモデル。",
-          "ariaLabel": "音声整えモデルの選択"
-        },
-        "refinerFallback": {
-          "label": "整文フォールバック",
-          "hint": "メインの整文モデルが失敗したときのみ使う予備モデル。既定では無効。",
-          "ariaLabel": "音声整文フォールバックモデルの選択",
-          "none": "フォールバックなし",
-          "noneDescription": "メインモデルが失敗した場合は元の認識テキストを保持"
+          "hint": "補助モデルに従います。",
+          "followAuxiliary": "補助モデルに従う",
+          "followHint": "整えモデルは「設定 → パーソナライズ → 補助モデル」の順に従います。Cindy ホストの音声は影響を受けず、整えはサーバー側のままです。",
+          "openAuxiliary": "補助モデルへ",
+          "cannotRefine": "現在の補助モデルでは音声を整えられません（Claude Messages のみなど）。今回は整えません。",
+          "ariaLabel": "音声整えモデル"
         },
         "customAsr": {
           "optionLabel": "カスタムリアルタイム ASR",
@@ -2477,7 +2474,7 @@
       },
       "commandMenu": {
         "start": "ようこそと使い方を表示",
-        "new": "新しい会話を開始",
+        "new": "新しいセッションを作成",
         "help": "コマンドヘルプを表示",
         "stop": "現在のタスクを停止",
         "session": "最近のセッション一覧から続行",
@@ -2663,11 +2660,9 @@
     },
     "subagentModels": {
       "title": "サブエージェント",
-      "description": "Claude Code と Codex のサブエージェントモデルを選択します。",
+      "description": "Claude Code の既定モデルと Codex のサブエージェント割り当て方法を設定します。",
       "unspecified": "既定の設定を使用",
-      "hint": "Claude Code の変更は新しいセッションから適用されます。Codex の変更はアイドル時に自動で適用されます。",
-      "codexV2ModelHint": "Claude Code は選択したモデルを既定値として使用します。ローカルの Codex サブエージェントはすべて、選択したモデルと推論強度に固定されます。",
-      "codexOauthCompatibilityHint": "固定したサブエージェントのルーティングと ChatGPT OAuth は安全に併用できません。メインタスクが ChatGPT OAuth を使用する場合、または非 OAuth のメインタスクで ChatGPT OAuth のサブエージェントを指定した場合、ここで選択したモデル、プロバイダー、推論強度は適用されず、メインタスクの Codex デフォルトサブエージェントが使用されます。",
+      "hint": "Claude Code の変更は新しいタスクから適用されます。Codex のスマートルーティングは Codex がアイドルになった後に適用されます。",
       "saveFailed": "サブエージェント設定の保存に失敗しました",
       "guardrails": {
         "title": "Codex サブエージェントガードレール",
@@ -2686,6 +2681,12 @@
         "nestedAria": "サブエージェントによるサブエージェント作成を許可",
         "localOnlyHint": "これらのガードレールはこのマシンで実行される Codex にのみ適用され、SSH リモートの Codex には影響しません。"
       },
+      "smartRouting": {
+        "label": "Codex スマートルーティング",
+        "nativeHint": "オフでは Cartethyia の上書きを行わず、Codex 標準の Sol / Terra 割り当てを使用します。",
+        "enabledHint": "オンでは Codex がタスクごとに接続済みのモデルをより多く選択でき、カードには実際に使用したモデルが表示されます。",
+        "aria": "Codex スマートルーティングを有効にする"
+      },
       "toast": {
         "saved": "サブエージェント設定を保存しました",
         "deferredSuffix": " — 実行中の Codex セッションには現在のタスク終了後に適用されます"
@@ -2693,28 +2694,40 @@
     },
     "auxiliaryModels": {
       "title": "補助モデル",
-      "description": "タスクの自動命名と入力欄のおすすめプロンプトに、それぞれ Agent とモデルの組み合わせを指定します。",
-      "sessionTitle": {
-        "label": "タスクの自動命名",
-        "description": "Claude Code、Codex、Pi のタスクと、AI による手動の名前変更に適用されます。",
-        "ariaLabel": "タスクの自動命名モデルを選択",
-        "automatic": "自動選択（現在のタスクに従う）"
+      "description": "タスクの自動命名と AI による名前変更、入力欄のおすすめプロンプト、Help、ピン留めタスクの要約、IM / 飛書のタイトルとグループ文脈判定、スケジュール済みタスクのスクリプト、プラグインのクイック Q&A「デフォルトに従う」、および自分のキーによる音声整えに使います。",
+      "automatic": "自動おすすめ",
+      "customize": "カスタム",
+      "preferred": {
+        "label": "優先",
+        "description": "短い補助テキストで最初に使うモデル。",
+        "ariaLabel": "優先する補助モデルを選択"
       },
-      "promptRecommendation": {
-        "label": "入力欄のおすすめプロンプト",
-        "description": "「ヒント」で入力欄のおすすめを有効にした場合のみ使用します。",
-        "ariaLabel": "入力欄のおすすめプロンプト用モデルを選択",
-        "automatic": "自動選択（現在のルーティングを維持）"
+      "fallback1": {
+        "label": "予備 1",
+        "description": "優先モデルが使えないときに使うモデル。空でもかまいません。",
+        "ariaLabel": "1 番目の予備補助モデルを選択"
       },
+      "fallback2": {
+        "label": "予備 2",
+        "description": "最初の 2 つが使えないときに使うモデル。空でもかまいません。",
+        "ariaLabel": "2 番目の予備補助モデルを選択"
+      },
+      "emptySlot": "未選択",
+      "customHint": "カスタム後は選んだ順にだけ試します。どれも使えない場合、別のモデルへは切り替えません。",
+      "signInHint": "Cindy にログインすると自動おすすめを使えます。未ログイン時は「カスタム」で設定済みの他のプロバイダーのモデルを選択してください。",
       "chooseAgent": "Agent を選択",
       "backToAgents": "Agent の選択に戻る",
-      "explicitRouteHint": "明示的に指定した場合は、その Agent とモデルだけを使用します。利用できなくても自動では切り替えません。",
       "searchPlaceholder": "モデルまたはプロバイダーを検索",
       "noResults": "利用可能なモデルがありません",
       "unavailable": "現在利用不可",
       "budget": "割引",
       "subscription": "サブスクリプション",
-      "saveFailed": "補助モデル設定を保存できませんでした"
+      "saveFailed": "補助モデル設定を保存できませんでした",
+      "chain": {
+        "cindyHy3": "Hy3",
+        "cindyDeepseekV4Flash": "DeepSeek v4 flash",
+        "cindyQwen38Flash": "Qwen 3.8 Flash"
+      }
     },
     "compaction": {
       "title": "コンテキスト圧縮",
@@ -5795,20 +5808,32 @@
   "usageHistory": {
     "description": "このデバイスの Cartethyia 内で発生したトークン使用量です。記録は機能の提供開始時から蓄積され、それ以前の履歴は補完されません。",
     "empty": "まだ使用記録がありません。会話を実行すると蓄積が始まります。",
+    "loadFailed": "使用履歴を読み込めませんでした。設定を開き直して、もう一度お試しください。",
+    "range": {
+      "label": "期間",
+      "ariaLabel": "使用量の期間を絞り込む",
+      "all": "全期間",
+      "30d": "直近 30 日",
+      "7d": "直近 7 日",
+      "today": "今日"
+    },
     "cacheHitTooltip": "キャッシュ読取 ÷（入力 + キャッシュ読取 + キャッシュ書込）。メッセージカードと同じ基準です。",
     "summary": {
       "title": "概要"
     },
     "stats": {
       "todayTokens": "今日のトークン",
+      "todayTokensInRange": "{{range}}のトークン",
       "totalTokens": "直近 30 日のトークン",
+      "totalTokensInRange": "{{range}}のトークン",
       "streak": "連続稼働日数",
       "cacheHitRate": "キャッシュヒット率(30 日)",
+      "cacheHitRateInRange": "キャッシュヒット率（{{range}}）",
       "models": "使用モデル数"
     },
     "heatmap": {
       "title": "アクティビティヒートマップ",
-      "subtitle": "直近 20 週",
+      "subtitle": "直近 {{count}} 週",
       "emptyCell": "この日は使用記録なし"
     },
     "daily": {
@@ -5821,6 +5846,7 @@
       "col": {
         "agent": "Agent / harness",
         "total": "直近 30 日のトークン",
+        "totalInRange": "{{range}}のトークン",
         "share": "割合",
         "today": "今日",
         "hitRate": "キャッシュヒット率",
@@ -5833,6 +5859,7 @@
       "col": {
         "model": "モデル",
         "total": "合計トークン",
+        "totalInRange": "{{range}}のトークン",
         "share": "割合",
         "input": "入力",
         "output": "出力",
@@ -5843,7 +5870,7 @@
     },
     "tasks": {
       "title": "トークン消費の多いセッション",
-      "subtitle": "直近 30 日に稼働したセッションを累計トークン順に表示",
+      "subtitle": "{{range}}に稼働したセッションを累計トークン順に表示",
       "col": {
         "task": "セッション",
         "model": "モデル",
@@ -5853,7 +5880,7 @@
         "lastActive": "最終アクティブ"
       },
       "providerTooltip": "セッションで現在選択されているプロバイダー。未指定の場合は空欄です。",
-      "tokensTooltip": "セッションの累計値であり、直近 30 日の増分ではありません。"
+      "tokensTooltip": "セッションの累計値です。{{range}}はアクティブなセッションの絞り込みにのみ使われ、期間内の増分ではありません。"
     }
   },
   "usageDashboard": {
@@ -6840,7 +6867,6 @@
       "moreLabel": "その他、現在のユーザー：{{name}}",
       "menuSettings": "設定",
       "menuAddAccount": "別のアカウントでログイン",
-      "menuLogout": "ログアウト",
       "canaryBadge": "Canary ユーザー",
       "regionCodeCn": "CN",
       "regionCodeDev": "Dev",
@@ -7242,6 +7268,7 @@
         "layoutTryUnified": "新しいセレクターを試す",
         "layoutOriginal": "旧版に戻す",
         "addFavorite": "お気に入りに保存",
+        "customize": "カスタマイズ",
         "removeFavorite": "お気に入りから削除",
         "favoriteConfig": "保存した設定",
         "recommended": "推奨",
@@ -7901,6 +7928,7 @@
       "networkHideRaw": "元のエラーを隠す",
       "gatewayProxyTokenInvalid": "Cartethyia AI の認証情報が無効になりました。「再試行」をクリックしてください。繰り返す場合はサインアウトしてから再ログインしてください",
       "gatewayProxyTokenInvalidNoRetry": "Cartethyia AI の認証情報が無効になりました。繰り返す場合はサインアウトしてから再ログインしてください",
+      "modelAccessDenied": "接続先のアカウントにはこのモデルへのアクセス権限がありません。別のモデルに切り替えるか、プロバイダーにアクセス権限を確認してください",
       "silentStopContinue": "続行",
       "silentStopContinueTitle": "現在のタスクを続行",
       "piTransportClosed": "リモート Pi の接続が切断されました（SSH チャンネルが閉じました）。リモートのタスクは実行中のままです。再接続すると続行できます。",
@@ -8714,9 +8742,6 @@
         "tasksLoadFailed": "現在 {{device}} のセッションを読み込めません。自動的に再試行中…",
         "tasksPartiallyFailed": "現在 {{device}} のセッションを読み込めません。自動的に再試行中のため、読み込み済みの内容のみ表示しています",
         "devicesLoading": "リモートデバイスを読み込み中…",
-        "devicesLoadFailed": "リモートデバイスの一覧を読み込めませんでした。接続を確認して再試行してください。",
-        "devicesPartiallyFailed": "リモートデバイスの一覧を更新できませんでした。読み込み済みの内容のみ表示しています。",
-        "retryDevices": "デバイスを再読み込み",
         "remoteSettings": "リモート接続設定",
         "multiSelect": "複数選択",
         "deselect": "選択を解除",
@@ -9092,9 +9117,24 @@
           "merged": "マージ済み",
           "closed": "クローズ済み"
         },
-        "needsToken": "ローカルの gh CLI が未ログインです。Agent に gh auth login を一度実行させると PR の状態が表示されます",
+        "ghNotLoggedIn": "このマシンの gh は GitHub にログインしていないため、PR の状態を表示できません",
+        "ghMissing": "GitHub CLI（gh）が見つからないため、PR の状態を表示できません",
+        "notFound": "PR が存在しないか、現在のアカウントでは閲覧できません",
         "statusUnknown": "状態の取得に失敗しました",
         "openAria": "PR #{{number}} をブラウザで開く",
+        "clickToOpen": "クリックしてブラウザで PR を開く",
+        "guidance": {
+          "login": {
+            "hint": "クリックすると Agent がログインを手伝います",
+            "aria": "PR #{{number}} の状態を取得できません：Agent に GitHub へのログインを任せる",
+            "prompt": "GitHub CLI にログインしてください：`gh auth login -h github.com -w` を実行し、表示されたワンタイムのデバイスコードと URL を教えてください。ブラウザで認可したら、`gh auth status` でログイン成功を確認してください。"
+          },
+          "install": {
+            "hint": "クリックすると Agent がインストールとログインを手伝います",
+            "aria": "PR #{{number}} の状態を取得できません：Agent に GitHub CLI のインストールとログインを任せる",
+            "prompt": "GitHub CLI（gh）をインストールしてください（macOS は `brew install gh`、Windows は `winget install GitHub.cli`）。その後 `gh auth login -h github.com -w` を実行してログインし、表示されたワンタイムのデバイスコードと URL を教えてください。ブラウザで認可したら、`gh auth status` でログイン成功を確認してください。"
+          }
+        },
         "unresolved": "未解決のレビューコメント: {{count}} 件"
       }
     },
@@ -10862,7 +10902,7 @@
     },
     "confirm": {
       "logoutTitle": "ログアウト",
-      "logoutDescription": "このデバイス上のすべてのアカウントからログアウトしますか？",
+      "logoutDescription": "現在のアカウントからログアウトしますか？",
       "logoutConfirm": "ログアウト",
       "cancel": "キャンセル",
       "sessionExpiredTitle": "ログインの有効期限が切れました",

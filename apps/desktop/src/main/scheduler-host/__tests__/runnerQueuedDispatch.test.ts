@@ -995,6 +995,97 @@ describe('MakerScheduleRunner queued dispatch (busy bound session)', () => {
     expect(mocks.setSessionProvider).not.toHaveBeenCalled();
   });
 
+  it('排队 Codex 需要重建 context Host 时在 vendor dispatch 前 fail-closed', async () => {
+    mocks.getSessionRowSnapshot.mockResolvedValue({
+      status: 'active',
+      userSendAt: null,
+      providerId: 'mygpt',
+    });
+    mocks.getSessionProvider.mockReturnValue('mygpt');
+    const harness = createSessionHarness(async () => ({ accepted: true }));
+    const requiresModelSwitchRebuild = vi.fn(async () => true);
+    Object.assign(harness.session as unknown as Record<string, unknown>, {
+      agentKind: 'codex',
+      model: 'gpt-5.6-sol',
+      requiresModelSwitchRebuild,
+    });
+    const queue = createQueueHarness({ busy: true });
+    const { runner } = createRunnerHarness(harness.session, queue.deps, {
+      metaModel: 'gpt-5.6-sol',
+    });
+
+    const firePromise = runner.fire(
+      heartbeatSchedule({
+        agentKind: 'codex',
+        model: 'gpt-5.6-sol',
+        providerId: 'mygpt',
+      }),
+      createFireContext(),
+    );
+    const fireRejected = expect(firePromise).rejects.toThrow(
+      'queued heartbeat model switch requires rebuilding the session before dispatch',
+    );
+    await vi.waitFor(() => expect(queue.enqueueCalls.length).toBe(1));
+    await queue.accept();
+
+    await fireRejected;
+    expect(requiresModelSwitchRebuild).toHaveBeenCalledWith('gpt-5.6-sol', {
+      providerId: 'mygpt',
+    });
+    expect(harness.session.abort).toHaveBeenCalled();
+    expect(harness.setModel).not.toHaveBeenCalled();
+    expect(harness.setEffort).not.toHaveBeenCalled();
+    expect(mocks.setSessionProvider).not.toHaveBeenCalled();
+  });
+
+  it('排队 Codex 的 context Host 身份在 preflight 后变化时仍 fail-closed', async () => {
+    mocks.getSessionRowSnapshot.mockResolvedValue({
+      status: 'active',
+      userSendAt: null,
+      providerId: 'mygpt',
+    });
+    mocks.getSessionProvider.mockReturnValue('mygpt');
+    const harness = createSessionHarness(async () => ({ accepted: true }));
+    const requiresModelSwitchRebuild = vi.fn(async () => false);
+    const rebuildError = Object.assign(
+      new Error('Codex model switch requires rebuilding the current session handle'),
+      { code: 'CODEX_MODEL_SWITCH_REQUIRES_REBUILD' },
+    );
+    Object.assign(harness.session as unknown as Record<string, unknown>, {
+      agentKind: 'codex',
+      model: 'gpt-5.4',
+      requiresModelSwitchRebuild,
+    });
+    harness.setModel.mockRejectedValue(rebuildError);
+    const queue = createQueueHarness({ busy: true });
+    const { runner } = createRunnerHarness(harness.session, queue.deps, {
+      metaModel: 'gpt-5.4',
+    });
+
+    const firePromise = runner.fire(
+      heartbeatSchedule({
+        agentKind: 'codex',
+        model: 'gpt-5.6-sol',
+        providerId: 'mygpt',
+      }),
+      createFireContext(),
+    );
+    const fireRejected = expect(firePromise).rejects.toThrow(
+      'queued heartbeat model switch requires rebuilding the session before dispatch',
+    );
+    await vi.waitFor(() => expect(queue.enqueueCalls.length).toBe(1));
+    await queue.accept();
+
+    await fireRejected;
+    expect(requiresModelSwitchRebuild).toHaveBeenCalledWith('gpt-5.6-sol', {
+      providerId: 'mygpt',
+    });
+    expect(harness.setModel).toHaveBeenCalledWith('gpt-5.6-sol');
+    expect(harness.session.abort).toHaveBeenCalled();
+    expect(harness.setEffort).not.toHaveBeenCalled();
+    expect(mocks.setSessionProvider).not.toHaveBeenCalled();
+  });
+
   it('busy 心跳跨 dynamic identity 时不入旧 thread 队列，而是顺延到安全重建点', async () => {
     const [routeA, routeB] = queuedImageGenerationRoutes;
     setCodexAppliedCustomProviderRoutes(queuedImageGenerationRoutes);
@@ -1485,6 +1576,36 @@ describe('MakerScheduleRunner queued dispatch (busy bound session)', () => {
     await expect(firePromise).rejects.toThrow(/disabled in settings/);
     expect(checkModelRoute).toHaveBeenCalledWith('claude-code', 'claude-opus-4-6', null);
     expect(harness.setEffort).not.toHaveBeenCalled(); // 终检在 effort 下发之前拦截
+  });
+
+  it('exclusive grok 无 SuperGrok 且未钉自定义源时,失败原因说清缺来源而不是「设置里停用」(#3884)', async () => {
+    const harness = createSessionHarness(async () => ({ accepted: true }));
+    harness.setModel.mockRejectedValue(new Error('switchModel rejected'));
+    const queue = createQueueHarness({ busy: true });
+    const checkModelRoute = vi.fn(
+      async (_agent: string, model: string, _providerId: string | null) =>
+        model === 'claude-opus-4-6'
+          ? ({ kind: 'reject', reason: 'exclusive-source-unavailable' } as const)
+          : ({ kind: 'pass' } as const),
+    );
+    const { runner } = createRunnerHarness(harness.session, queue.deps, {
+      availableModels: [
+        { id: 'claude-opus-4-6', efforts: ['low', 'medium', 'high'], defaultEffort: 'high' },
+        { id: 'claude-opus-4-8', efforts: ['low', 'medium', 'high'], defaultEffort: 'high' },
+      ],
+      checkModelRoute,
+    });
+
+    const firePromise = runner.fire(
+      heartbeatSchedule({ model: 'claude-opus-4-8' }),
+      createFireContext(),
+    );
+    await vi.waitFor(() => expect(queue.enqueueCalls.length).toBe(1));
+    await queue.accept();
+
+    await expect(firePromise).rejects.toThrow(/requires SuperGrok \(xAI\) or an explicitly selected custom source/);
+    await expect(firePromise).rejects.not.toThrow(/disabled in settings/);
+    await expect(firePromise).rejects.toThrow(/\(exclusive-source-unavailable\)/);
   });
 
   it('clamps follow-session queued effort to the drifted live model, not the stale baseline (PR #479 review)', async () => {

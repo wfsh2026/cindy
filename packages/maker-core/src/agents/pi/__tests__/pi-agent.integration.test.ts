@@ -2344,6 +2344,7 @@ describe.skipIf(!piAvailable)('PiAgent integration (real pi binary + fake gatewa
         mkdirSync(path.dirname(secretPath), { recursive: true });
         mkdirSync(subDir);
         mkdirSync(stackOtherDir);
+        mkdirSync(path.dirname(path.join(workingDir, escapedLinkName)), { recursive: true });
         writeFileSync(secretPath, 'FAKE_REDIRECT_DOTENV_SECRET=must-not-leak');
         writeFileSync(ordinaryPath, 'ordinary-content');
         writeFileSync(path.join(workingDir, 'change-dir.sh'), 'cd sub\n');

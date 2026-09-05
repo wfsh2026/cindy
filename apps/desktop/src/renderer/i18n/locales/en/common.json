@@ -1003,15 +1003,12 @@
         },
         "refiner": {
           "label": "Refinement model",
-          "hint": "Model used to clean up dictated text.",
+          "hint": "Follows the auxiliary model.",
+          "followAuxiliary": "Follow auxiliary model",
+          "followHint": "Refinement follows Settings → Personalization → Auxiliary models. Cindy-hosted voice is unchanged; refinement still runs on the server.",
+          "openAuxiliary": "Open auxiliary models",
+          "cannotRefine": "The current auxiliary models cannot refine speech (for example Claude Messages only), so this dictation will not be refined.",
           "ariaLabel": "Voice refinement model"
-        },
-        "refinerFallback": {
-          "label": "Refinement fallback",
-          "hint": "Backup model used only when the primary refiner fails; off by default.",
-          "ariaLabel": "Voice refinement fallback model selection",
-          "none": "No fallback",
-          "noneDescription": "Keep the raw transcript when the primary model fails"
         },
         "customAsr": {
           "optionLabel": "Custom realtime ASR",
@@ -2478,7 +2475,7 @@
       },
       "commandMenu": {
         "start": "Welcome and usage",
-        "new": "Start a new chat",
+        "new": "Create a new session",
         "help": "Show command help",
         "stop": "Stop the current task",
         "session": "Recent sessions, pick one to continue",
@@ -2664,9 +2661,9 @@
     },
     "subagentModels": {
       "title": "Subagents",
-      "description": "Choose the Subagent model for Claude Code and Codex.",
+      "description": "Set the default Claude Code model and how Codex assigns Subagents.",
       "unspecified": "Use default setting",
-      "hint": "Claude Code changes apply to new sessions. Codex changes apply automatically when it is idle.",
+      "hint": "Claude Code changes apply to new tasks. Codex smart routing applies after Codex becomes idle.",
       "codexV2ModelHint": "Claude Code uses the selected model as its default. All local Codex Subagents are locked to the selected model and reasoning effort.",
       "codexOauthCompatibilityHint": "Fixed Subagent routing cannot safely share a task with ChatGPT OAuth. When the main Codex task uses ChatGPT OAuth, or a non-OAuth main task selects a ChatGPT OAuth Subagent, Cartethyia ignores the model, provider, and reasoning effort selected here and uses that task’s default Codex Subagent.",
       "saveFailed": "Failed to save subagent settings",
@@ -2685,7 +2682,13 @@
         "nestedLabel": "Allow subagents to spawn subagents",
         "nestedHint": "Only applies to legacy multi-agent (V1); Sol / Terra (V2) ignore this setting.",
         "nestedAria": "Allow subagents to spawn subagents",
-        "localOnlyHint": "These guardrails only apply to Codex running on this machine; Codex over SSH remotes is not affected."
+      "localOnlyHint": "These guardrails only apply to Codex running on this machine; Codex over SSH remotes is not affected."
+      },
+      "smartRouting": {
+        "label": "Codex smart routing",
+        "nativeHint": "Off uses Codex’s native Sol / Terra assignment without Cartethyia overrides.",
+        "enabledHint": "On lets Codex choose more connected models per task; cards show the model actually used.",
+        "aria": "Enable Codex smart routing"
       },
       "toast": {
         "saved": "Subagent settings saved",
@@ -2694,19 +2697,27 @@
     },
     "auxiliaryModels": {
       "title": "Auxiliary models",
-      "description": "Choose one Agent and model pair for automatic task naming and another for composer prompt suggestions.",
-      "sessionTitle": {
-        "label": "Automatic task naming",
-        "description": "Applies to Claude Code, Codex, and Pi tasks, plus manual AI renaming.",
-        "ariaLabel": "Choose the automatic task naming model",
-        "automatic": "Automatic (follow the current task)"
+      "description": "Used for automatic task naming and AI rename, composer prompt suggestions, Help, pinned task summaries, IM / Feishu titles and group-context checks, scheduled-task scripts, plugin quick Q&A “follow default”, and BYOK voice refinement.",
+      "automatic": "Automatic recommendation",
+      "customize": "Custom",
+      "preferred": {
+        "label": "Preferred",
+        "description": "The first model used for short auxiliary text.",
+        "ariaLabel": "Choose the preferred auxiliary model"
       },
-      "promptRecommendation": {
-        "label": "Composer prompt suggestions",
-        "description": "Used only when prompt recommendations are enabled under Tips.",
-        "ariaLabel": "Choose the composer prompt suggestion model",
-        "automatic": "Automatic (keep current routing)"
+      "fallback1": {
+        "label": "Fallback 1",
+        "description": "Used if the preferred model is unavailable. Optional.",
+        "ariaLabel": "Choose the first fallback auxiliary model"
       },
+      "fallback2": {
+        "label": "Fallback 2",
+        "description": "Used if the first two models are unavailable. Optional.",
+        "ariaLabel": "Choose the second fallback auxiliary model"
+      },
+      "emptySlot": "Not selected",
+      "customHint": "A custom chain is tried in this order only. If none of them work, Cindy will not switch to another model.",
+      "signInHint": "Sign in to Cindy to use the automatic recommendations. While signed out, choose a configured model from another provider under Custom.",
       "chooseAgent": "Choose an Agent",
       "backToAgents": "Back to Agent selection",
       "explicitRouteHint": "An explicit selection uses only that Agent and model. If unavailable, Cartethyia will not switch automatically.",
@@ -2715,7 +2726,12 @@
       "unavailable": "Currently unavailable",
       "budget": "Discount",
       "subscription": "Subscription",
-      "saveFailed": "Failed to save auxiliary model settings"
+      "saveFailed": "Failed to save auxiliary model settings",
+      "chain": {
+        "cindyHy3": "Hy3",
+        "cindyDeepseekV4Flash": "DeepSeek v4 flash",
+        "cindyQwen38Flash": "Qwen 3.8 Flash"
+      }
     },
     "compaction": {
       "title": "Context compaction",
@@ -5797,20 +5813,32 @@
   "usageHistory": {
     "description": "Token usage produced inside Cartethyia on this device. Records start accumulating when the feature ships; earlier history is not backfilled.",
     "empty": "No usage recorded yet. This fills in once you start a chat.",
+    "loadFailed": "Unable to load usage history. Reopen Settings to try again.",
+    "range": {
+      "label": "Time range",
+      "ariaLabel": "Filter usage time range",
+      "all": "All time",
+      "30d": "Last 30 days",
+      "7d": "Last 7 days",
+      "today": "Today"
+    },
     "cacheHitTooltip": "Cache read / (input + cache read + cache write) — the same formula as the message card.",
     "summary": {
       "title": "Overview"
     },
     "stats": {
       "todayTokens": "Tokens today",
+      "todayTokensInRange": "Tokens ({{range}})",
       "totalTokens": "Tokens (30d)",
+      "totalTokensInRange": "Tokens ({{range}})",
       "streak": "Active streak",
       "cacheHitRate": "Cache hit rate (30d)",
+      "cacheHitRateInRange": "Cache hit rate ({{range}})",
       "models": "Models used"
     },
     "heatmap": {
       "title": "Activity heatmap",
-      "subtitle": "Last 20 weeks",
+      "subtitle": "Last {{count}} weeks",
       "emptyCell": "No usage recorded"
     },
     "daily": {
@@ -5823,6 +5851,7 @@
       "col": {
         "agent": "Agent / harness",
         "total": "Tokens (30d)",
+        "totalInRange": "Tokens ({{range}})",
         "share": "Share",
         "today": "Today",
         "hitRate": "Cache hit rate",
@@ -5835,6 +5864,7 @@
       "col": {
         "model": "Model",
         "total": "Total tokens",
+        "totalInRange": "Tokens ({{range}})",
         "share": "Share",
         "input": "Input",
         "output": "Output",
@@ -5845,7 +5875,7 @@
     },
     "tasks": {
       "title": "Top sessions by tokens",
-      "subtitle": "Sessions active in the last 30 days, ranked by lifetime tokens",
+      "subtitle": "Sessions active in {{range}}, ranked by lifetime tokens",
       "col": {
         "task": "Session",
         "model": "Model",
@@ -5855,7 +5885,7 @@
         "lastActive": "Last active"
       },
       "providerTooltip": "The provider currently selected for the session; blank when none is pinned.",
-      "tokensTooltip": "The session's lifetime total, not the tokens spent within the last 30 days."
+      "tokensTooltip": "The session's lifetime total; {{range}} only filters active sessions and is not an incremental total."
     }
   },
   "usageDashboard": {
@@ -6842,7 +6872,6 @@
       "moreLabel": "More, current user: {{name}}",
       "menuSettings": "Settings",
       "menuAddAccount": "Sign in to another account",
-      "menuLogout": "Log out",
       "canaryBadge": "Canary user",
       "regionCodeCn": "CN",
       "regionCodeDev": "Dev",
@@ -7244,6 +7273,7 @@
         "layoutTryUnified": "Try the new picker",
         "layoutOriginal": "Back to old picker",
         "addFavorite": "Save to favorites",
+        "customize": "Customize",
         "removeFavorite": "Remove from favorites",
         "favoriteConfig": "Saved setup",
         "recommended": "Recommended",
@@ -7907,6 +7937,7 @@
       "networkHideRaw": "Hide raw error",
       "gatewayProxyTokenInvalid": "Cartethyia AI credentials are no longer valid. Click Retry. If it happens again, sign out and sign back in",
       "gatewayProxyTokenInvalidNoRetry": "Cartethyia AI credentials are no longer valid. If it happens again, sign out and sign back in",
+      "modelAccessDenied": "The upstream account cannot access this model. Select another model or check its access with the provider",
       "silentStopContinue": "Continue",
       "silentStopContinueTitle": "Continue the current task",
       "piTransportClosed": "Remote Pi connection interrupted (SSH channel closed). The remote task is still running — reconnect to continue.",
@@ -8729,9 +8760,6 @@
         "tasksLoadFailed": "Can't reach sessions on {{device}} right now — retrying automatically…",
         "tasksPartiallyFailed": "Can't reach sessions on {{device}} right now — retrying automatically; showing what's already loaded",
         "devicesLoading": "Loading remote devices…",
-        "devicesLoadFailed": "Couldn't load the remote device list. Check the connection and try again.",
-        "devicesPartiallyFailed": "The remote device list couldn't be refreshed. Showing only content that loaded successfully.",
-        "retryDevices": "Reload devices",
         "remoteSettings": "Remote connection settings",
         "multiSelect": "Multi-select",
         "deselect": "Deselect",
@@ -9107,9 +9135,24 @@
           "merged": "Merged",
           "closed": "Closed"
         },
-        "needsToken": "gh CLI not logged in — ask the agent to run gh auth login once to show PR status",
+        "ghNotLoggedIn": "gh is not signed in to GitHub on this machine, so PR status is unavailable",
+        "ghMissing": "GitHub CLI (gh) not found on this machine, so PR status is unavailable",
+        "notFound": "PR not found, or the current account cannot view it",
         "statusUnknown": "Failed to fetch status",
         "openAria": "Open PR #{{number}} in browser",
+        "clickToOpen": "Click to open the PR in your browser",
+        "guidance": {
+          "login": {
+            "hint": "Click to have the agent sign you in",
+            "aria": "PR #{{number}} status unavailable: have the agent sign in to GitHub",
+            "prompt": "Please sign me in to the GitHub CLI: run `gh auth login -h github.com -w`, tell me the one-time device code and URL it shows, and after I authorize in the browser, confirm with `gh auth status` that the login succeeded."
+          },
+          "install": {
+            "hint": "Click to have the agent install it and sign you in",
+            "aria": "PR #{{number}} status unavailable: have the agent install and sign in to GitHub CLI",
+            "prompt": "Please install the GitHub CLI (gh; `brew install gh` on macOS, `winget install GitHub.cli` on Windows), then run `gh auth login -h github.com -w` to sign in, tell me the one-time device code and URL it shows, and after I authorize in the browser, confirm with `gh auth status` that the login succeeded."
+          }
+        },
         "unresolved": "Unresolved review threads: {{count}}"
       }
     },
@@ -10878,7 +10921,7 @@
     },
     "confirm": {
       "logoutTitle": "Log out",
-      "logoutDescription": "Log out of all accounts on this device?",
+      "logoutDescription": "Log out of the current account?",
       "logoutConfirm": "Log out",
       "cancel": "Cancel",
       "sessionExpiredTitle": "Login expired",

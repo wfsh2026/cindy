@@ -386,6 +386,50 @@ type DiscordBotSessionAuthCheckWire = {
   providerId: string | null;
   providerLabel: string | null;
 };
+
+/** Public shape of the local session-list bridge options. */
+type LocalDbSessionListOptions = {
+  includePinned?: boolean;
+  fresh?: boolean;
+  usageHistory?: boolean;
+};
+type LocalDbSessionListRegularOptions = Omit<LocalDbSessionListOptions, 'usageHistory'> & {
+  usageHistory?: false | undefined;
+};
+type LocalDbSessionListUsageOptions = Omit<LocalDbSessionListOptions, 'usageHistory'> & {
+  usageHistory: true;
+};
+type LocalDbSessionListResult =
+  | import('../renderer/lib/ccAgent.types').Session[]
+  | import('../renderer/lib/ccAgent.types').UsageHistorySession[];
+
+function listLocalDbSessions(
+  limit?: number,
+  status?: string,
+  options?: LocalDbSessionListRegularOptions,
+): Promise<import('../renderer/lib/ccAgent.types').Session[]>;
+function listLocalDbSessions(
+  limit?: number,
+  status?: string,
+  options?: LocalDbSessionListUsageOptions,
+): Promise<import('../renderer/lib/ccAgent.types').UsageHistorySession[]>;
+function listLocalDbSessions(
+  limit?: number,
+  status?: string,
+  options?: LocalDbSessionListOptions,
+): Promise<LocalDbSessionListResult>;
+function listLocalDbSessions(
+  limit?: number,
+  status?: string,
+  options?: LocalDbSessionListOptions,
+): Promise<LocalDbSessionListResult> {
+  return ipcRenderer.invoke(
+    'local-db:sessions:list',
+    limit,
+    status,
+    options,
+  ) as Promise<LocalDbSessionListResult>;
+}
 /**
  * 个人 Telegram bot 的传输状态(与 @cindy/im 的 IMStatus 同形; preload 不引包,
  * 就地声明)。offline = 凭证保留但用户主动下线, 与 idle(未配置)严格区分。
@@ -5011,8 +5055,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }),
     },
     sessions: {
-      list: (limit?: number, status?: string, options?: unknown): Promise<unknown> =>
-        ipcRenderer.invoke('local-db:sessions:list', limit, status, options),
+      list: listLocalDbSessions,
       create: (body?: unknown): Promise<unknown> =>
         ipcRenderer.invoke('local-db:sessions:create', body),
       get: (id: string): Promise<unknown> => ipcRenderer.invoke('local-db:sessions:get', id),
@@ -6146,7 +6189,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       model: string,
       providerId?: string | null,
       expectedAgentSwitchRevision?: number,
-      selection?: { effort: string; fastMode: boolean },
+      selection?: { effort: string | null; fastMode: boolean },
     ): Promise<{ deferred: boolean; superseded?: boolean } | undefined> =>
       ipcRenderer.invoke(
         'maker:set-model',
@@ -6870,7 +6913,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('maker:usage:reference-model-pricing'),
       onReferenceModelPricingChanged: fanOutMakerUsageReferenceModelPricing,
       /** 用量历史聚合 (首页仪表盘: 热力图 + streak + 按模型拆分, main 侧算好)。 */
-      getHistory: (opts?: { days?: number; forceRefresh?: boolean }): Promise<unknown> =>
+      getHistory: (opts?: {
+        days?: number | 'all';
+        modelDays?: number | 'all';
+        forceRefresh?: boolean;
+      }): Promise<unknown> =>
         ipcRenderer.invoke('maker:usage:history', opts),
       /** Claude USD 推送 (per-turn, agentKind=claude-code 时订阅它)。 */
       onTodaySpendChanged: fanOutMakerUsageTodaySpend,

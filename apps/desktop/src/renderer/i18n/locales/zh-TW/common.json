@@ -1003,15 +1003,12 @@
         },
         "refiner": {
           "label": "潤色模型",
-          "hint": "整理口語文字使用的模型。",
-          "ariaLabel": "語音潤色模型選擇"
-        },
-        "refinerFallback": {
-          "label": "潤色備選模型",
-          "hint": "主潤色模型失敗時改用的備選；預設不啟用。",
-          "ariaLabel": "語音潤色備選模型選擇",
-          "none": "不使用備選",
-          "noneDescription": "主模型失敗時直接保留原始識別文字"
+          "hint": "跟隨輔助模型。",
+          "followAuxiliary": "跟隨輔助模型",
+          "followHint": "潤色模型跟隨「設定 → 個人化 → 輔助模型」的順序。Cindy 託管語音不受影響，潤色仍在服務端。",
+          "openAuxiliary": "前往輔助模型",
+          "cannotRefine": "目前輔助模型無法用於語音潤色（例如純 Claude Messages），這次不潤色。",
+          "ariaLabel": "語音潤色模型"
         },
         "customAsr": {
           "optionLabel": "自定義即時 ASR",
@@ -2477,7 +2474,7 @@
       },
       "commandMenu": {
         "start": "檢視歡迎資訊和用法",
-        "new": "開啟新對話",
+        "new": "建立新任務",
         "help": "檢視命令幫助",
         "stop": "中止當前執行",
         "session": "最近任務列表，選中即續聊",
@@ -2663,7 +2660,7 @@
     },
     "subagentModels": {
       "title": "Subagent",
-      "description": "選擇 Claude Code 和 Codex 的 Subagent 模型。",
+      "description": "設定 Claude Code 的預設模型，以及 Codex 的 Subagent 調配方式。",
       "unspecified": "跟隨預設設定",
       "hint": "Claude Code 的設定從新任務開始生效；Codex 的設定會在閒置後自動套用。",
       "codexV2ModelHint": "Claude Code 使用所選模型作為預設值。Codex 的所有本機 Subagent 都固定使用所選模型和推理強度。",
@@ -2686,6 +2683,12 @@
         "nestedAria": "允許 Subagent 再建立 Subagent",
         "localOnlyHint": "以上護欄僅對本機執行的 Codex 生效，SSH 遠端連線的 Codex 不受影響。"
       },
+      "smartRouting": {
+        "label": "Codex 智慧調配",
+        "nativeHint": "關閉時完全使用 Codex 原生的 Sol / Terra 分配方式。",
+        "enabledHint": "開啟後，Codex 可按任務選用更多已連線模型；卡片顯示實際執行模型。",
+        "aria": "啟用 Codex 智慧調配"
+      },
       "toast": {
         "saved": "Subagent 設定已儲存",
         "deferredSuffix": " — 執行中的 Codex 任務將在當前執行結束後應用"
@@ -2693,28 +2696,40 @@
     },
     "auxiliaryModels": {
       "title": "輔助模型",
-      "description": "為任務自動命名與輸入框推薦指令分別指定一組 Agent 和模型。",
-      "sessionTitle": {
-        "label": "任務自動命名",
-        "description": "適用於 Claude Code、Codex、Pi 任務，以及手動 AI 重新命名。",
-        "ariaLabel": "選擇任務自動命名模型",
-        "automatic": "自動選擇（跟隨目前任務）"
+      "description": "用於任務自動命名和 AI 重新命名、輸入框推薦指令、Help、置頂任務摘要、IM / 飛書標題與群組上下文判斷、定時任務指令碼、插件快問快答的「跟隨預設」，以及自備金鑰的語音潤色。",
+      "automatic": "自動推薦",
+      "customize": "自訂",
+      "preferred": {
+        "label": "首選",
+        "description": "輕量文字優先使用的模型。",
+        "ariaLabel": "選擇首選輔助模型"
       },
-      "promptRecommendation": {
-        "label": "輸入框推薦指令",
-        "description": "僅在「小技巧」中啟用輸入框推薦後呼叫。",
-        "ariaLabel": "選擇輸入框推薦指令模型",
-        "automatic": "自動選擇（維持目前規則）"
+      "fallback1": {
+        "label": "備選 1",
+        "description": "首選無法使用時改用的模型，可留空。",
+        "ariaLabel": "選擇第一備選輔助模型"
       },
+      "fallback2": {
+        "label": "備選 2",
+        "description": "前兩個都無法使用時改用的模型，可留空。",
+        "ariaLabel": "選擇第二備選輔助模型"
+      },
+      "emptySlot": "未選擇",
+      "customHint": "自訂後只按你選的順序嘗試；都無法使用時不會偷偷換成別的模型。",
+      "signInHint": "登入 Cindy 後可使用自動推薦；未登入時請在自訂中選擇已設定的其他供應商模型。",
       "chooseAgent": "選擇 Agent",
       "backToAgents": "返回選擇 Agent",
-      "explicitRouteHint": "明確指定後只使用該 Agent 和模型；無法使用時不會自動切換。",
       "searchPlaceholder": "搜尋模型或供應商",
       "noResults": "沒有可用模型",
       "unavailable": "目前無法使用",
       "budget": "折扣",
       "subscription": "訂閱",
-      "saveFailed": "儲存輔助模型設定失敗"
+      "saveFailed": "儲存輔助模型設定失敗",
+      "chain": {
+        "cindyHy3": "Hy3",
+        "cindyDeepseekV4Flash": "DeepSeek v4 Flash",
+        "cindyQwen38Flash": "Qwen 3.8 Flash"
+      }
     },
     "compaction": {
       "title": "上下文壓縮",
@@ -5795,20 +5810,32 @@
   "usageHistory": {
     "description": "這台裝置上 Cartethyia 內部產生的 token 用量。紀錄從該功能上線起累積，不回填更早的歷史。",
     "empty": "還沒有用量紀錄。跑過對話之後，這裡會開始累積。",
+    "loadFailed": "無法載入用量歷史。請重新開啟設定後再試一次。",
+    "range": {
+      "label": "時間範圍",
+      "ariaLabel": "篩選用量時間範圍",
+      "all": "所有時間",
+      "30d": "最近 30 天",
+      "7d": "最近 7 天",
+      "today": "今天"
+    },
     "cacheHitTooltip": "快取讀取 ÷（輸入 + 快取讀取 + 快取寫入），與訊息卡片同口徑。",
     "summary": {
       "title": "概覽"
     },
     "stats": {
       "todayTokens": "今日 token",
+      "todayTokensInRange": "{{range}} token",
       "totalTokens": "近 30 天 token",
+      "totalTokensInRange": "{{range}} token",
       "streak": "連續活躍天數",
       "cacheHitRate": "快取命中率(近 30 天)",
+      "cacheHitRateInRange": "快取命中率({{range}})",
       "models": "用到的模型"
     },
     "heatmap": {
       "title": "活躍熱力圖",
-      "subtitle": "近 20 週",
+      "subtitle": "近 {{count}} 週",
       "emptyCell": "當天沒有用量紀錄"
     },
     "daily": {
@@ -5821,6 +5848,7 @@
       "col": {
         "agent": "Agent / harness",
         "total": "近 30 天 token",
+        "totalInRange": "{{range}} token",
         "share": "佔比",
         "today": "今日",
         "hitRate": "快取命中率",
@@ -5833,6 +5861,7 @@
       "col": {
         "model": "模型",
         "total": "總 token",
+        "totalInRange": "{{range}} token",
         "share": "佔比",
         "input": "輸入",
         "output": "輸出",
@@ -5843,7 +5872,7 @@
     },
     "tasks": {
       "title": "最耗 token 的任務",
-      "subtitle": "近 30 天內活躍過的任務，按累計 token 排序",
+      "subtitle": "{{range}}內活躍過的任務，按累計 token 排序",
       "col": {
         "task": "任務",
         "model": "模型",
@@ -5853,7 +5882,7 @@
         "lastActive": "最後活躍"
       },
       "providerTooltip": "取該任務目前選定的供應商；未指定時留空。",
-      "tokensTooltip": "該任務的生命週期累計，不是近 30 天內的增量。"
+      "tokensTooltip": "該任務的生命週期累計；{{range}}僅用於篩選活躍任務，不代表該範圍內的增量。"
     }
   },
   "usageDashboard": {
@@ -6840,7 +6869,6 @@
       "moreLabel": "更多，當前使用者：{{name}}",
       "menuSettings": "設定",
       "menuAddAccount": "登入更多帳號",
-      "menuLogout": "退出",
       "canaryBadge": "灰度使用者",
       "regionCodeCn": "CN",
       "regionCodeDev": "Dev",
@@ -7241,6 +7269,7 @@
         "layoutTryUnified": "試用新選擇器",
         "layoutOriginal": "切回舊版",
         "addFavorite": "存為收藏",
+        "customize": "自訂",
         "removeFavorite": "取消收藏",
         "favoriteConfig": "收藏設定",
         "recommended": "推薦",
@@ -7900,6 +7929,7 @@
       "networkHideRaw": "收起原始錯誤",
       "gatewayProxyTokenInvalid": "Cartethyia AI 憑據已失效。請點「重試」。若仍失敗，請退出後重新登入",
       "gatewayProxyTokenInvalidNoRetry": "Cartethyia AI 憑據已失效。若後續仍失敗，請退出後重新登入",
+      "modelAccessDenied": "目前上游帳號無權存取此模型。請切換模型，或向供應商確認模型存取權限",
       "silentStopContinue": "繼續",
       "silentStopContinueTitle": "繼續當前任務",
       "piTransportClosed": "遠端 Pi 連線已中斷（SSH 通道關閉）。遠端任務仍在執行，重新連線後可以繼續。",
@@ -8714,9 +8744,6 @@
         "tasksLoadFailed": "暫時讀取不到 {{device}} 上的任務，正在自動重試…",
         "tasksPartiallyFailed": "暫時讀取不到 {{device}} 上的任務，正在自動重試；先顯示已載入的內容",
         "devicesLoading": "正在讀取遠端裝置…",
-        "devicesLoadFailed": "無法讀取遠端裝置列表。請檢查連線後重試。",
-        "devicesPartiallyFailed": "無法重新整理遠端裝置列表，當前僅顯示已載入的內容。",
-        "retryDevices": "重新讀取裝置",
         "remoteSettings": "遠端連線設定",
         "multiSelect": "多選",
         "deselect": "取消勾選",
@@ -9092,9 +9119,24 @@
           "merged": "已合併",
           "closed": "已關閉"
         },
-        "needsToken": "本地 gh CLI 未登入——讓 Agent 執行一次 gh auth login 即可顯示 PR 狀態",
+        "ghNotLoggedIn": "本機 gh 尚未登入 GitHub，看不到 PR 狀態",
+        "ghMissing": "未偵測到 GitHub CLI（gh），看不到 PR 狀態",
+        "notFound": "PR 不存在，或目前帳號無權限檢視",
         "statusUnknown": "狀態獲取失敗",
         "openAria": "在瀏覽器開啟 PR #{{number}}",
+        "clickToOpen": "點擊在瀏覽器開啟 PR",
+        "guidance": {
+          "login": {
+            "hint": "點擊讓 Agent 幫你登入",
+            "aria": "PR #{{number}} 狀態不可用：讓 Agent 登入 GitHub",
+            "prompt": "請幫我登入 GitHub CLI：執行 `gh auth login -h github.com -w`，把出現的一次性裝置碼和網址告訴我；我在瀏覽器完成授權後，你再用 `gh auth status` 確認登入成功。"
+          },
+          "install": {
+            "hint": "點擊讓 Agent 幫你安裝並登入",
+            "aria": "PR #{{number}} 狀態不可用：讓 Agent 安裝並登入 GitHub CLI",
+            "prompt": "請幫我安裝 GitHub CLI（gh，macOS 用 `brew install gh`，Windows 用 `winget install GitHub.cli`），然後執行 `gh auth login -h github.com -w` 登入，把出現的一次性裝置碼和網址告訴我；我在瀏覽器完成授權後，你再用 `gh auth status` 確認登入成功。"
+          }
+        },
         "unresolved": "{{count}} 條未解決的 review 評論"
       }
     },
@@ -10862,7 +10904,7 @@
     },
     "confirm": {
       "logoutTitle": "退出登入",
-      "logoutDescription": "確定要退出這台裝置上的所有帳號嗎？",
+      "logoutDescription": "確定要退出目前帳號嗎？",
       "logoutConfirm": "退出",
       "cancel": "取消",
       "sessionExpiredTitle": "登入已過期",

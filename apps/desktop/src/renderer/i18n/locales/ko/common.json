@@ -1003,15 +1003,12 @@
         },
         "refiner": {
           "label": "정리 모델",
-          "hint": "구어체 텍스트를 정리하는 모델.",
-          "ariaLabel": "음성 정리 모델 선택"
-        },
-        "refinerFallback": {
-          "label": "다듬기 대체 모델",
-          "hint": "기본 다듬기 모델이 실패할 때만 사용하는 대체 모델. 기본적으로 사용하지 않음.",
-          "ariaLabel": "음성 다듬기 대체 모델 선택",
-          "none": "대체 모델 없음",
-          "noneDescription": "기본 모델이 실패하면 원본 인식 텍스트를 유지"
+          "hint": "보조 모델을 따릅니다.",
+          "followAuxiliary": "보조 모델 따르기",
+          "followHint": "정리 모델은 「설정 → 개인화 → 보조 모델」 순서를 따릅니다. Cindy 호스팅 음성은 영향을 받지 않으며, 정리는 서버에서 계속 실행됩니다.",
+          "openAuxiliary": "보조 모델로 이동",
+          "cannotRefine": "현재 보조 모델로는 음성을 다듬을 수 없습니다(예: Claude Messages만 해당). 이번에는 다듬지 않습니다.",
+          "ariaLabel": "음성 정리 모델"
         },
         "customAsr": {
           "optionLabel": "사용자 지정 실시간 ASR",
@@ -2477,7 +2474,7 @@
       },
       "commandMenu": {
         "start": "환영 메시지와 사용법 보기",
-        "new": "새 대화 시작",
+        "new": "새 세션 만들기",
         "help": "명령어 도움말 보기",
         "stop": "현재 작업 중지",
         "session": "최근 세션 목록에서 이어서 대화",
@@ -2663,11 +2660,9 @@
     },
     "subagentModels": {
       "title": "하위 에이전트",
-      "description": "Claude Code와 Codex의 하위 에이전트 모델을 선택합니다.",
+      "description": "Claude Code 기본 모델과 Codex의 하위 에이전트 할당 방식을 설정합니다.",
       "unspecified": "기본 설정 사용",
-      "hint": "Claude Code 변경 사항은 새 세션부터 적용됩니다. Codex 변경 사항은 유휴 상태에서 자동으로 적용됩니다.",
-      "codexV2ModelHint": "Claude Code는 선택한 모델을 기본값으로 사용합니다. 모든 로컬 Codex 하위 에이전트는 선택한 모델과 추론 강도로 고정됩니다.",
-      "codexOauthCompatibilityHint": "고정 하위 에이전트 라우팅과 ChatGPT OAuth는 안전하게 함께 사용할 수 없습니다. 메인 작업이 ChatGPT OAuth를 사용하거나 비 OAuth 메인 작업에서 ChatGPT OAuth 하위 에이전트를 선택하면 여기에서 지정한 모델, 제공자, 추론 강도는 적용되지 않고 메인 작업의 Codex 기본 하위 에이전트가 사용됩니다.",
+      "hint": "Claude Code 변경 사항은 새 작업부터 적용됩니다. Codex 스마트 라우팅은 Codex가 유휴 상태가 된 뒤 적용됩니다.",
       "saveFailed": "하위 에이전트 설정 저장 실패",
       "guardrails": {
         "title": "Codex 하위 에이전트 가드레일",
@@ -2686,6 +2681,12 @@
         "nestedAria": "하위 에이전트의 하위 에이전트 생성 허용",
         "localOnlyHint": "이 가드레일은 이 컴퓨터에서 실행되는 Codex에만 적용되며 SSH 원격의 Codex에는 영향을 주지 않습니다."
       },
+      "smartRouting": {
+        "label": "Codex 스마트 라우팅",
+        "nativeHint": "끄면 Cartethyia 재정의 없이 Codex 기본 Sol / Terra 할당을 사용합니다.",
+        "enabledHint": "켜면 Codex가 작업별로 더 많은 연결된 모델을 선택할 수 있으며 카드에는 실제 사용 모델이 표시됩니다.",
+        "aria": "Codex 스마트 라우팅 사용"
+      },
       "toast": {
         "saved": "하위 에이전트 설정이 저장되었습니다",
         "deferredSuffix": " — 실행 중인 Codex 세션에는 현재 작업이 끝난 후 적용됩니다"
@@ -2693,28 +2694,40 @@
     },
     "auxiliaryModels": {
       "title": "보조 모델",
-      "description": "작업 자동 이름 지정과 입력창 추천 프롬프트에 각각 Agent와 모델 조합을 지정합니다.",
-      "sessionTitle": {
-        "label": "작업 자동 이름 지정",
-        "description": "Claude Code, Codex, Pi 작업과 AI 수동 이름 바꾸기에 적용됩니다.",
-        "ariaLabel": "작업 자동 이름 지정 모델 선택",
-        "automatic": "자동 선택(현재 작업 따름)"
+      "description": "작업 자동 이름 지정과 AI 이름 바꾸기, 입력창 추천 프롬프트, Help, 고정된 작업 요약, IM / Feishu 제목과 그룹 맥락 판단, 예약 작업 스크립트, 플러그인 빠른 Q&A의 「기본값 따르기」, 그리고 자체 키 음성 다듬기에 사용합니다.",
+      "automatic": "자동 추천",
+      "customize": "사용자 지정",
+      "preferred": {
+        "label": "기본",
+        "description": "짧은 보조 텍스트에 먼저 사용하는 모델.",
+        "ariaLabel": "기본 보조 모델 선택"
       },
-      "promptRecommendation": {
-        "label": "입력창 추천 프롬프트",
-        "description": "‘팁’에서 입력창 추천을 켠 경우에만 사용합니다.",
-        "ariaLabel": "입력창 추천 프롬프트 모델 선택",
-        "automatic": "자동 선택(현재 라우팅 유지)"
+      "fallback1": {
+        "label": "대체 1",
+        "description": "기본 모델을 사용할 수 없을 때 쓰는 모델. 비워 둘 수 있습니다.",
+        "ariaLabel": "첫 번째 대체 보조 모델 선택"
       },
+      "fallback2": {
+        "label": "대체 2",
+        "description": "앞의 두 모델을 모두 사용할 수 없을 때 쓰는 모델. 비워 둘 수 있습니다.",
+        "ariaLabel": "두 번째 대체 보조 모델 선택"
+      },
+      "emptySlot": "선택 안 함",
+      "customHint": "사용자 지정 후에는 선택한 순서대로만 시도합니다. 모두 사용할 수 없어도 다른 모델로 바꾸지 않습니다.",
+      "signInHint": "Cindy에 로그인하면 자동 추천을 사용할 수 있습니다. 로그인하지 않은 상태에서는 「사용자 지정」에서 설정된 다른 제공자의 모델을 선택하세요.",
       "chooseAgent": "Agent 선택",
       "backToAgents": "Agent 선택으로 돌아가기",
-      "explicitRouteHint": "명시적으로 지정하면 해당 Agent와 모델만 사용합니다. 사용할 수 없어도 자동으로 전환하지 않습니다.",
       "searchPlaceholder": "모델 또는 제공자 검색",
       "noResults": "사용 가능한 모델이 없습니다",
       "unavailable": "현재 사용할 수 없음",
       "budget": "할인",
       "subscription": "구독",
-      "saveFailed": "보조 모델 설정을 저장하지 못했습니다"
+      "saveFailed": "보조 모델 설정을 저장하지 못했습니다",
+      "chain": {
+        "cindyHy3": "Hy3",
+        "cindyDeepseekV4Flash": "DeepSeek v4 flash",
+        "cindyQwen38Flash": "Qwen 3.8 Flash"
+      }
     },
     "compaction": {
       "title": "컨텍스트 압축",
@@ -5795,20 +5808,32 @@
   "usageHistory": {
     "description": "이 기기의 Cartethyia 내부에서 발생한 토큰 사용량입니다. 기능 출시 시점부터 기록이 쌓이며 이전 기록은 채워지지 않습니다.",
     "empty": "아직 사용 기록이 없습니다. 대화를 실행하면 쌓이기 시작합니다.",
+    "loadFailed": "사용량 기록을 불러오지 못했습니다. 설정을 다시 열어 재시도해 주세요.",
+    "range": {
+      "label": "기간",
+      "ariaLabel": "사용량 기간 필터",
+      "all": "전체 기간",
+      "30d": "최근 30일",
+      "7d": "최근 7일",
+      "today": "오늘"
+    },
     "cacheHitTooltip": "캐시 읽기 ÷ (입력 + 캐시 읽기 + 캐시 쓰기) — 메시지 카드와 동일한 기준입니다.",
     "summary": {
       "title": "개요"
     },
     "stats": {
       "todayTokens": "오늘 토큰",
+      "todayTokensInRange": "{{range}} 토큰",
       "totalTokens": "최근 30일 토큰",
+      "totalTokensInRange": "{{range}} 토큰",
       "streak": "연속 활동일",
       "cacheHitRate": "캐시 적중률(30일)",
+      "cacheHitRateInRange": "캐시 적중률({{range}})",
       "models": "사용한 모델"
     },
     "heatmap": {
       "title": "활동 히트맵",
-      "subtitle": "최근 20주",
+      "subtitle": "최근 {{count}}주",
       "emptyCell": "해당 날짜에 사용 기록 없음"
     },
     "daily": {
@@ -5821,6 +5846,7 @@
       "col": {
         "agent": "Agent / harness",
         "total": "최근 30일 토큰",
+        "totalInRange": "{{range}} 토큰",
         "share": "비중",
         "today": "오늘",
         "hitRate": "캐시 적중률",
@@ -5833,6 +5859,7 @@
       "col": {
         "model": "모델",
         "total": "총 토큰",
+        "totalInRange": "{{range}} 토큰",
         "share": "비중",
         "input": "입력",
         "output": "출력",
@@ -5843,7 +5870,7 @@
     },
     "tasks": {
       "title": "토큰 사용이 많은 세션",
-      "subtitle": "최근 30일 동안 활동한 세션을 누적 토큰 순으로 정렬",
+      "subtitle": "{{range}} 동안 활동한 세션을 누적 토큰 순으로 정렬",
       "col": {
         "task": "세션",
         "model": "모델",
@@ -5853,7 +5880,7 @@
         "lastActive": "마지막 활동"
       },
       "providerTooltip": "세션에 현재 선택된 제공자입니다. 지정하지 않은 경우 비워 둡니다.",
-      "tokensTooltip": "해당 세션의 누적 값이며 최근 30일 증가분이 아닙니다."
+      "tokensTooltip": "해당 세션의 누적 값입니다. {{range}}은(는) 활성 세션을 필터링하는 데만 사용되며 해당 기간의 증가분이 아닙니다."
     }
   },
   "usageDashboard": {
@@ -6840,7 +6867,6 @@
       "moreLabel": "더 보기, 현재 사용자: {{name}}",
       "menuSettings": "설정",
       "menuAddAccount": "다른 계정으로 로그인",
-      "menuLogout": "로그아웃",
       "canaryBadge": "Canary 사용자",
       "regionCodeCn": "CN",
       "regionCodeDev": "Dev",
@@ -7242,6 +7268,7 @@
         "layoutTryUnified": "새 선택기 사용해 보기",
         "layoutOriginal": "이전 버전으로 돌아가기",
         "addFavorite": "즐겨찾기에 저장",
+        "customize": "사용자 지정",
         "removeFavorite": "즐겨찾기 해제",
         "favoriteConfig": "저장된 설정",
         "recommended": "추천",
@@ -7901,6 +7928,7 @@
       "networkHideRaw": "원본 오류 숨기기",
       "gatewayProxyTokenInvalid": "Cartethyia AI 자격 증명이 더 이상 유효하지 않습니다. 재시도를 클릭하세요. 반복되면 로그아웃 후 다시 로그인하세요",
       "gatewayProxyTokenInvalidNoRetry": "Cartethyia AI 자격 증명이 더 이상 유효하지 않습니다. 반복되면 로그아웃 후 다시 로그인하세요",
+      "modelAccessDenied": "연결된 서비스 계정에 이 모델의 접근 권한이 없습니다. 다른 모델로 전환하거나 제공자에게 모델 접근 권한을 확인하세요",
       "silentStopContinue": "계속",
       "silentStopContinueTitle": "현재 작업 계속",
       "piTransportClosed": "원격 Pi 연결이 끊어졌습니다(SSH 채널 닫힘). 원격 작업은 계속 실행 중입니다. 다시 연결하면 계속할 수 있습니다.",
@@ -8714,9 +8742,6 @@
         "tasksLoadFailed": "지금은 {{device}}의 세션을 불러올 수 없습니다. 자동으로 다시 시도 중…",
         "tasksPartiallyFailed": "지금은 {{device}}의 세션을 불러올 수 없습니다. 자동으로 다시 시도 중이며 불러온 내용만 표시합니다",
         "devicesLoading": "원격 기기를 불러오는 중…",
-        "devicesLoadFailed": "원격 기기 목록을 불러오지 못했습니다. 연결을 확인한 후 다시 시도하세요.",
-        "devicesPartiallyFailed": "원격 기기 목록을 새로 고치지 못했습니다. 불러온 내용만 표시합니다.",
-        "retryDevices": "기기 다시 불러오기",
         "remoteSettings": "원격 연결 설정",
         "multiSelect": "다중 선택",
         "deselect": "선택 해제",
@@ -9092,9 +9117,24 @@
           "merged": "병합됨",
           "closed": "닫힘"
         },
-        "needsToken": "로컬 gh CLI가 로그인되어 있지 않습니다. Agent에게 gh auth login을 한 번 실행하게 하면 PR 상태가 표시됩니다",
+        "ghNotLoggedIn": "이 컴퓨터의 gh가 GitHub에 로그인되어 있지 않아 PR 상태를 볼 수 없습니다",
+        "ghMissing": "GitHub CLI(gh)를 찾을 수 없어 PR 상태를 볼 수 없습니다",
+        "notFound": "PR이 없거나 현재 계정으로는 볼 수 없습니다",
         "statusUnknown": "상태를 가져오지 못했습니다",
         "openAria": "브라우저에서 PR #{{number}} 열기",
+        "clickToOpen": "클릭하여 브라우저에서 PR 열기",
+        "guidance": {
+          "login": {
+            "hint": "클릭하면 Agent가 로그인을 도와줍니다",
+            "aria": "PR #{{number}} 상태를 가져올 수 없음: Agent에게 GitHub 로그인 맡기기",
+            "prompt": "GitHub CLI에 로그인해 주세요: `gh auth login -h github.com -w`를 실행하고 표시되는 일회용 기기 코드와 URL을 알려 주세요. 제가 브라우저에서 승인한 뒤 `gh auth status`로 로그인 성공 여부를 확인해 주세요."
+          },
+          "install": {
+            "hint": "클릭하면 Agent가 설치와 로그인을 도와줍니다",
+            "aria": "PR #{{number}} 상태를 가져올 수 없음: Agent에게 GitHub CLI 설치와 로그인 맡기기",
+            "prompt": "GitHub CLI(gh)를 설치해 주세요(macOS는 `brew install gh`, Windows는 `winget install GitHub.cli`). 그다음 `gh auth login -h github.com -w`를 실행해 로그인하고, 표시되는 일회용 기기 코드와 URL을 알려 주세요. 제가 브라우저에서 승인한 뒤 `gh auth status`로 로그인 성공 여부를 확인해 주세요."
+          }
+        },
         "unresolved": "미해결 리뷰 코멘트: {{count}}건"
       }
     },
@@ -10862,7 +10902,7 @@
     },
     "confirm": {
       "logoutTitle": "로그아웃",
-      "logoutDescription": "이 기기의 모든 계정에서 로그아웃하시겠습니까?",
+      "logoutDescription": "현재 계정에서 로그아웃하시겠습니까?",
       "logoutConfirm": "로그아웃",
       "cancel": "취소",
       "sessionExpiredTitle": "로그인이 만료됨",

@@ -28,12 +28,7 @@ import {
   type AgentKind,
 } from '@cindy/model-providers';
 import type { ModelDescriptor } from '@cindy/maker-core';
-import { resolveRetiredRegistryModelForPi } from './model-plane/modelPlanePolicy.js';
-import {
-  applyLocalOverridesToRetiredRootModel,
-  EMPTY_MODEL_CATALOG_OVERRIDES,
-  type ModelCatalogOverrides,
-} from './model-plane/localCatalogOverrides.js';
+import type { ModelCatalogOverrides } from './model-plane/localCatalogOverrides.js';
 
 /** Maker 能力读取面的最小形状；保留数组引用以让已创建 Session 同步看到新目录。 */
 interface ModelCapabilitiesTarget {
@@ -185,15 +180,15 @@ export function deriveAvailableModels(catalog: Catalog, agent: AgentKind): Model
 
 /**
  * 解析 Pi 当前持久化选择所需的运行时描述符,不参与公开模型清单或新路由准入。
- * 优先使用完整目录中的实际来源实体(允许 disabled/retired 供续跑);纯 Registry retired
- * 没有目录实体时,再按统一 model-plane policy 从其完整能力字段重建 Pi 投影。
+ * 只使用 Pi 自己目录中的实际来源实体(允许 disabled/retired 供续跑)。缺少 Pi 条目时
+ * 不从 Registry/Codex/Claude 重建，避免其它 harness 的成员关系污染 Pi。
  * `cindy` 是内置 gateway 的复合路由：按内置 provider 顺序解析，明确排除同 id user/BYOM。
  */
 export function resolvePiRuntimeModelDescriptor(
   catalog: Catalog,
   providerId: string | null | undefined,
   modelId: string,
-  options: { localOverrides?: ModelCatalogOverrides } = {},
+  _options: { localOverrides?: ModelCatalogOverrides } = {},
 ): ModelDescriptor | null {
   const providers =
     providerId === 'cindy'
@@ -213,18 +208,6 @@ export function resolvePiRuntimeModelDescriptor(
     }
   }
 
-  for (const provider of providers) {
-    const retired = resolveRetiredRegistryModelForPi(catalog.modelRegistry, provider.id, modelId, {
-      prepareRootModel: ({ providerId: matchedProviderId, rootAgent, model }) =>
-        applyLocalOverridesToRetiredRootModel(
-          matchedProviderId,
-          rootAgent,
-          model,
-          options.localOverrides ?? EMPTY_MODEL_CATALOG_OVERRIDES,
-        ),
-    });
-    if (retired) return toDescriptor(retired, 'pi');
-  }
   return null;
 }
 
@@ -269,6 +252,34 @@ export function resolveVerifiedContextWindow(
   const only = candidates[0];
   if (only.contextWindowVerified !== true) return null;
   return only.contextWindow > 0 ? only.contextWindow : null;
+}
+
+/**
+ * 自定义供应商上用户显式填写的 contextWindow。
+ *
+ * 注入 thread/start|resume 的 `model_context_window` 与
+ * `model_auto_compact_token_limit`(窗口的 95%)。Codex 还会按模型目录里的
+ * `max_context_window` 夹紧该值；Desktop 为这类会话启动隔离 app-server，并给它
+ * 注入从当前 Codex 二进制提取、只抬高对应模型上限的完整目录。
+ * 只认 `source === 'user'` 且 `contextWindowExplicit` 的条目:
+ *   - 官方 ChatGPT 订阅走 live catalog 的 1M,不要被这条覆盖;
+ *   - 网关核实上限(如 372K)只用于 Cindy 进度条收敛,写进 Codex 会改变官方会话压缩时机。
+ * 缺省 200K 展示兜底不算显式,不注入。
+ */
+export function resolveExplicitCustomContextWindow(
+  catalog: Catalog,
+  agent: AgentKind,
+  providerId: string | null | undefined,
+  modelId: string,
+): number | null {
+  const source = providerId?.trim();
+  if (!source) return null;
+  const provider = catalog.providers.find((entry) => entry.id === source);
+  if (!provider || provider.source !== 'user') return null;
+  if (provider.routing[agent]?.disabled === true) return null;
+  const model = (provider.models[agent] ?? []).find((entry) => entry.id === modelId);
+  if (!model || model.contextWindowExplicit !== true) return null;
+  return model.contextWindow > 0 ? model.contextWindow : null;
 }
 
 /**
