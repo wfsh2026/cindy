@@ -1,4 +1,19 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import {
+  isExperiencePackGetResult,
+  isExperiencePackListResult,
+  isExperiencePackFallbackPayload,
+  isExperiencePackResolveResult,
+  isExperiencePackTaskMetadata,
+  isExperiencePackTaskResult,
+  isExperienceSelectionSnapshot,
+  type ExperiencePackIndex,
+  type ExperiencePackSummary,
+  type ExperienceResolveResult,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
+import { EXPERIENCE_PACK_IPC } from '../shared/experiencePackIpc';
+import { PERSONAL_MOD_IPC, type PersonalModApi } from '../shared/personalMod';
 import type { MobileCodexRateLimitsResult } from '@cindy/maker-shared/device-link-contract';
 import type { AppearanceSettings } from '../shared/appearanceSettings';
 import type {
@@ -727,6 +742,13 @@ const fanOutMakerStatusChanged = createIpcFanOut('maker:status-changed');
 const fanOutMakerInputProjection = createIpcFanOut('maker:input:projection');
 const fanOutMakerInteractionRequest = createIpcFanOut('maker:interaction-request');
 const fanOutMakerInteractionDismissed = createIpcFanOut('maker:interaction-dismissed');
+const fanOutExperiencePacksChanged = createIpcFanOut(EXPERIENCE_PACK_IPC.CHANGED);
+const fanOutExperiencePacksFallback = createIpcFanOut(EXPERIENCE_PACK_IPC.FALLBACK);
+
+function requireExperienceResponse<T>(value: unknown, guard: (candidate: unknown) => candidate is T, label: string): T {
+  if (!guard(value)) throw new Error(`${label} response invalid`);
+  return value;
+}
 // Agent 鉴权 + today usage push (取代老 codex:auth:state-changed / codex-oauth / codex:usage:changed)
 const fanOutMakerAuthStateChanged = createIpcFanOut('maker:auth:state-changed');
 const fanOutMakerAuthLoginProgress = createIpcFanOut('maker:auth:login-progress');
@@ -1419,6 +1441,119 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('ghosts:dev-runtime', action, id),
     devCall: (id: string, tool: string, args: Record<string, unknown>): Promise<unknown> =>
       ipcRenderer.invoke('ghosts:dev-runtime', 'call', id, { tool, args }),
+  },
+  personalMods: {
+    get: () => ipcRenderer.invoke(PERSONAL_MOD_IPC.get),
+    import: () => ipcRenderer.invoke(PERSONAL_MOD_IPC.import),
+    remove: (revision: string) => ipcRenderer.invoke(PERSONAL_MOD_IPC.remove, revision),
+    onChanged: (listener: () => void) => {
+      const changed = () => listener();
+      ipcRenderer.on(PERSONAL_MOD_IPC.changed, changed);
+      const unsubscribeAuth = fanOutAuthStateChange(changed);
+      const unsubscribe = () => {
+        ipcRenderer.removeListener(PERSONAL_MOD_IPC.changed, changed);
+        unsubscribeAuth();
+      };
+      return unsubscribe;
+    },
+  } satisfies PersonalModApi,
+  /** Read-only project-experience registry. Module正文 never crosses preload. */
+  experiencePacks: {
+    getSelection: async (sessionId: string): Promise<{ selection: ExperienceSelectionSnapshot | null }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.GET_SELECTION, sessionId);
+      if (!result || (result.selection !== null && !isExperienceSelectionSnapshot(result.selection))) throw new Error('experience selection response invalid');
+      return { selection: result.selection };
+    },
+    setSelection: async (input: { sessionId: string; selection: ExperienceSelectionSnapshot | null }): Promise<void> => {
+      if (input.selection !== null && !isExperienceSelectionSnapshot(input.selection)) throw new Error('experience selection invalid');
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.SET_SELECTION, input);
+      if (result?.ok !== true) throw new Error('experience selection write failed');
+    },
+    list: async (): Promise<{ packs: ExperiencePackSummary[] }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.LIST);
+      return requireExperienceResponse(result, isExperiencePackListResult, 'experience list');
+    },
+    get: async (packId: string): Promise<{ index: ExperiencePackIndex | null }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.GET, packId);
+      return requireExperienceResponse(result, isExperiencePackGetResult, 'experience get');
+    },
+    resolve: async (input: {
+      sessionId?: string;
+      text: string;
+      selection: ExperienceSelectionSnapshot;
+    }): Promise<ExperienceResolveResult> => {
+      if (!isExperienceSelectionSnapshot(input?.selection)) {
+        return Promise.reject(new Error('experience selection invalid'));
+      }
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.RESOLVE, input);
+      return requireExperienceResponse(result, isExperiencePackResolveResult, 'experience resolve');
+    },
+    getOverride: async (input: {
+      packId: string;
+      workflowId: string;
+    }): Promise<{ workflowId: string; ignoredNodeIds: string[]; ignoredModuleIds: string[] }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.GET_OVERRIDE, input);
+      if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('experience override response invalid');
+      const value = result as Record<string, unknown>;
+      if (typeof value.workflowId !== 'string' || !Array.isArray(value.ignoredNodeIds) || !Array.isArray(value.ignoredModuleIds) || !value.ignoredNodeIds.every((id) => typeof id === 'string') || !value.ignoredModuleIds.every((id) => typeof id === 'string')) throw new Error('experience override response invalid');
+      return { workflowId: value.workflowId, ignoredNodeIds: value.ignoredNodeIds, ignoredModuleIds: value.ignoredModuleIds };
+    },
+    setOverride: async (input: {
+      packId: string;
+      workflowId: string;
+      ignoredNodeIds: string[];
+      ignoredModuleIds: string[];
+    }): Promise<{ workflowId: string; ignoredNodeIds: string[]; ignoredModuleIds: string[] }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.SET_OVERRIDE, input);
+      if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('experience override response invalid');
+      const value = result as Record<string, unknown>;
+      if (typeof value.workflowId !== 'string' || !Array.isArray(value.ignoredNodeIds) || !Array.isArray(value.ignoredModuleIds) || !value.ignoredNodeIds.every((id) => typeof id === 'string') || !value.ignoredModuleIds.every((id) => typeof id === 'string')) throw new Error('experience override response invalid');
+      return { workflowId: value.workflowId, ignoredNodeIds: value.ignoredNodeIds, ignoredModuleIds: value.ignoredModuleIds };
+    },
+    freezeTask: async (input: {
+      sessionId: string;
+      clientId?: string;
+      text: string;
+      selection: ExperienceSelectionSnapshot;
+    }): Promise<{
+      selection: ExperienceSelectionSnapshot;
+      plan: import('@cindy/maker-shared/experience-pack').ExperienceContextPlan | null;
+      requiresUserChoice: boolean;
+      fallbackReason?: string;
+    }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.FREEZE_TASK, input);
+      return requireExperienceResponse(result, isExperiencePackTaskResult, 'experience freeze');
+    },
+    getTask: async (sessionId: string): Promise<{ snapshot: import('../shared/experiencePackIpc').ExperiencePackTaskMetadata | null }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.GET_TASK, sessionId);
+      if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('experience task response invalid');
+      const value = result as Record<string, unknown>;
+      if (value.snapshot !== null && !isExperiencePackTaskMetadata(value.snapshot)) throw new Error('experience task response invalid');
+      return { snapshot: value.snapshot as import('../shared/experiencePackIpc').ExperiencePackTaskMetadata | null };
+    },
+    deleteTask: async (sessionId: string): Promise<{ ok: true }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.DELETE_TASK, sessionId);
+      if (!result || typeof result !== 'object' || Array.isArray(result) || (result as { ok?: unknown }).ok !== true) throw new Error('experience delete response invalid');
+      return { ok: true };
+    },
+    refresh: async (): Promise<{ packs: ExperiencePackSummary[] }> => {
+      const result = await ipcRenderer.invoke(EXPERIENCE_PACK_IPC.REFRESH);
+      return requireExperienceResponse(result, isExperiencePackListResult, 'experience refresh');
+    },
+    onChanged: (callback: (payload: { packs: ExperiencePackSummary[] }) => void): (() => void) =>
+      fanOutExperiencePacksChanged((raw) => {
+        if (!raw || typeof raw !== 'object') return;
+        const value = raw as unknown;
+        if (!isExperiencePackListResult(value)) return;
+        callback(value);
+      }),
+    onFallback: (callback: (payload: { sessionId: string; packId: string; reason: string }) => void): (() => void) =>
+      fanOutExperiencePacksFallback((raw) => {
+        if (!raw || typeof raw !== 'object') return;
+        const value = raw as Record<string, unknown>;
+        if (!isExperiencePackFallbackPayload(value)) return;
+        callback(value);
+      }),
   },
 
   pluginMarket: {

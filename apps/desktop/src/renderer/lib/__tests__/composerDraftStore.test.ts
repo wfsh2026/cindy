@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { JSONContent } from '@tiptap/core';
+import type { ExperienceSelectionSnapshot } from '@cindy/maker-shared/experience-pack';
 
 import type { AttachedFile } from '@/lib/fileTypes';
 import type { BrowserCommentDraftItem } from '@/lib/browserComments';
@@ -31,6 +32,40 @@ import {
 } from '@/lib/composerDraftStore';
 
 const emptyDoc: JSONContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+const experience: ExperienceSelectionSnapshot = { version: 1, packId: 'sausage', mode: 'explicit', workflowId: 'sausage.workflow.discussion', ignoredNodeIds: ['context'], ignoredModuleIds: [] };
+
+describe('task experience survives input clearing', () => {
+  it('keeps the selection after send and isolates a new task', () => {
+    const draft = { text: null, attachments: [], experience };
+    saveDraft('experience-task', draft);
+    clearDraft('experience-task');
+    const current = getDraft('experience-task');
+    expect(current?.experience).toEqual(experience);
+    const hasUnsentContent = draftHasContent(current);
+    expect(hasUnsentContent).toBe(false);
+    const fresh = getDraft('fresh-experience-task');
+    expect(fresh).toBeUndefined();
+    clearDraftAndNotify('experience-task');
+    const cleared = getDraft('experience-task');
+    expect(cleared).toBeUndefined();
+  });
+
+  it('keeps the selection when a remote queued fragment is accepted', () => {
+    const current = { text: null, attachments: [], browserComments: [], experience };
+    const result = removeRemoteOptimisticDraftFragment(current, current);
+    expect(result.experience).toEqual(experience);
+  });
+
+  it('retains an explicit clear without presenting it as an unsent draft', () => {
+    const draft = { text: null, attachments: [], experienceCleared: true };
+    saveDraft('cleared-experience-task', draft);
+    clearDraft('cleared-experience-task');
+    const current = getDraft('cleared-experience-task');
+    expect(current?.experienceCleared).toBe(true);
+    const presence = getDraftPresence('cleared-experience-task');
+    expect(presence).toBe(false);
+  });
+});
 const whitespaceDoc: JSONContent = {
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text: '   ' }] }],

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { ComposerModeId } from './types';
+import { setPersonalModsEnabled, usePersonalModPreferences } from './usePersonalModPreferences';
+import { useInstalledPersonalMod } from './useInstalledPersonalMod';
 
 const STORAGE_KEY = 'cartethyia.composerMode.v1';
 const listeners = new Set<() => void>();
@@ -20,7 +22,7 @@ function notifyListeners(): void {
 }
 
 function handleStorage(event: StorageEvent): void {
-  if (event.key !== STORAGE_KEY) return;
+  if (event.key !== STORAGE_KEY && event.key !== null) return;
   memoryValue = parseMode(event.newValue) ?? defaultMode();
   notifyListeners();
 }
@@ -43,7 +45,8 @@ export function getComposerModePreference(): ComposerModeId {
   if (memoryValue !== null) return memoryValue;
   const fallback = defaultMode();
   try {
-    const parsed = parseMode(window.localStorage.getItem(STORAGE_KEY));
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed = parseMode(raw);
     if (!parsed || parsed === fallback) {
       window.localStorage.removeItem(STORAGE_KEY);
       memoryValue = fallback;
@@ -70,19 +73,31 @@ export function setComposerModePreference(next: ComposerModeId): void {
 
 export function useComposerModePreference(): {
   mode: ComposerModeId;
+  selectedMode: ComposerModeId;
+  available: boolean;
   setMode: (next: ComposerModeId) => void;
 } {
   const [mode, setModeState] = useState<ComposerModeId>(getComposerModePreference);
-  const setMode = useCallback((next: ComposerModeId) => {
+  const { enabled } = usePersonalModPreferences();
+  const { mod } = useInstalledPersonalMod();
+  const updateMode = (next: ComposerModeId) => {
     setComposerModePreference(next);
-  }, []);
+    if (next === 'cartethyia-battle') setPersonalModsEnabled(true);
+  };
+  const setMode = useCallback(updateMode, []);
 
-  useEffect(() => {
-    const sync = () => setModeState(getComposerModePreference());
-    return subscribe(sync);
-  }, []);
+  const watchMode = () => {
+    const sync = () => {
+      const next = getComposerModePreference();
+      setModeState(next);
+    };
+    const unsubscribe = subscribe(sync);
+    sync();
+    return unsubscribe;
+  };
+  useEffect(watchMode, []);
 
-  return { mode, setMode };
+  return { mode: enabled && mod ? mode : 'standard', selectedMode: mode, available: !!mod, setMode };
 }
 
 export function __resetComposerModePreferenceForTest(): void {

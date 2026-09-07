@@ -1,7 +1,7 @@
 .cartethyia-battle {
   position: relative;
   width: 100%;
-  height: 72px;
+  height: 88px;
   overflow: hidden;
   pointer-events: none;
   user-select: none;
@@ -11,45 +11,28 @@
 .cartethyia-battle__arena {
   position: relative;
   width: 100%;
-  height: 72px;
+  height: 88px;
   overflow: hidden;
-}
-
-.cartethyia-battle__ground-viewport {
-  position: absolute;
-  z-index: 0;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 42px;
-  overflow: hidden;
-}
-
-.cartethyia-battle__ground-track {
-  display: flex;
-  width: 200%;
-  height: 42px;
-  transform: translate3d(0, 0, 0);
-  will-change: auto;
 }
 
 .cartethyia-battle__ground {
-  display: block;
-  flex: 0 0 50%;
-  width: 50%;
-  height: 42px;
-  object-fit: fill;
-  opacity: 0.92;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image: var(--cartethyia-ground-image);
+  background-color: transparent;
+  /* The art is a 2x transparent strip: a narrow road at the bottom, with sparse scenery above. */
+  background-size: 1084px 92px;
+  background-position: center bottom;
+  background-repeat: repeat-x;
 }
 
 .cartethyia-battle__actor {
   position: absolute;
   z-index: 1;
-  bottom: 9px;
+  bottom: 3px;
   width: 120px;
   height: 80px;
-  will-change: auto;
 }
 
 .cartethyia-battle__hero-actor {
@@ -61,41 +44,40 @@
 }
 
 .cartethyia-battle[data-battle-cue='idle'] .cartethyia-battle__hero-actor,
-.cartethyia-battle[data-battle-cue='sleep'] .cartethyia-battle__hero-actor {
+.cartethyia-battle[data-battle-cue='sleep'] .cartethyia-battle__hero-actor,
+.cartethyia-battle[data-battle-cue='waiting'] .cartethyia-battle__hero-actor,
+.cartethyia-battle[data-battle-cue='respawn-wait'] .cartethyia-battle__hero-actor,
+.cartethyia-battle[data-battle-cue='monster-spawn'] .cartethyia-battle__hero-actor {
   transform: translate3d(var(--cartethyia-hero-start-x), 0, 0);
 }
 
 .cartethyia-battle[data-battle-cue='hero-approach'] .cartethyia-battle__hero-actor {
-  will-change: transform;
-  animation: cartethyia-hero-approach var(--cartethyia-hero-approach-duration) ease-in-out both;
+  animation: cartethyia-hero-approach var(--cartethyia-approach-duration) linear both;
+}
+
+.cartethyia-battle[data-battle-cue='hero-approach'] .cartethyia-battle__monster-actor {
+  animation: cartethyia-monster-approach var(--cartethyia-approach-duration) linear both;
+}
+
+.cartethyia-battle[data-battle-cue='hero-approach'] .cartethyia-battle__monster {
+  animation: cartethyia-monster-hop 250ms ease-in-out infinite;
+}
+
+.cartethyia-battle[data-battle-cue='hero-return'] .cartethyia-battle__hero-actor {
+  animation: cartethyia-hero-return var(--cartethyia-hero-return-duration) linear both;
+}
+
+.cartethyia-battle[data-battle-cue='hero-return'] .cartethyia-battle__hero {
+  transform: scaleX(-1);
 }
 
 .cartethyia-battle[data-battle-cue='monster-spawn'] .cartethyia-battle__monster-actor {
   transform: translate3d(var(--cartethyia-monster-spawn-x), 0, 0);
-}
-
-.cartethyia-battle[data-battle-cue='monster-approach'] .cartethyia-battle__monster-actor {
-  will-change: transform;
-  animation: cartethyia-monster-approach var(--cartethyia-monster-approach-duration) ease-out both;
+  animation: cartethyia-monster-spawn var(--cartethyia-monster-spawn-duration) ease-out both;
 }
 
 .cartethyia-battle[data-battle-cue='monster-attack'] .cartethyia-battle__monster-actor {
-  will-change: transform;
   animation: cartethyia-monster-attack var(--cartethyia-monster-attack-duration) ease-in-out both;
-}
-
-.cartethyia-battle[data-battle-cue='hero-advance'] .cartethyia-battle__ground-track {
-  will-change: transform;
-  animation: cartethyia-ground-advance var(--cartethyia-hero-advance-duration) linear both;
-}
-
-.cartethyia-battle[data-battle-cue='hero-advance'] .cartethyia-battle__monster-actor,
-.cartethyia-battle[data-battle-cue='victory'] .cartethyia-battle__monster-actor {
-  opacity: 0;
-}
-
-.cartethyia-battle__motion--paused {
-  animation-play-state: paused !important;
 }
 
 .cartethyia-battle__sprite-window {
@@ -105,90 +87,169 @@
   overflow: hidden;
 }
 
+.cartethyia-battle[data-impact-target='monster'] .cartethyia-battle__monster {
+  --cartethyia-recoil-x: 6px;
+  animation: cartethyia-hit-recoil 180ms ease-out both;
+}
+
+.cartethyia-battle[data-impact-target='hero'] .cartethyia-battle__hero {
+  --cartethyia-recoil-x: -4px;
+  animation: cartethyia-hit-recoil 180ms ease-out both;
+}
+
 .cartethyia-battle__sprite-strip {
   display: block;
   max-width: none;
   object-fit: fill;
-  will-change: auto;
 }
 
 .cartethyia-battle__sprite-strip--loop {
   will-change: transform;
-  animation: cartethyia-sprite-loop var(--cartethyia-duration) steps(var(--cartethyia-steps), end)
-    infinite;
+  animation: cartethyia-sprite-loop var(--cartethyia-duration) steps(var(--cartethyia-steps), end) infinite;
 }
 
 .cartethyia-battle__sprite-strip--once {
   will-change: transform;
-  animation: cartethyia-sprite-once var(--cartethyia-duration) steps(var(--cartethyia-steps), end)
-    both;
+  animation: cartethyia-sprite-once var(--cartethyia-duration) steps(var(--cartethyia-steps), jump-none) both;
 }
 
+.cartethyia-battle__impact {
+  position: absolute;
+  z-index: 2;
+  left: var(--cartethyia-impact-x);
+  top: 53px;
+  color: var(--cartethyia-damage-color);
+}
+
+.cartethyia-battle__damage {
+  position: absolute;
+  z-index: 3;
+  left: -16px;
+  top: -14px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  -webkit-text-stroke: 2px var(--cartethyia-damage-outline);
+  text-shadow: 0 0 5px var(--cartethyia-damage-color);
+  paint-order: stroke fill;
+  animation: cartethyia-damage-float 600ms ease-out both;
+}
+
+.cartethyia-battle__impact[data-hit-kind='skill'] {
+  color: var(--cartethyia-skill-damage-color);
+}
+
+.cartethyia-battle__impact[data-hit-kind='skill'] .cartethyia-battle__damage {
+  font-size: 18px;
+}
+
+.cartethyia-battle__impact[data-hit-target='hero'] {
+  color: var(--error-fg);
+}
+
+.cartethyia-battle__contact-effect,
+.cartethyia-battle__slash-effect,
+.cartethyia-battle__energy-effect {
+  position: absolute;
+  top: -24px;
+  left: -60px;
+  animation: cartethyia-effect-fade 300ms linear both;
+}
+
+.cartethyia-battle__slash-effect {
+  left: -83px;
+  top: -33px;
+  transform: scale(1.05);
+}
+
+.cartethyia-battle__energy-effect {
+  animation-duration: 360ms;
+  transform: scale(1.2);
+}
+
+.cartethyia-battle__death-effect {
+  position: absolute;
+  z-index: 2;
+  left: var(--cartethyia-monster-effect-x);
+  bottom: 3px;
+  animation: cartethyia-effect-fade 600ms linear both;
+}
+
+.cartethyia-battle__motion--paused,
+.cartethyia-battle__motion--paused *,
 .cartethyia-battle__sprite-strip--paused {
-  animation-play-state: paused;
+  animation-play-state: paused !important;
 }
 
 @keyframes cartethyia-hero-approach {
-  from {
-    transform: translate3d(var(--cartethyia-hero-start-x), 0, 0);
-  }
-  to {
-    transform: translate3d(var(--cartethyia-hero-encounter-x), 0, 0);
-  }
+  from { transform: translate3d(var(--cartethyia-hero-start-x), 0, 0); }
+  to { transform: translate3d(var(--cartethyia-hero-encounter-x), 0, 0); }
 }
 
 @keyframes cartethyia-monster-approach {
-  from {
-    transform: translate3d(var(--cartethyia-monster-spawn-x), 0, 0);
-  }
-  to {
-    transform: translate3d(var(--cartethyia-monster-encounter-x), 0, 0);
-  }
+  from { transform: translate3d(var(--cartethyia-monster-spawn-x), 0, 0); }
+  to { transform: translate3d(var(--cartethyia-monster-encounter-x), 0, 0); }
+}
+
+@keyframes cartethyia-hero-return {
+  from { transform: translate3d(var(--cartethyia-hero-encounter-x), 0, 0); }
+  to { transform: translate3d(var(--cartethyia-hero-start-x), 0, 0); }
+}
+
+@keyframes cartethyia-monster-hop {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3px, 0); }
+}
+
+@keyframes cartethyia-monster-spawn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes cartethyia-monster-attack {
-  0%,
-  100% {
-    transform: translate3d(var(--cartethyia-monster-encounter-x), 0, 0);
-  }
-  45%,
-  65% {
-    transform: translate3d(var(--cartethyia-monster-lunge-x), 0, 0);
-  }
-}
-
-@keyframes cartethyia-ground-advance {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+  0%, 100% { transform: translate3d(var(--cartethyia-monster-encounter-x), 0, 0); }
+  45%, 65% { transform: translate3d(var(--cartethyia-monster-lunge-x), 0, 0); }
 }
 
 @keyframes cartethyia-sprite-loop {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(var(--cartethyia-loop-travel), 0, 0);
-  }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(var(--cartethyia-loop-travel), 0, 0); }
 }
 
 @keyframes cartethyia-sprite-once {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(var(--cartethyia-once-travel), 0, 0);
-  }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(var(--cartethyia-once-travel), 0, 0); }
+}
+
+@keyframes cartethyia-damage-float {
+  0% { opacity: 0; transform: translate3d(var(--cartethyia-damage-offset), 3px, 0) scale(0.8); }
+  16% { opacity: 1; transform: translate3d(var(--cartethyia-damage-offset), 0, 0) scale(1.15); }
+  65% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--cartethyia-damage-offset), -19px, 0) scale(1); }
+}
+
+@keyframes cartethyia-effect-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes cartethyia-hit-recoil {
+  0%, 100% { opacity: 1; transform: translate3d(0, 0, 0); }
+  30% { opacity: 0.45; transform: translate3d(var(--cartethyia-recoil-x), 0, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cartethyia-battle__ground-track,
   .cartethyia-battle__actor,
-  .cartethyia-battle__sprite-strip {
+  .cartethyia-battle__sprite-window,
+  .cartethyia-battle__sprite-strip,
+  .cartethyia-battle__impact * {
     animation: none !important;
     will-change: auto;
   }
+  .cartethyia-battle__contact-effect,
+  .cartethyia-battle__slash-effect,
+  .cartethyia-battle__energy-effect,
+  .cartethyia-battle__death-effect { display: none; animation: none !important; }
 }

@@ -1648,6 +1648,24 @@ interface ElectronAPI {
   };
 
   /** Plugin Protocol v2 市场；网络、下载与安装全部在 main 进程完成。 */
+  /** 本机已安装项目经验包的轻量索引与选择接口；正文始终留在 main。 */
+  personalMods: import('../shared/personalMod').PersonalModApi;
+  experiencePacks: {
+    getSelection: (sessionId: string) => Promise<{ selection: import('@cindy/maker-shared/experience-pack').ExperienceSelectionSnapshot | null }>;
+    setSelection: (input: { sessionId: string; selection: import('@cindy/maker-shared/experience-pack').ExperienceSelectionSnapshot | null }) => Promise<void>;
+    list: () => Promise<import('../shared/experiencePackIpc').ExperiencePackListResult>;
+    get: (packId: string) => Promise<import('../shared/experiencePackIpc').ExperiencePackGetResult>;
+    resolve: (input: import('../shared/experiencePackIpc').ExperiencePackResolveRequest) => Promise<import('../shared/experiencePackIpc').ExperiencePackResolveResult>;
+    getOverride: (input: import('../shared/experiencePackIpc').ExperiencePackOverrideRequest) => Promise<import('../shared/experiencePackIpc').ExperiencePackOverride>;
+    setOverride: (input: import('../shared/experiencePackIpc').ExperiencePackOverrideWriteRequest) => Promise<import('../shared/experiencePackIpc').ExperiencePackOverride>;
+    freezeTask: (input: import('../shared/experiencePackIpc').ExperiencePackTaskRequest) => Promise<import('../shared/experiencePackIpc').ExperiencePackTaskResult>;
+    getTask: (sessionId: string) => Promise<{ snapshot: import('../shared/experiencePackIpc').ExperiencePackTaskMetadata | null }>;
+    deleteTask: (sessionId: string) => Promise<{ ok: true }>;
+    refresh: () => Promise<import('../shared/experiencePackIpc').ExperiencePackListResult>;
+    onChanged: (callback: (payload: import('../shared/experiencePackIpc').ExperiencePackListResult) => void) => () => void;
+    onFallback: (callback: (payload: import('../shared/experiencePackIpc').ExperiencePackFallbackPayload) => void) => () => void;
+  };
+
   pluginMarket: {
     snapshot: () => Promise<import('../shared/pluginMarket').PluginMarketSnapshot>;
     detail: (pluginId: string) => Promise<import('../shared/pluginMarket').PluginMarketDetail>;

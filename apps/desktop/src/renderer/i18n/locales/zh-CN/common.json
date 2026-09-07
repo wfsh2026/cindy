@@ -99,6 +99,40 @@
     }
   },
   "settings": {
+    "personalMods": {
+      "master": "桌面 Mod 总开关",
+      "hint": "仅作用于本机桌面端。关闭总开关会保留各项选择，预览不受开关影响。",
+      "cartethyiaName": "卡提希娅战斗",
+      "cartethyiaDescription": "角色随任务活动，在输入框上方移动和战斗。",
+      "aboveComposer": "输入框上方",
+      "enabled": "已启用",
+      "disabled": "已停用",
+      "paused": "总开关已关闭",
+      "preview": "预览效果",
+      "stopPreview": "停止预览",
+      "configure": "设置",
+      "failed": "此 Mod 发生错误，已停止。",
+      "reload": "重新加载",
+      "options": {
+        "ground": "道路背景",
+        "damage": "伤害飘字",
+        "effects": "战斗特效",
+        "idle": "空闲时显示角色"
+      },
+      "import": "导入 Mod",
+      "imported": "已导入",
+      "importHint": "导入 .cindymod 资源包。再次导入可更新素材并保留设置，资源包安装在本机当前账号下。",
+      "empty": "尚未安装 Mod，请先导入资源包。",
+      "loading": "正在加载 Mod…",
+      "working": "正在处理…",
+      "remove": "卸载",
+      "removeHint": "卸载此 Mod？显示设置会保留，重新导入后可继续使用。",
+      "errors": {
+        "invalid-package": "不是受支持的有效 Mod 包，请检查包格式及图片文件。",
+        "unavailable": "Mod 暂时不可用，请在账号就绪后重新加载。",
+        "failed": "操作未能完成，请重试。"
+      }
+    },
     "title": "设置",
     "back": "返回",
     "defaults": {
@@ -108,6 +142,7 @@
       "restoreFailed": "恢复默认设置失败"
     },
     "tabs": {
+      "personalMods": "个性 Mod",
       "general": "通用",
       "billing": "用量和计费",
       "usage": "用量历史",
@@ -2729,7 +2764,8 @@
         "cindyHy3": "Hy3",
         "cindyDeepseekV4Flash": "DeepSeek v4 Flash",
         "cindyQwen38Flash": "Qwen 3.8 Flash"
-      }
+      },
+      "explicitRouteHint": "明确选择后仅使用指定的 Agent 和模型。若不可用，Cartethyia 不会自动切换。"
     },
     "compaction": {
       "title": "上下文压缩",
@@ -7474,6 +7510,46 @@
       "defaultPlaceholder": "今天我们做点什么呢~",
       "createAgentPlaceholder": "你好，{{appName}}！",
       "recommendationShortcut": "Tab",
+      "projectExperience": {
+        "button": "项目经验",
+        "menuAria": "项目经验选择",
+        "title": "项目经验",
+        "clear": "清除项目经验",
+        "none": "不使用项目经验",
+        "auto": "自动选择工作流",
+        "explicit": "手动指定工作流",
+        "mode": "应用方式",
+        "pack": "经验包",
+        "workflow": "工作流",
+        "nodes": "可编排流程",
+        "modules": "经验内容",
+        "ready": "可用",
+        "pending": "迁移中",
+        "blocked": "已阻断",
+        "waiting": "待确认",
+        "not-applicable": "不适用",
+        "unavailable": "不可用",
+        "ignored": "已忽略",
+        "required": "必需",
+        "optional": "可选",
+        "loading": "正在加载经验索引…",
+        "resolving": "正在计算本次工作流…",
+        "noPacks": "尚未导入经验包",
+        "loadFailed": "经验索引加载失败",
+        "autoHint": "根据本次输入和当前任务背景选择工作流，无需手动配置。无法确定时会提示你指定。",
+        "noModules": "此流程没有关联经验内容",
+        "mainOwnedHint": "本任务会持续使用当前选择；可随时调整或关闭项目经验。",
+        "toggleNode": "忽略流程：{{name}}",
+        "toggleModule": "忽略内容：{{name}}",
+        "version": "版本 {{version}}",
+        "chooseWorkflow": "请选择工作流",
+        "explicitHint": "只使用你选择的工作流，可调整其中的可选内容。",
+        "baseEnabled": "基础对话规范 · 必需 · 已启用",
+        "lastPrepared": "最近装配：{{workflow}}",
+        "preparedDetails": "v{{version}} · 已装配 {{count}} 个模块",
+        "preparedOnly": "仅表示输入已准备，不代表执行完成或测试通过。",
+        "saveFailed": "项目经验选择未能保存或恢复，请重试。"
+      },
       "voiceInput": {
         "start": "开始语音输入",
         "stop": "停止语音输入",

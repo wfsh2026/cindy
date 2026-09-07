@@ -35,6 +35,10 @@ export function SpriteAnimator({
   const stripWidth = displayWidth * animation.frameCount;
   const lastFrameOffset = displayWidth * (animation.frameCount - 1);
   const translate = finalFrame ? `translate3d(-${lastFrameOffset}px, 0, 0)` : undefined;
+  const windowClassName = cn('cartethyia-battle__sprite-window', className);
+  const animationClassName = enabled ? once ? 'cartethyia-battle__sprite-strip--once' : 'cartethyia-battle__sprite-strip--loop' : undefined;
+  const pausedClassName = enabled && !playing ? 'cartethyia-battle__sprite-strip--paused' : undefined;
+  const stripClassName = cn('cartethyia-battle__sprite-strip', animationClassName, pausedClassName);
   const style: SpriteStyle = {
     width: `${stripWidth}px`,
     height: `${displayHeight}px`,
@@ -42,26 +46,20 @@ export function SpriteAnimator({
     '--cartethyia-loop-travel': `-${stripWidth}px`,
     '--cartethyia-once-travel': `-${lastFrameOffset}px`,
     '--cartethyia-duration': `${animation.durationMs}ms`,
-    '--cartethyia-steps': once ? Math.max(1, animation.frameCount - 1) : animation.frameCount,
+    '--cartethyia-steps': animation.frameCount,
   };
 
   return (
     <div
-      className={cn('cartethyia-battle__sprite-window', className)}
+      className={windowClassName}
       style={{ width: displayWidth, height: displayHeight }}
     >
       <img
+        key={animation.id}
         src={animation.url}
         alt=""
         draggable={false}
-        className={cn(
-          'cartethyia-battle__sprite-strip',
-          enabled &&
-            (once
-              ? 'cartethyia-battle__sprite-strip--once'
-              : 'cartethyia-battle__sprite-strip--loop'),
-          enabled && !playing && 'cartethyia-battle__sprite-strip--paused',
-        )}
+        className={stripClassName}
         style={style}
         onAnimationEnd={onAnimationEnd}
       />

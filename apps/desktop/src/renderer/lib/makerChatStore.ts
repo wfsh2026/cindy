@@ -60,6 +60,10 @@ import {
 } from '@cindy/maker-shared/turn-continuation';
 import { normalizeAutoTitle } from '@cindy/maker-shared/session-title';
 import { parseToolLoopErrorDetails } from '@cindy/maker-shared/tool-loop-error';
+import {
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
 import type { ToolLoopErrorDetails } from '@cindy/maker-core';
 import type { AgentMeta, MessageRole, Message, MessageAutomationOrigin } from '@/lib/ccAgent.types';
 import type { AttachedFile, MentionedResource, SerializedAttachedFile } from '@/lib/fileTypes';
@@ -71,7 +75,10 @@ import type {
   AgentInputSessionRef,
   AgentInputReference,
 } from '../../shared/agentInputQueue';
-import { normalizeAgentInputClearBoundaryMs } from '../../shared/agentInputQueue';
+import {
+  normalizeAgentInputClearBoundaryMs,
+  readAgentInputExperienceField,
+} from '../../shared/agentInputQueue';
 import { hasUserVisibleText } from '../../shared/visibleText';
 import { readReviewRunMeta } from '../../shared/reviewRun';
 import {
@@ -323,6 +330,7 @@ import {
   type ImageRef,
   type PastedTextRange,
   type SlashCommandRange,
+  attachExperienceSelectionMetadata,
   parseUserContent,
   stringifyUserContent,
 } from '@/lib/imageRef';
@@ -359,6 +367,10 @@ export interface AskUserQuestionItem {
 
 export interface ChatMessage {
   clientId: string;
+  /** Metadata-only project-experience selection restored from the user row. */
+  experience?: ExperienceSelectionSnapshot;
+  /** Explicit composer intent to remove the task's frozen experience context. */
+  experienceCleared?: boolean;
   /** Server message id when this row came from history; used as a pagination cursor. */
   id?: string;
   /** chat-text-quote:开头 blockquote 为引用功能产出(渲染判据),见 imageRef.ts。 */
@@ -7263,7 +7275,9 @@ function initGlobalListeners(options: GlobalListenerOptions = {}): void {
           const hasRetryPayload = !!(
             retryText ||
             (retryFiles && retryFiles.length > 0) ||
-            (retryMentions && retryMentions.length > 0)
+            (retryMentions && retryMentions.length > 0) ||
+            lastUser?.experience !== undefined ||
+            lastUser?.experienceCleared === true
           );
           void (async () => {
             try {
@@ -7334,6 +7348,8 @@ function initGlobalListeners(options: GlobalListenerOptions = {}): void {
                       agentReferences: lastUser?.agentReferences,
                       pastedTextRanges: lastUser?.pastedTextRanges,
                       slashCommandRanges: lastUser?.slashCommandRanges,
+                      ...(lastUser?.experience ? { experience: lastUser.experience } : {}),
+                      ...(lastUser?.experienceCleared ? { experienceCleared: true } : {}),
                       authRetryPersistOnProjectionError: {
                         data: event.data as Record<string, unknown> | null,
                         agentMeta: event.agentMeta ?? null,
@@ -12009,6 +12025,9 @@ function buildQueuedMessage(
   mentions?: MentionedResource[],
   opts?: {
     vendorOptions?: Record<string, unknown>;
+    experience?: ExperienceSelectionSnapshot;
+    /** Explicit composer intent to clear the task's frozen experience context. */
+    experienceCleared?: boolean;
     /** chat-text-quote:text 开头 blockquote 为引用功能拼接产出(渲染判据)。 */
     quotesEncoded?: boolean;
     agentReferences?: AgentInputReference[];
@@ -12028,6 +12047,10 @@ function buildQueuedMessage(
   const { serializedFiles, imageAttachments, fileAttachments, persistImageRefs, persistFileRefs } =
     attachmentPayload;
   const sessionRefs = extractSessionRefs(text);
+  const experienceCleared = opts?.experienceCleared === true;
+  const experience = experienceCleared
+    ? undefined
+    : (normalizeExperienceSelectionSnapshot(opts?.experience) ?? undefined);
   const createOpts = buildCreateOptsForCurrentSession(
     sessionId,
     model,
@@ -12049,6 +12072,8 @@ function buildQueuedMessage(
     ...(opts?.slashCommandRanges !== undefined && {
       slashCommandRanges: opts.slashCommandRanges,
     }),
+    ...(experience ? { experience } : {}),
+    ...(experienceCleared ? { experienceCleared: true } : {}),
     ...(imageAttachments && imageAttachments.length > 0 && { images: imageAttachments }),
     ...(fileAttachments && fileAttachments.length > 0 && { files: fileAttachments }),
     ...(files && files.length > 0 && { retryFiles: files }),
@@ -12060,7 +12085,7 @@ function buildQueuedMessage(
   // F6 fallback (base64) 留在内存里，不进 storage（spec F6 验收条件）。
   // file-persist: fileAttachments 已经是 {name, path} 形态，与 FileRef 完全一致，
   // 一并塞进持久化 JSON，重启后 mapServerMessages 能把 chip 复原。
-  const persistedContent = stringifyUserContent(
+  const serializedContent = stringifyUserContent(
     text,
     persistImageRefs,
     persistFileRefs,
@@ -12070,6 +12095,7 @@ function buildQueuedMessage(
     [],
     opts?.agentReferences,
   );
+  const persistedContent = attachExperienceSelectionMetadata(serializedContent, experience, experienceCleared);
 
   return {
     clientId,
@@ -12080,6 +12106,8 @@ function buildQueuedMessage(
     permissionMode,
     workingDir,
     vendorOptions: opts?.vendorOptions,
+    ...(experience ? { experience } : {}),
+    ...(experienceCleared ? { experienceCleared: true } : {}),
     files: serializedFiles,
     mentions,
     ...(sessionRefs.length > 0 ? { sessionRefs } : {}),
@@ -12520,6 +12548,10 @@ function maybeAutoNameUnnamedSession(
  */
 type SendMessageOpts = {
   vendorOptions?: Record<string, unknown>;
+  /** UI-selected project experience; main resolves正文 at dispatch time. */
+  experience?: ExperienceSelectionSnapshot;
+  /** Explicit composer intent to clear the task's frozen project-experience context. */
+  experienceCleared?: boolean;
   /** 本条消息正文前缀含「选中引用」编码块,渲染侧据此启用胶囊化解析。 */
   quotesEncoded?: boolean;
   agentReferences?: AgentInputReference[];
@@ -12980,6 +13012,9 @@ function steerMessage(
   mentions?: MentionedResource[],
   opts?: {
     vendorOptions?: Record<string, unknown>;
+    experience?: ExperienceSelectionSnapshot;
+    /** Explicit composer intent to clear the task's frozen experience context. */
+    experienceCleared?: boolean;
     quotesEncoded?: boolean;
     agentReferences?: AgentInputReference[];
     pastedTextRanges?: PastedTextRange[];
@@ -13126,6 +13161,9 @@ async function steerMessageCore(
   mentions?: MentionedResource[],
   opts?: {
     vendorOptions?: Record<string, unknown>;
+    experience?: ExperienceSelectionSnapshot;
+    /** Explicit composer intent to clear the task's frozen experience context. */
+    experienceCleared?: boolean;
     quotesEncoded?: boolean;
     agentReferences?: AgentInputReference[];
     pastedTextRanges?: PastedTextRange[];
@@ -13300,6 +13338,9 @@ async function resendBlockedMessage(
     agentReferences?: AgentInputReference[];
     pastedTextRanges?: PastedTextRange[];
     slashCommandRanges?: SlashCommandRange[];
+    experience?: ExperienceSelectionSnapshot;
+    /** Explicit composer intent to clear the task's frozen project-experience context. */
+    experienceCleared?: boolean;
   },
 ): Promise<void> {
   if (!sessionId || !clientId) throw new Error('resendBlockedMessage: missing session/client id');
@@ -13321,6 +13362,15 @@ async function resendBlockedMessage(
       messages: s.messages.filter((m) => m.clientId !== clientId),
     }));
     try {
+      const overrideExperienceField = readAgentInputExperienceField(opts ?? {});
+      const messageExperienceField = readAgentInputExperienceField(msg);
+      const resendExperienceField = overrideExperienceField.present
+        ? overrideExperienceField
+        : messageExperienceField;
+      const resendExperienceCleared = resendExperienceField.cleared;
+      const resendExperience = resendExperienceCleared
+        ? undefined
+        : (normalizeExperienceSelectionSnapshot(resendExperienceField.value) ?? undefined);
       const dispatched = await sendMessage(
         sessionId,
         newText,
@@ -13333,7 +13383,9 @@ async function resendBlockedMessage(
         opts?.quotesEncoded ||
           opts?.agentReferences?.length ||
           opts?.pastedTextRanges?.length ||
-          opts?.slashCommandRanges !== undefined
+          opts?.slashCommandRanges !== undefined ||
+          resendExperience !== undefined ||
+          resendExperienceCleared
           ? {
               ...(opts?.quotesEncoded ? { quotesEncoded: true } : {}),
               ...(opts?.agentReferences?.length ? { agentReferences: opts.agentReferences } : {}),
@@ -13343,6 +13395,8 @@ async function resendBlockedMessage(
               ...(opts?.slashCommandRanges !== undefined
                 ? { slashCommandRanges: opts.slashCommandRanges }
                 : {}),
+              ...(resendExperience ? { experience: resendExperience } : {}),
+              ...(resendExperienceCleared ? { experienceCleared: true } : {}),
             }
           : undefined,
       );
@@ -16387,6 +16441,8 @@ function mapServerMessages(serverMsgs: Message[]): ChatMessage[] {
         role: m.role,
         content: parsed.text,
         isStreaming: false,
+        ...(parsed.experience ? { experience: parsed.experience } : {}),
+        ...(parsed.experienceCleared ? { experienceCleared: true } : {}),
         ...(parsed.images.length > 0 && { images: parsed.images }),
         ...(parsed.files.length > 0 && { files: parsed.files }),
         ...(parsed.quotesEncoded === true && { quotesEncoded: true }),

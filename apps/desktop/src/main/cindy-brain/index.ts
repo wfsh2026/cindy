@@ -80,6 +80,9 @@ import {
   type InstallRejection,
   type UninstallRejection,
 } from './GhostManager.js';
+import {
+  ExperiencePackService,
+} from './experiencePackService.js';
 import { exportGhostPackage } from './exportGhostPackage.js';
 import { GhostMutationCoordinator } from './ghostMutationCoordinator.js';
 import { shouldRejectReservedGhostIds } from './reservedGhostIdGate.js';
@@ -567,6 +570,9 @@ function currentGhostAppContext() {
 }
 
 let managerSingleton: GhostManager | null = null;
+let experiencePackServiceSingleton: ExperiencePackService | null = null;
+let experiencePackRefreshInFlight = false;
+let experiencePackRefreshPending = false;
 let ghostSetupManifestTrackerSingleton: GhostSetupManifestTracker | null = null;
 
 function getGhostSetupManifestTracker(): GhostSetupManifestTracker {
@@ -1532,6 +1538,47 @@ export function getGhostManager(): GhostManager {
     getGhostSetupManifestTracker().seed(managerSingleton.list());
   }
   return managerSingleton;
+}
+
+/** Host-owned reader for optional project-experience indexes in installed .cindy packages. */
+export function getExperiencePackService(): ExperiencePackService {
+  if (!experiencePackServiceSingleton) {
+    experiencePackServiceSingleton = new ExperiencePackService({
+      getGhosts: () => getGhostManager().list(),
+      getStorageRoot: () => ownerScopedUserDataPath('experience-packs'),
+      getOwnerKey: () => `${activeOwnerScopeKey()}:${getActiveAppSession().generation}`,
+      getPackageSha256: (ghostId) =>
+        getGhostManager().approvedInstallEvidence(ghostId)?.packageSha256 ?? null,
+      log,
+    });
+  }
+  return experiencePackServiceSingleton;
+}
+
+/** Coalesced refresh used after Ghost install/enable/owner changes. */
+function scheduleExperiencePackRefresh(): void {
+  experiencePackRefreshPending = true;
+  if (experiencePackRefreshInFlight) return;
+  experiencePackRefreshInFlight = true;
+  void (async () => {
+    try {
+      while (experiencePackRefreshPending) {
+        experiencePackRefreshPending = false;
+        const service = getExperiencePackService();
+        const packs = await service.refresh();
+        if (!isAppSessionBoundaryPending()) {
+          broadcastGhostWindowPush('experience-packs:changed', { packs });
+        }
+      }
+    } catch (error) {
+      log.warn('experience pack refresh failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      experiencePackRefreshInFlight = false;
+      if (experiencePackRefreshPending) scheduleExperiencePackRefresh();
+    }
+  })();
 }
 
 /**
@@ -8094,6 +8141,7 @@ function broadcastGhostsChanged(
     .filter((ghost) => isGhostAvailableForActiveSession(ghost.manifest.id))
     .map(projectGhostForRenderer);
   broadcastGhostWindowPush('ghosts:changed', { ghosts: visible });
+  if (!opts?.projectionOnly) scheduleExperiencePackRefresh();
   // 与 renderer 同一份可见清单喂给观察者(独立窗口 controller reconcile 等);
   // 观察者异常不拖垮广播本体。
   if (ghostsChangedObserver) {

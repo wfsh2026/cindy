@@ -99,6 +99,40 @@
     }
   },
   "settings": {
+    "personalMods": {
+      "master": "桌面 Mod 總開關",
+      "hint": "僅套用於本機桌面端。關閉總開關會保留各項選擇，預覽不受開關影響。",
+      "cartethyiaName": "卡提希婭戰鬥",
+      "cartethyiaDescription": "角色隨任務活動，在輸入框上方移動和戰鬥。",
+      "aboveComposer": "輸入框上方",
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "paused": "總開關已關閉",
+      "preview": "預覽效果",
+      "stopPreview": "停止預覽",
+      "configure": "設定",
+      "failed": "此 Mod 發生錯誤，已停止。",
+      "reload": "重新載入",
+      "options": {
+        "ground": "道路背景",
+        "damage": "傷害數字",
+        "effects": "戰鬥特效",
+        "idle": "閒置時顯示角色"
+      },
+      "import": "匯入 Mod",
+      "imported": "已匯入",
+      "importHint": "匯入 .cindymod 資源包。再次匯入可更新素材並保留設定，資源包安裝在本機目前帳號下。",
+      "empty": "尚未安裝 Mod，請先匯入資源包。",
+      "loading": "正在載入 Mod…",
+      "working": "正在處理…",
+      "remove": "解除安裝",
+      "removeHint": "解除安裝此 Mod？顯示設定會保留，重新匯入後可繼續使用。",
+      "errors": {
+        "invalid-package": "不是受支援的有效 Mod 包，請檢查封裝格式及圖片檔案。",
+        "unavailable": "Mod 暫時無法使用，請在帳號就緒後重新載入。",
+        "failed": "操作未能完成，請重試。"
+      }
+    },
     "title": "設定",
     "back": "返回",
     "defaults": {
@@ -108,6 +142,7 @@
       "restoreFailed": "恢復預設設定失敗"
     },
     "tabs": {
+      "personalMods": "個性 Mod",
       "general": "通用",
       "billing": "用量和計費",
       "usage": "用量歷史",
@@ -2729,7 +2764,8 @@
         "cindyHy3": "Hy3",
         "cindyDeepseekV4Flash": "DeepSeek v4 Flash",
         "cindyQwen38Flash": "Qwen 3.8 Flash"
-      }
+      },
+      "explicitRouteHint": "明確選擇後僅使用指定的 Agent 和模型。若無法使用，Cartethyia 不會自動切換。"
     },
     "compaction": {
       "title": "上下文壓縮",
@@ -7474,6 +7510,46 @@
       "defaultPlaceholder": "今天我們做點什麼呢~",
       "createAgentPlaceholder": "你好，{{appName}}！",
       "recommendationShortcut": "Tab",
+      "projectExperience": {
+        "button": "專案經驗",
+        "menuAria": "專案經驗選擇",
+        "title": "專案經驗",
+        "clear": "清除專案經驗",
+        "none": "不使用專案經驗",
+        "auto": "自動選擇工作流",
+        "explicit": "手動指定工作流",
+        "mode": "套用方式",
+        "pack": "經驗包",
+        "workflow": "工作流",
+        "nodes": "可編排流程",
+        "modules": "經驗內容",
+        "ready": "可用",
+        "pending": "遷移中",
+        "blocked": "已阻斷",
+        "waiting": "待確認",
+        "not-applicable": "不適用",
+        "unavailable": "不可用",
+        "ignored": "已忽略",
+        "required": "必要",
+        "optional": "可選",
+        "loading": "正在載入經驗索引…",
+        "resolving": "正在計算此工作流程…",
+        "noPacks": "尚未匯入經驗包",
+        "loadFailed": "經驗索引載入失敗",
+        "autoHint": "根據本次輸入及目前任務背景選擇工作流，無需手動設定。無法判斷時會請你指定。",
+        "noModules": "此流程沒有關聯經驗內容",
+        "mainOwnedHint": "本任務會持續使用目前選擇；可隨時調整或關閉專案經驗。",
+        "toggleNode": "忽略流程：{{name}}",
+        "toggleModule": "忽略內容：{{name}}",
+        "version": "版本 {{version}}",
+        "chooseWorkflow": "請選擇工作流",
+        "explicitHint": "只使用你選擇的工作流，可調整其中的可選內容。",
+        "baseEnabled": "基礎對話規範 · 必要 · 已啟用",
+        "lastPrepared": "最近組裝：{{workflow}}",
+        "preparedDetails": "v{{version}} · 已組裝 {{count}} 個模組",
+        "preparedOnly": "僅表示輸入已準備，不代表執行完成或測試通過。",
+        "saveFailed": "專案經驗選擇無法儲存或還原，請重試。"
+      },
       "voiceInput": {
         "start": "開始語音輸入",
         "stop": "停止語音輸入",

@@ -30,6 +30,7 @@ import {
 
 import {
   GHOST_ICON_MAX_BYTES,
+  GHOST_EXPERIENCE_PACK_MAX_BYTES,
   GHOST_INSTALL_MANIFEST_MAX_BYTES,
   GHOST_MANUAL_ENTRY_FILE,
   GHOST_MANUAL_MD_MAX_BYTES,
@@ -855,6 +856,42 @@ async function buildGhostPackage(
     }
     const manifest = v.manifest;
 
+    // experiencePack.entry is a metadata-only JSON entry. Validate it during
+    // authoring with the same bounded, no-follow, strict-UTF-8 read used by
+    // the install boundary; the host will parse the remaining indexes lazily.
+    if (manifest.experiencePack?.entry) {
+      const experienceEntry = manifest.experiencePack.entry;
+      const experienceFile = path.join(dir, ...experienceEntry.split('/'));
+      let experienceBytes: Buffer | null;
+      try {
+        experienceBytes = await readBoundedFileNoFollow(
+          experienceFile,
+          GHOST_EXPERIENCE_PACK_MAX_BYTES,
+          { containWithin: realDir, verifyContentStability: true },
+        );
+      } catch {
+        experienceBytes = null;
+      }
+      if (experienceBytes === null) {
+        return {
+          ok: false,
+          errorCode: 'ENTRY_MISSING',
+          message: `experiencePack.entry 不存在、不是普通文件或超过 ${GHOST_EXPERIENCE_PACK_MAX_BYTES} 字节`,
+        };
+      }
+      try {
+        const decoder = new TextDecoder('utf-8', { fatal: true });
+        const experienceText = decoder.decode(experienceBytes);
+        JSON.parse(experienceText);
+      } catch {
+        return {
+          ok: false,
+          errorCode: 'MANIFEST_INVALID',
+          message: 'experiencePack.entry 必须是合法 UTF-8 JSON',
+        };
+      }
+    }
+
     // 2) locale 资源必须真实、可解析且提供的条目合法(缺译回退原文,不拒)。
     // 与装入侧使用同一 validator，避免 Forge 能打包、安装却被拒的契约漂移。
     const localeValidation = validateGhostLocaleResourcesInDirectory(dir, manifest);
@@ -875,6 +912,7 @@ async function buildGhostPackage(
     if (manifest.panel?.html) mustExist.push(manifest.panel.html);
     if (manifest.mainView?.html) mustExist.push(manifest.mainView.html);
     if (manifest.settingsHtml) mustExist.push(manifest.settingsHtml);
+    if (manifest.experiencePack?.entry) mustExist.push(manifest.experiencePack.entry);
     for (const item of manifest.skill?.items ?? []) mustExist.push(`${item.dir}/SKILL.md`);
     if (iconPng === undefined && manifest.icon) mustExist.push(manifest.icon);
     for (const rel of mustExist) {

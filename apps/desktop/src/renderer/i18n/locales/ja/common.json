@@ -99,6 +99,40 @@
     }
   },
   "settings": {
+    "personalMods": {
+      "master": "デスクトップ Mod",
+      "hint": "このデスクトップにのみ適用されます。オフにしても各設定は保持されます。プレビューはスイッチの状態に関係なく再生できます。",
+      "cartethyiaName": "カルテジアバトル",
+      "cartethyiaDescription": "セッションの動きに合わせて、キャラクターが入力欄の上で移動・戦闘します。",
+      "aboveComposer": "入力欄の上",
+      "enabled": "有効",
+      "disabled": "無効",
+      "paused": "全体スイッチがオフ",
+      "preview": "プレビュー",
+      "stopPreview": "プレビューを停止",
+      "configure": "設定",
+      "failed": "この Mod はエラーにより停止しました。",
+      "reload": "再読み込み",
+      "options": {
+        "ground": "道路の背景",
+        "damage": "ダメージ数値",
+        "effects": "戦闘エフェクト",
+        "idle": "待機中もキャラクターを表示"
+      },
+      "import": "Mod をインポート",
+      "imported": "インポート済み",
+      "importHint": ".cindymod リソースパックをインポートします。再インポートすると設定を保持して素材を更新します。パックはこのデスクトップの現在のアカウントに属します。",
+      "empty": "Mod はまだありません。リソースパックをインポートしてください。",
+      "loading": "Mod を読み込み中…",
+      "working": "処理中…",
+      "remove": "アンインストール",
+      "removeHint": "この Mod をアンインストールしますか？表示設定は保持され、再インポート時に利用できます。",
+      "errors": {
+        "invalid-package": "対応する有効な Mod パックではありません。形式と画像を確認してください。",
+        "unavailable": "Mod は一時的に利用できません。アカウントの準備ができたら再読み込みしてください。",
+        "failed": "操作を完了できませんでした。もう一度お試しください。"
+      }
+    },
     "title": "設定",
     "back": "戻る",
     "defaults": {
@@ -108,6 +142,7 @@
       "restoreFailed": "デフォルト設定に戻せませんでした"
     },
     "tabs": {
+      "personalMods": "パーソナル Mod",
       "general": "一般",
       "billing": "使用量と請求",
       "usage": "使用履歴",
@@ -2690,7 +2725,9 @@
       "toast": {
         "saved": "サブエージェント設定を保存しました",
         "deferredSuffix": " — 実行中の Codex セッションには現在のタスク終了後に適用されます"
-      }
+      },
+      "codexOauthCompatibilityHint": "固定のサブエージェントルーティングは ChatGPT OAuth と安全に併用できません。メインの Codex タスクで ChatGPT OAuth を使用する場合、または OAuth を使わないメインタスクで ChatGPT OAuth のサブエージェントを選択した場合、Cartethyia はここで選択したモデル、プロバイダー、推論強度を無視し、そのタスクの既定の Codex サブエージェントを使用します。",
+      "codexV2ModelHint": "Claude Code は選択したモデルを既定値として使用します。ローカルの Codex サブエージェントはすべて、選択したモデルと推論強度に固定されます。"
     },
     "auxiliaryModels": {
       "title": "補助モデル",
@@ -2727,7 +2764,8 @@
         "cindyHy3": "Hy3",
         "cindyDeepseekV4Flash": "DeepSeek v4 flash",
         "cindyQwen38Flash": "Qwen 3.8 Flash"
-      }
+      },
+      "explicitRouteHint": "明示的に選択すると、指定した Agent とモデルのみを使用します。利用できない場合も、Cartethyia は自動で切り替えません。"
     },
     "compaction": {
       "title": "コンテキスト圧縮",
@@ -7472,6 +7510,46 @@
       "defaultPlaceholder": "今日は何をしましょうか〜",
       "createAgentPlaceholder": "{{appName}}さん、こんにちは！",
       "recommendationShortcut": "Tab",
+      "projectExperience": {
+        "button": "プロジェクト経験",
+        "menuAria": "プロジェクト経験の選択",
+        "title": "プロジェクト経験",
+        "clear": "プロジェクト経験を解除",
+        "none": "プロジェクト経験を使わない",
+        "auto": "ワークフローを自動選択",
+        "explicit": "ワークフローを手動指定",
+        "mode": "適用方法",
+        "pack": "経験パック",
+        "workflow": "ワークフロー",
+        "nodes": "編成可能な手順",
+        "modules": "経験コンテンツ",
+        "ready": "利用可能",
+        "pending": "移行中",
+        "blocked": "ブロック済み",
+        "waiting": "確認待ち",
+        "not-applicable": "対象外",
+        "unavailable": "利用不可",
+        "ignored": "無視",
+        "required": "必須",
+        "optional": "任意",
+        "loading": "経験インデックスを読み込み中…",
+        "resolving": "このワークフローを確認中…",
+        "noPacks": "インポート済みの経験パックはありません",
+        "loadFailed": "経験インデックスを読み込めませんでした",
+        "autoHint": "今回の入力と現在のセッションの背景から選択します。判断できない場合のみ指定を求めます。",
+        "noModules": "この手順に関連する経験コンテンツはありません",
+        "mainOwnedHint": "このセッションでは選択を保持します。いつでも変更または解除できます。",
+        "toggleNode": "手順を無視: {{name}}",
+        "toggleModule": "コンテンツを無視: {{name}}",
+        "version": "バージョン {{version}}",
+        "chooseWorkflow": "ワークフローを選択",
+        "explicitHint": "選択したワークフローだけを使い、任意の内容を調整できます。",
+        "baseEnabled": "基本応答ルール · 必須 · 有効",
+        "lastPrepared": "直近の準備：{{workflow}}",
+        "preparedDetails": "v{{version}} · {{count}} モジュールを準備",
+        "preparedOnly": "入力の準備状態です。実行完了やテスト成功を示しません。",
+        "saveFailed": "プロジェクト経験の選択を保存または復元できませんでした。再試行してください。"
+      },
       "voiceInput": {
         "start": "音声入力を開始",
         "stop": "音声入力を停止",

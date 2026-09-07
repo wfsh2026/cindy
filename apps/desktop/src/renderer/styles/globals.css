@@ -1025,6 +1025,11 @@ body.resizing-pane [data-ghost-webview] {
 
 @media (prefers-reduced-motion: reduce) {
   [data-voice-mic-active='true'] [data-voice-mic-bar],
+  .cartethyia-battle__actor,
+  .cartethyia-battle__sprite-window,
+  .cartethyia-battle__sprite-strip,
+  .cartethyia-battle__impact *,
+  .cartethyia-battle__death-effect,
   .status-bar-shimmer,
   .status-bar-done,
   .session-status-breathing,

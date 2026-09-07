@@ -1,6 +1,9 @@
 import { createContext, useContext } from 'react';
 
 import { getComposerModeDefinition } from './registry';
+import { usePersonalModPreferences } from './usePersonalModPreferences';
+import { ModErrorBoundary } from './ModErrorBoundary';
+import { useInstalledPersonalMod } from './useInstalledPersonalMod';
 import type { ComposerModeHostProps, ComposerModeId, ComposerModeRenderProps } from './types';
 
 const ComposerModeContext = createContext<ComposerModeId>('standard');
@@ -11,9 +14,11 @@ export function ComposerModeHost({ mode, children }: ComposerModeHostProps) {
 
 export function ComposerModeSlot(props: ComposerModeRenderProps) {
   const mode = useContext(ComposerModeContext);
+  const { enabled } = usePersonalModPreferences();
+  const { mod } = useInstalledPersonalMod();
   const definition = getComposerModeDefinition(mode);
-  if (!definition) return null;
+  if (!definition || !enabled || !mod) return null;
   const ModeComponent = definition.component;
-  const modeInstanceKey = `${definition.id}:${props.sessionId ?? 'draft'}`;
-  return <ModeComponent key={modeInstanceKey} {...props} />;
+  const modeInstanceKey = `${definition.id}:${mod.revision}:${props.sessionId ?? 'draft'}`;
+  return <ModErrorBoundary key={modeInstanceKey}><ModeComponent {...props} /></ModErrorBoundary>;
 }

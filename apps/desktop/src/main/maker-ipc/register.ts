@@ -71,15 +71,32 @@ import {
 import { upsertRecentWorkdir } from '../localDb/ipc/recentWorkdirs.js';
 import type { AgentMeta, Session as RendererSession } from '../../renderer/lib/ccAgent.types';
 import {
+  appendExperienceContextToMakerMessage,
   deriveAutoTitleSeed,
   normalizeAgentInputClearBoundaryMs,
+  readAgentInputExperienceField,
   serializeSessionReferencePayload,
   type AgentInputClearBoundaryOpts,
   type AgentInputCreateOpts,
+  type AgentInputMakerMessage,
   type AgentInputQueuedMessage,
   type AgentInputSessionRef,
   type AgentInputSessionReferenceContext,
 } from '../../shared/agentInputQueue.js';
+import {
+  isExperiencePackFallbackPayload,
+  isExperiencePackGetResult,
+  isExperiencePackIndex,
+  isExperiencePackListResult,
+  isExperiencePackResolveResult,
+  isExperiencePackTaskMetadata,
+  isExperiencePackTaskResult,
+  isExperienceSelectionSnapshot,
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceInputContext,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
+import { EXPERIENCE_PACK_IPC } from '../../shared/experiencePackIpc.js';
 import { getManagedWorktreeBasePath } from '../../shared/managedWorktreePaths.js';
 import { normalizeWorkingDirForProjectSettings } from '../../shared/workingDir.js';
 
@@ -117,6 +134,7 @@ import {
   executeGhostSetupAction,
   executeGhostSetupInlineAction,
   getGhostManager,
+  getExperiencePackService,
   getGhostSetupAssessment,
   getIOSSimulatorPluginAccessDecision,
   isGhostAvailableForActiveSession,
@@ -10860,9 +10878,25 @@ export function registerMakerIpc(maker: Maker, options: RegisterMakerIpcOptions)
         const writableDirs = await readSessionWritableDirsFromDb(sessionId).catch(() => []);
         if (writableDirs.length > 0) createOpts.writableDirs = writableDirs;
       }
+      const replayBaseMessage = persistedUserContentToWireMessage(
+        agentFacingWireContent ?? content,
+      );
+      let replayMessage: AgentInputMakerMessage = replayBaseMessage;
+      try {
+        const experienceService = getExperiencePackService();
+        const experienceContext = await experienceService.getTaskContext({ sessionId });
+        if (experienceContext) {
+          replayMessage = appendExperienceContextToMakerMessage(replayBaseMessage, experienceContext);
+        }
+      } catch (error) {
+        log.warn('overflow replay: experience context unavailable; native input retained', {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       const result = await sendToAgentAcceptedUnlocked(
         sessionId,
-        persistedUserContentToWireMessage(agentFacingWireContent ?? content),
+        replayMessage,
         createOpts,
       );
       return { accepted: result.accepted === true };
@@ -12034,6 +12068,41 @@ export function registerMakerIpc(maker: Maker, options: RegisterMakerIpcOptions)
     emitProjection: (projection) => {
       broadcastToAllWindows(MAKER_PUSH.INPUT_PROJECTION, projection);
     },
+    prepareExperienceContext: async ({ sessionId, item }) => {
+      const service = getExperiencePackService();
+      const experienceField = readAgentInputExperienceField(item);
+      if (!experienceField.present) {
+        const context = await service.getTaskContext({ sessionId });
+        return { context };
+      }
+      if (experienceField.cleared || experienceField.value === undefined) {
+        await service.deleteTask({ sessionId });
+        return { context: null };
+      }
+      const selection = normalizeExperienceSelectionSnapshot(experienceField.value);
+      if (!selection) return { context: null, reason: '经验包选择内容不合格' };
+      const result = await service.freezeTask({
+        sessionId,
+        clientId: item.clientId,
+        text: item.text,
+        selection,
+      });
+      if (result.requiresUserChoice) {
+        return { context: null, reason: result.fallbackReason ?? '需要先选择工作流' };
+      }
+      return { context: result.context, ...(result.fallbackReason ? { reason: result.fallbackReason } : {}) };
+    },
+    onExperienceFallback: (sessionId, item, reason) => {
+      const experienceField = readAgentInputExperienceField(item);
+      const selection = !experienceField.present || experienceField.cleared || experienceField.value === undefined
+        ? null
+        : normalizeExperienceSelectionSnapshot(experienceField.value);
+      broadcastToAllWindows(EXPERIENCE_PACK_IPC.FALLBACK, {
+        sessionId,
+        packId: selection?.packId ?? '',
+        reason: reason.slice(0, 512),
+      });
+    },
     // 意识拦截钩(订阅槽①):派发/落库前问已装钩子意识;fail-open 由
     // screenGhostUserMessage 内部收敛,快路径(无钩子意识)零开销。
     screenUserMessage: (sessionId, agentFacingText, item) => {
@@ -12520,6 +12589,33 @@ export function registerMakerIpc(maker: Maker, options: RegisterMakerIpcOptions)
       throwIpcError('INVALID_PARAMS', 'queued.createOpts.agentKind invalid');
     }
     const normalized: AgentInputQueuedMessage = { ...msg };
+    if (msg.experienceCleared !== undefined && typeof msg.experienceCleared !== 'boolean') {
+      throwIpcError('INVALID_PARAMS', 'queued.experienceCleared invalid');
+    }
+    if (msg.chatMessage.experienceCleared !== undefined && typeof msg.chatMessage.experienceCleared !== 'boolean') {
+      throwIpcError('INVALID_PARAMS', 'queued.chatMessage.experienceCleared invalid');
+    }
+    if (msg.experienceCleared === true || msg.chatMessage.experienceCleared === true) {
+      delete normalized.experience;
+      normalized.experienceCleared = true;
+      normalized.chatMessage = { ...normalized.chatMessage, experienceCleared: true };
+      delete normalized.chatMessage.experience;
+    } else if (msg.experience !== undefined) {
+      const experience = normalizeExperienceSelectionSnapshot(msg.experience);
+      if (!experience) throwIpcError('INVALID_PARAMS', 'queued.experience invalid');
+      normalized.experience = experience;
+      normalized.experienceCleared = false;
+      normalized.chatMessage = { ...normalized.chatMessage, experience, experienceCleared: false };
+    } else if (msg.chatMessage.experience !== undefined) {
+      const experience = normalizeExperienceSelectionSnapshot(msg.chatMessage.experience);
+      if (!experience) throwIpcError('INVALID_PARAMS', 'queued.chatMessage.experience invalid');
+      normalized.experience = experience;
+      normalized.experienceCleared = false;
+      normalized.chatMessage = { ...normalized.chatMessage, experience, experienceCleared: false };
+    }
+    // Renderer/device-link callers can never provide a frozen正文 context.
+    // The host resolves it from the installed package at dispatch time.
+    delete normalized.experienceContext;
     const refs = requireSessionRefs(normalized.sessionRefs);
     if (!isDeviceLinkInvoke()) {
       // preload/renderer 不属于可信边界，不能直接注入历史正文。
@@ -12545,6 +12641,251 @@ export function registerMakerIpc(maker: Maker, options: RegisterMakerIpcOptions)
     }
     return normalized;
   };
+
+  const requireExperienceSelection = (value: unknown): ExperienceSelectionSnapshot => {
+    const selection = normalizeExperienceSelectionSnapshot(value);
+    if (!selection) throwIpcError('INVALID_PARAMS', 'experience selection invalid');
+    return selection;
+  };
+  const requireExperiencePackId = (value: unknown): string => {
+    if (typeof value !== 'string' || value.trim().length === 0 || value.length > 128) {
+      throwIpcError('INVALID_PARAMS', 'experience packId invalid');
+    }
+    return value.trim();
+  };
+  const requireExperienceWorkflowId = (value: unknown): string => {
+    if (typeof value !== 'string' || value.trim().length === 0 || value.length > 256) {
+      throwIpcError('INVALID_PARAMS', 'experience workflowId invalid');
+    }
+    return value.trim();
+  };
+  const requireExperienceText = (value: unknown): string => {
+    if (typeof value !== 'string' || value.length > 256 * 1024) {
+      throwIpcError('INVALID_PARAMS', 'experience text invalid');
+    }
+    return value;
+  };
+  const experienceServiceError = (error: unknown): never => {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = (error as { status?: unknown }).status;
+    const code = status === 'invalid'
+      ? 'PRECONDITION_FAILED'
+      : status === 'unsupported'
+        ? 'UNSUPPORTED_CAPABILITY'
+        : status === 'unavailable'
+          ? 'NOT_FOUND'
+          : 'INTERNAL';
+    throwIpcError(code, message.slice(0, 512));
+  };
+  const requireExperienceOverride = (value: unknown): { workflowId: string; ignoredNodeIds: string[]; ignoredModuleIds: string[] } => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throwIpcError('INTERNAL', 'experience override response invalid');
+    const result = value as Record<string, unknown>;
+    if (Object.keys(result).some((key) => !['workflowId', 'ignoredNodeIds', 'ignoredModuleIds'].includes(key)) || typeof result.workflowId !== 'string' || !Array.isArray(result.ignoredNodeIds) || !Array.isArray(result.ignoredModuleIds) || !result.ignoredNodeIds.every((id) => typeof id === 'string') || !result.ignoredModuleIds.every((id) => typeof id === 'string')) throwIpcError('INTERNAL', 'experience override response invalid');
+    return { workflowId: result.workflowId, ignoredNodeIds: result.ignoredNodeIds, ignoredModuleIds: result.ignoredModuleIds };
+  };
+  const projectExperienceTask = (result: {
+    selection: ExperienceSelectionSnapshot;
+    plan: unknown;
+    requiresUserChoice: boolean;
+    fallbackReason?: string;
+  }) => ({
+    selection: result.selection,
+    plan: result.plan,
+    requiresUserChoice: result.requiresUserChoice,
+    ...(result.fallbackReason ? { fallbackReason: result.fallbackReason } : {}),
+  });
+
+  // Project-experience IPC is a local renderer read/selection surface. It
+  // deliberately never returns module正文 or the main-owned frozen context.
+  ipcMain.handle(EXPERIENCE_PACK_IPC.GET_SELECTION, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    const sessionId = requireSessionId(raw);
+    try {
+      const service = getExperiencePackService();
+      const selection = await service.getSelection(sessionId);
+      return { selection };
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.SET_SELECTION, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throwIpcError('INVALID_PARAMS', 'experience selection payload required');
+    const payload = raw as { sessionId?: unknown; selection?: unknown };
+    const sessionId = requireSessionId(payload.sessionId);
+    const selection = payload.selection === null ? null : requireExperienceSelection(payload.selection);
+    try {
+      const service = getExperiencePackService();
+      const request = { sessionId, selection };
+      await service.setSelection(request);
+      return { ok: true };
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.LIST, async (event) => {
+    assertTrustedAppRendererEvent(event);
+    try {
+      const service = getExperiencePackService();
+      const packs = await service.list();
+      const result = { packs };
+      if (!isExperiencePackListResult(result)) throwIpcError('INTERNAL', 'experience pack list response invalid');
+      return result;
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.GET, async (event, packId: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    const id = requireExperiencePackId(packId);
+    try {
+      const service = getExperiencePackService();
+      const index = await service.get(id);
+      const result = { index };
+      if (!isExperiencePackGetResult(result)) throwIpcError('INTERNAL', 'experience pack index response invalid');
+      return result;
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.RESOLVE, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      throwIpcError('INVALID_PARAMS', 'experience resolve payload required');
+    }
+    const payload = raw as { text?: unknown; selection?: unknown; sessionId?: unknown };
+    const text = requireExperienceText(payload.text);
+    const selection = requireExperienceSelection(payload.selection);
+    const sessionId = payload.sessionId === undefined ? undefined : requireSessionId(payload.sessionId);
+    try {
+      const service = getExperiencePackService();
+      const request = { text, selection, sessionId };
+      const result = await service.resolve(request);
+      if (!isExperiencePackResolveResult(result)) throwIpcError('INTERNAL', 'experience resolve response invalid');
+      return result;
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.READ_CONTENT, async (event) => {
+    assertTrustedAppRendererEvent(event);
+    throwIpcError('UNSUPPORTED_CAPABILITY', 'experience module正文 is main-owned');
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.GET_OVERRIDE, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      throwIpcError('INVALID_PARAMS', 'experience override payload required');
+    }
+    const payload = raw as { packId?: unknown; workflowId?: unknown };
+    const packId = requireExperiencePackId(payload.packId);
+    const workflowId = requireExperienceWorkflowId(payload.workflowId);
+    try {
+      const service = getExperiencePackService();
+      const result = await service.getOverride({ packId, workflowId });
+      return requireExperienceOverride(result);
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.SET_OVERRIDE, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      throwIpcError('INVALID_PARAMS', 'experience override payload required');
+    }
+    const payload = raw as {
+      packId?: unknown;
+      workflowId?: unknown;
+      ignoredNodeIds?: unknown;
+      ignoredModuleIds?: unknown;
+    };
+    const packId = requireExperiencePackId(payload.packId);
+    const workflowId = requireExperienceWorkflowId(payload.workflowId);
+    if (!Array.isArray(payload.ignoredNodeIds) || !Array.isArray(payload.ignoredModuleIds) || payload.ignoredNodeIds.length > 1024 || payload.ignoredModuleIds.length > 1024 || !payload.ignoredNodeIds.every((id) => typeof id === 'string') || !payload.ignoredModuleIds.every((id) => typeof id === 'string')) {
+      throwIpcError('INVALID_PARAMS', 'experience override ids invalid');
+    }
+    try {
+      const service = getExperiencePackService();
+      const result = await service.setOverride({ packId, workflowId, ignoredNodeIds: payload.ignoredNodeIds, ignoredModuleIds: payload.ignoredModuleIds });
+      return requireExperienceOverride(result);
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.FREEZE_TASK, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      throwIpcError('INVALID_PARAMS', 'experience task payload required');
+    }
+    const payload = raw as { sessionId?: unknown; clientId?: unknown; text?: unknown; selection?: unknown };
+    const sessionId = requireSessionId(payload.sessionId);
+    const clientId = payload.clientId === undefined ? undefined : requireClientId(payload.clientId);
+    const text = requireExperienceText(payload.text);
+    const selection = requireExperienceSelection(payload.selection);
+    try {
+      const service = getExperiencePackService();
+      const result = await service.freezeTask({ sessionId, clientId, text, selection });
+      const projected = projectExperienceTask(result);
+      if (!isExperiencePackTaskResult(projected)) throwIpcError('INTERNAL', 'experience task response invalid');
+      return projected;
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.GET_TASK, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    const sessionId = requireSessionId(raw);
+    try {
+      const service = getExperiencePackService();
+      const snapshot = await service.getTask({ sessionId });
+      if (!snapshot) return { snapshot: null };
+      const projected = {
+        snapshot: {
+          version: snapshot.version,
+          sessionId: snapshot.sessionId,
+          clientId: snapshot.clientId,
+          inputDigest: snapshot.inputDigest,
+          packId: snapshot.packId,
+          packVersion: snapshot.packVersion,
+          workflowId: snapshot.workflowId,
+          mode: snapshot.mode,
+          ignoredNodeIds: snapshot.ignoredNodeIds,
+          ignoredModuleIds: snapshot.ignoredModuleIds,
+          ...(snapshot.conditions ? { conditions: snapshot.conditions } : {}),
+          plan: snapshot.plan,
+          planDigest: snapshot.planDigest,
+          createdAt: snapshot.createdAt,
+          updatedAt: snapshot.updatedAt,
+        },
+      };
+      if (!isExperiencePackTaskMetadata(projected.snapshot)) throwIpcError('INTERNAL', 'experience task metadata invalid');
+      return projected;
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.DELETE_TASK, async (event, raw: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    const sessionId = requireSessionId(raw);
+    try {
+      const service = getExperiencePackService();
+      await service.deleteTask({ sessionId });
+      return { ok: true };
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
+  ipcMain.handle(EXPERIENCE_PACK_IPC.REFRESH, async (event) => {
+    assertTrustedAppRendererEvent(event);
+    try {
+      const service = getExperiencePackService();
+      const packs = await service.refresh();
+      const result = { packs };
+      if (!isExperiencePackListResult(result)) throwIpcError('INTERNAL', 'experience pack refresh response invalid');
+      return result;
+    } catch (error) {
+      return experienceServiceError(error);
+    }
+  });
 
   ipcMain.handle(DL_SESSION_REFERENCE_CAPABILITY_CHANNEL, () => ({ supported: true, version: 1 }));
 

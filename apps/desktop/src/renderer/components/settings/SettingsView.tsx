@@ -12,6 +12,7 @@ import { SettingsSidebarNav } from './SettingsSidebarNav';
 import { UserProfileCard } from './UserProfileCard';
 import { VoiceInputSection } from './VoiceInputSection';
 import { AppearanceSection } from './AppearanceSection';
+import { PersonalModsSection } from './PersonalModsSection';
 import { SubagentModelSection } from './SubagentModelSection';
 import { AuxiliaryModelSection } from './AuxiliaryModelSection';
 import { VisionBridgeSection } from './VisionBridgeSection';
@@ -476,6 +477,12 @@ export function SettingsView() {
                 <section className="pb-[18px]" aria-label={t('settings.sections.compatMode')}>
                   <TipsSection />
                 </section>
+              </div>
+            )}
+
+            {activeTab === 'personal-mods' && (
+              <div role="tabpanel" id="settings-panel-personal-mods" aria-labelledby="settings-tab-personal-mods">
+                <PersonalModsSection />
               </div>
             )}
 

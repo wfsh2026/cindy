@@ -24,19 +24,17 @@ export function calculateBattleSceneGeometry(
   compact: boolean,
 ): CartethyiaBattleSceneGeometry {
   const displayWidth = cartethyiaBattlePack.displayWidth;
-  const minimumArenaWidth = displayWidth * 2 + 24;
+  const minimumArenaWidth = displayWidth * 2;
   const safeArenaWidth = Math.max(minimumArenaWidth, arenaWidth);
   const combat = cartethyiaBattlePack.combat;
   const edgeInset = compact ? combat.compactEdgeInset : combat.regularEdgeInset;
-  const preferredMonsterX = safeArenaWidth - displayWidth - edgeInset;
-  const minimumMonsterX = displayWidth + edgeInset;
-  const monsterEncounterX = Math.max(minimumMonsterX, preferredMonsterX);
-  const preferredHeroX =
-    monsterEncounterX + combat.monsterHurtAnchorX - combat.heroAttackAnchorX - combat.attackGap;
-  const maximumHeroX = monsterEncounterX - displayWidth / 3;
+  const encounterCenterX = safeArenaWidth / 2;
+  const preferredHeroX = encounterCenterX - combat.attackGap / 2 - combat.heroAttackAnchorX;
+  const maximumHeroX = safeArenaWidth - displayWidth - edgeInset;
   const heroEncounterX = clamp(preferredHeroX, edgeInset, maximumHeroX);
+  const monsterEncounterX = heroEncounterX + combat.heroAttackAnchorX + combat.attackGap - combat.monsterHurtAnchorX;
   const heroStartX = Math.min(edgeInset, heroEncounterX);
-  const monsterSpawnX = safeArenaWidth + combat.monsterSpawnOffset;
+  const monsterSpawnX = safeArenaWidth - displayWidth - edgeInset;
   const monsterLungeX = monsterEncounterX - combat.monsterLungeDistance;
   const heroAttackAnchor = heroEncounterX + combat.heroAttackAnchorX;
   const monsterHurtAnchor = monsterEncounterX + combat.monsterHurtAnchorX;

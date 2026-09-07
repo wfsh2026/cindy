@@ -55,12 +55,17 @@ import type {
   RecoveryCheckpoint,
 } from '../../shared/agentInputQueue.js';
 import {
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceInputContext,
+} from '@cindy/maker-shared/experience-pack';
+import {
   buildMakerUserMessage,
   getAgentInputAttachmentBlockType,
   getAgentFacingText,
   normalizeAgentInputClearBoundaryMs,
   parseAgentInputToolLoopDetails,
   projectionRetryText,
+  readAgentInputExperienceField,
   sanitizeQueuedMessageForPersistence,
   updateQueuedMessageContent,
   updateQueuedMessageText,
@@ -395,6 +400,17 @@ export interface AgentInputCoordinatorDeps {
   resolveSessionReferences?: (
     refs: AgentInputQueuedMessage['sessionRefs'],
   ) => Promise<AgentInputSessionReferenceContext[]>;
+  /** Resolve a selected project-experience pack at the final dispatch boundary. */
+  prepareExperienceContext?: (request: {
+    sessionId: string;
+    item: AgentInputQueuedMessage;
+  }) => Promise<{ context: ExperienceInputContext | null; reason?: string }>;
+  /** Native input remains authoritative when an experience pack cannot be applied. */
+  onExperienceFallback?: (
+    sessionId: string,
+    item: AgentInputQueuedMessage,
+    reason: string,
+  ) => void;
   emitProjection: (projection: AgentInputProjection) => void;
   /**
    * 意识拦截钩(订阅槽①,will-user-message):派发与落库**之前**问一遍已装
@@ -2099,6 +2115,7 @@ export class AgentInputCoordinator {
 
     try {
       const referenceContexts = await this.resolveReferenceContexts(item);
+      const experienceContext = await this.prepareExperienceContext(sessionId, item);
       if (!matchesExpectedTurn()) {
         const latest = this.getState(sessionId);
         if (
@@ -2117,7 +2134,7 @@ export class AgentInputCoordinator {
         item.persistedContent,
         referenceContexts,
       );
-      await this.deps.steerToAgent(sessionId, buildMakerUserMessage(item, referenceContexts), {
+      await this.deps.steerToAgent(sessionId, buildMakerUserMessage(item, referenceContexts, experienceContext), {
         messageUuid,
         userName: item.userName,
         signal: AbortSignal.any([inputBoundarySignal, steerAbort.signal]),
@@ -2995,7 +3012,9 @@ export class AgentInputCoordinator {
       || updated.files !== current.files
       || updated.mentions !== current.mentions
       || updated.sessionRefs !== current.sessionRefs
-      || updated.agentReferences !== current.agentReferences;
+      || updated.agentReferences !== current.agentReferences
+      || JSON.stringify(updated.experience ?? null) !== JSON.stringify(current.experience ?? null)
+      || JSON.stringify(updated.chatMessage.experience ?? null) !== JSON.stringify(current.chatMessage.experience ?? null);
     const nextQueue = [...state.pendingQueue];
     nextQueue[index] = finalizeUpdatedMessage && authorizationContentChanged
       ? finalizeUpdatedMessage(updated)
@@ -3764,6 +3783,45 @@ export class AgentInputCoordinator {
     delete projected.fromDeviceLinkClient;
     delete projected.trustedSessionReferenceContexts;
     delete projected.sessionReferencesRequireTrustedSnapshot;
+    delete projected.experienceContext;
+    const experienceField = readAgentInputExperienceField(item);
+    const experience = experienceField.cleared
+      ? undefined
+      : normalizeExperienceSelectionSnapshot(experienceField.value);
+    if (experience) {
+      projected.experience = experience;
+      projected.experienceCleared = false;
+      projected.chatMessage = { ...projected.chatMessage, experience, experienceCleared: false };
+    } else {
+      delete projected.experience;
+      const projectedChatMessage = { ...projected.chatMessage };
+      delete projectedChatMessage.experience;
+      if (experienceField.cleared) {
+        projected.experienceCleared = true;
+        projectedChatMessage.experienceCleared = true;
+      } else {
+        delete projected.experienceCleared;
+        delete projectedChatMessage.experienceCleared;
+      }
+      projected.chatMessage = projectedChatMessage;
+    }
+    // Persisted content is a renderer-visible envelope. Strip any accidental
+    // Main-only context before a projection crosses IPC/device-link, while
+    // retaining the selection metadata for queue restoration.
+    try {
+      const parsed = JSON.parse(projected.persistedContent) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const content = { ...(parsed as Record<string, unknown>) };
+        delete content.experienceContext;
+        delete content.experience;
+        delete content.experienceCleared;
+        if (experience) content.experience = experience;
+        if (experienceField.cleared) content.experienceCleared = true;
+        projected.persistedContent = JSON.stringify(content);
+      }
+    } catch {
+      // Historical plain-text envelopes remain unchanged.
+    }
     delete (projected as Record<string, unknown>)[TRUSTED_DESKTOP_PI_COMMAND_SNAPSHOT];
     // Recovery hints are main-owned evidence for the next vendor turn, not
     // renderer/device-link payload. Keep the projection minimal and avoid
@@ -3821,6 +3879,39 @@ export class AgentInputCoordinator {
         error: errorMessage(error),
       });
       return [];
+    }
+  }
+
+  /**
+   * Experience selection is metadata supplied by the composer.  Resolve it
+   * only after the normal queue/steer transaction has reached its dispatch
+   * boundary, and fail open to the native message if the package is missing,
+   * stale, ambiguous, or malformed.
+   */
+  private async prepareExperienceContext(
+    sessionId: string,
+    item: AgentInputQueuedMessage,
+  ): Promise<ExperienceInputContext | null> {
+    if (!this.deps.prepareExperienceContext) return null;
+    const experienceField = readAgentInputExperienceField(item);
+    const normalizedExperience = !experienceField.present || experienceField.cleared
+      ? null
+      : normalizeExperienceSelectionSnapshot(experienceField.value);
+    try {
+      const result = await this.deps.prepareExperienceContext({ sessionId, item });
+      if (!result.context && result.reason && experienceField.present && !experienceField.cleared) {
+        this.deps.onExperienceFallback?.(sessionId, item, result.reason);
+      }
+      return result.context;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      if (experienceField.present && !experienceField.cleared) this.deps.onExperienceFallback?.(sessionId, item, reason);
+      log.warn('experience context preparation failed; native input retained', {
+        sessionId,
+        ...(normalizedExperience ? { packId: normalizedExperience.packId } : {}),
+        reason,
+      });
+      return null;
     }
   }
 
@@ -4308,11 +4399,13 @@ export class AgentInputCoordinator {
       // post-dispatch acknowledgements must remain older than that marker.
       const preVendorDispatchAt = Math.max(0, Date.now() - 1);
       const referenceContexts = await this.resolveReferenceContexts(head);
+      const experienceContext = await this.prepareExperienceContext(sessionId, head);
+      if (!this.isActiveTurnCurrent(sessionId, active)) return;
       head.persistedContent = attachSessionReferenceMetadata(
         head.persistedContent,
         referenceContexts,
       );
-      const makerUserMessage = buildMakerUserMessage(head, referenceContexts);
+      const makerUserMessage = buildMakerUserMessage(head, referenceContexts, experienceContext);
       const result = await this.deps.sendToAgent(sessionId, makerUserMessage, head.createOpts, {
         messageUuid: active.messageUuid,
         userName: head.userName,

@@ -22,6 +22,10 @@ import {
   readAgentInputReferences,
   type AgentInputReference,
 } from '@cindy/maker-shared/agent-input-projection';
+import {
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
 
 export interface ImageRef {
   /** Custom-protocol URL: 'xdt-image://{sessionId}/{filename}'. */
@@ -77,6 +81,10 @@ export interface UserMessageContent {
   text: string;
   images: ImageRef[];
   files: FileRef[];
+  /** Metadata-only project-experience selection;正文 is never persisted here. */
+  experience?: ExperienceSelectionSnapshot;
+  /** Explicit composer intent to remove a task's frozen project-experience context. */
+  experienceCleared?: boolean;
   /** Resolved range summaries for session links present in this user message. */
   sessionReferences?: PersistedSessionReferenceMetadata[];
   /**
@@ -194,10 +202,18 @@ export function parseUserContent(content: unknown): UserMessageContent {
       const pastedTextRanges = coercePastedTextRanges(obj.pastedTextRanges, obj.text);
       const slashCommandRanges = coerceSlashCommandRanges(obj.slashCommandRanges, obj.text);
       const agentReferences = readAgentInputReferences(obj.agentReferences, obj.text);
+      const experienceCleared = obj.experienceCleared === true;
+      // An explicit clear is authoritative if malformed/legacy content happens
+      // to carry both fields.  Never project a stale selection alongside it.
+      const experience = experienceCleared
+        ? null
+        : normalizeExperienceSelectionSnapshot(obj.experience);
       return {
         text: obj.text,
         images,
         files,
+        ...(experience ? { experience } : {}),
+        ...(experienceCleared ? { experienceCleared: true } : {}),
         ...(sessionReferences.length > 0 ? { sessionReferences } : {}),
         ...(obj.quotesEncoded === true ? { quotesEncoded: true } : {}),
         ...(pastedTextRanges.length > 0 ? { pastedTextRanges } : {}),
@@ -386,4 +402,53 @@ export function stringifyUserContent(
       : {}),
     ...(agentReferences.length > 0 ? { agentReferences } : {}),
   });
+}
+
+/**
+ * Attach (or replace) the metadata-only project-experience selection in an
+ * already serialized user-content value.  This intentionally stays separate
+ * from stringifyUserContent: that helper has a long, backwards-compatible
+ * positional signature used by mobile/history code, while experience metadata
+ * is a new optional concern.  Any accidental frozen正文 field is removed at
+ * this boundary so it cannot travel through persisted message content.
+ */
+export function attachExperienceSelectionMetadata(
+  content: string,
+  experience?: ExperienceSelectionSnapshot,
+  experienceCleared = false,
+): string {
+  const normalizedExperience = !experienceCleared && experience
+    ? normalizeExperienceSelectionSnapshot(experience)
+    : undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content) as unknown;
+  } catch {
+    if (!normalizedExperience && !experienceCleared) return content;
+    return JSON.stringify({
+      text: content,
+      images: [],
+      files: [],
+      ...(normalizedExperience ? { experience: normalizedExperience } : {}),
+      ...(experienceCleared ? { experienceCleared: true } : {}),
+    });
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!normalizedExperience && !experienceCleared) return content;
+    return JSON.stringify({
+      text: typeof parsed === 'string' ? parsed : content,
+      images: [],
+      files: [],
+      ...(normalizedExperience ? { experience: normalizedExperience } : {}),
+      ...(experienceCleared ? { experienceCleared: true } : {}),
+    });
+  }
+  const record = parsed as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...record };
+  delete next.experienceContext;
+  delete next.experience;
+  delete next.experienceCleared;
+  if (normalizedExperience) next.experience = normalizedExperience;
+  if (experienceCleared) next.experienceCleared = true;
+  return JSON.stringify(next);
 }

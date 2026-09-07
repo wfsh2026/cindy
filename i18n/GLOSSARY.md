@@ -235,6 +235,10 @@ OAuth 2.0 Device Authorization Grant 中由用户在另一设备验证页输入�
 
 设备间数据在发送端加密、接收端解密，中转服务只搬运密文。当前先按四语言常用安全术语登记为待讨论，避免 E2EE、端对端加密、End-to-End 暗号化等多套可见说法并存。
 
+### Experience pack
+
+以 .cindy 作为唯一分发格式、由宿主按索引渐进加载的项目经验集合。
+
 ### Harness
 
 用户确认并公开提交 Issue 时显示承载当前 Agent 的运行框架。五语暂统一保留英文 Harness；具体值固定使用 Claude Code、Codex、Pi 的公开全名，不使用 cc/cx/pi 等内部缩写。
@@ -299,6 +303,10 @@ issue #882：模型管理/新对话选择器的分类标签，对应 Gateway mod
 
 WebAuthn 可发现凭证的用户可见名称，采用 Apple、Google 与 Microsoft 平台常见译法；先登记为 proposed，待产品术语评审后固化。
 
+### Personal Mods
+
+设置中管理桌面角色动画与场景装饰的标签，与提供 Agent 工具能力的插件区分。
+
 ### Personal WeChat
 
 个人微信连接在设置页中的产品名称；先登记为 proposed，待产品术语评审后再决定是否固化。
@@ -318,6 +326,10 @@ Plugin 声明的应用级完整页面能力；区别于会话内 Panel。V1 由 
 ### Process
 
 OS 进程语境(资源用量面板、浏览器 guest 进程、终端)。注意与 Thread→任务(消息流语境)区分:资源用量面板刻意不展示 OS 线程数,避免「线程」撞上 Thread 的既定裁决;若未来要展示,需为 OS thread 立同形异义条目再谈。
+
+### Project experience
+
+输入框中的可选经验上下文入口；它引用经验包中的工作流和模块，不等同于当前任务正文或系统指令。
 
 ### Region badge
 
@@ -404,6 +416,10 @@ Codex Subagent 的可选扩展调配开关。默认关闭以保留 Codex 原生 
 ### withdraw (a reply)
 
 用户在 X 上让 Cindy 删掉它那条公开回帖的动作(在回帖下回 /delete)。zh-CN 取「撤回」而不是「删除」——「删除」在本仓已大量用于删任务/删会话/删文件, 而这个动作的对象是「已经发出去的公开内容」, 与 IM 里的消息撤回同义。刻意登记为 proposed: X 撤回是新功能(server PR #288 / client 侧告知), 四语只有这一处用例, 等更多用例出现后再定 decided。
+
+### Workflow
+
+经验包内可自动路由或显式选择的一组有序编排节点。
 
 ## 怎么加一条术语
 

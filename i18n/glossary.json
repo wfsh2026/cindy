@@ -14,6 +14,18 @@
   ],
   "terms": [
     {
+      "id": "personal-mods",
+      "status": "proposed",
+      "en": "Personal Mods",
+      "translations": {
+        "zh-CN": "个性 Mod",
+        "zh-TW": "個性 Mod",
+        "ja": "パーソナル Mod",
+        "ko": "개성 Mod"
+      },
+      "note": "设置中管理桌面角色动画与场景装饰的标签，与提供 Agent 工具能力的插件区分。"
+    },
+    {
       "id": "cindy-ai-free-tier",
       "status": "proposed",
       "en": "Free tier",
@@ -1842,6 +1854,42 @@
         "ko": "데이터베이스 정리"
       },
       "note": "设置 → 存储空间内主动备份、清理任务消息并压缩本地数据库的功能名称。默认只清理非活跃任务；用户确认开启可选项后，也会清理活跃任务的历史。先登记为 proposed，待实际使用后再固化。"
+    },
+    {
+      "id": "project-experience",
+      "status": "proposed",
+      "en": "Project experience",
+      "translations": {
+        "zh-CN": "项目经验",
+        "zh-TW": "專案經驗",
+        "ja": "プロジェクト経験",
+        "ko": "프로젝트 경험"
+      },
+      "note": "输入框中的可选经验上下文入口；它引用经验包中的工作流和模块，不等同于当前任务正文或系统指令。"
+    },
+    {
+      "id": "experience-pack",
+      "status": "proposed",
+      "en": "Experience pack",
+      "translations": {
+        "zh-CN": "经验包",
+        "zh-TW": "經驗包",
+        "ja": "経験パック",
+        "ko": "경험 팩"
+      },
+      "note": "以 .cindy 作为唯一分发格式、由宿主按索引渐进加载的项目经验集合。"
+    },
+    {
+      "id": "workflow",
+      "status": "proposed",
+      "en": "Workflow",
+      "translations": {
+        "zh-CN": "工作流",
+        "zh-TW": "工作流",
+        "ja": "ワークフロー",
+        "ko": "워크플로"
+      },
+      "note": "经验包内可自动路由或显式选择的一组有序编排节点。"
     }
   ]
 }

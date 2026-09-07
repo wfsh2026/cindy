@@ -1,6 +1,6 @@
 {
   "source": "apps/desktop/src/renderer/themes/colors.ts",
-  "count": 520,
+  "count": 523,
   "colors": [
     {
       "id": "surface",
@@ -2346,6 +2346,21 @@
       "id": "error-border",
       "light": "rgba(220, 38, 38, 0.4)",
       "dark": "#7f1d1d"
+    },
+    {
+      "id": "cartethyia-damage-color",
+      "light": "#D5A9FF",
+      "dark": "#D5A9FF"
+    },
+    {
+      "id": "cartethyia-damage-outline",
+      "light": "#30204F",
+      "dark": "#30204F"
+    },
+    {
+      "id": "cartethyia-skill-damage-color",
+      "light": "#F0DFFF",
+      "dark": "#F0DFFF"
     },
     {
       "id": "error-fg",

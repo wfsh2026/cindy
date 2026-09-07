@@ -8,7 +8,10 @@ import {
   type UserMessage,
 } from '@cindy/maker-core';
 import { CODEX_RESUME_NOT_READY_WIRE_MESSAGE } from '@cindy/maker-shared/agent-input-projection';
-import type { AgentInputQueuedMessage } from '../../shared/agentInputQueue.js';
+import {
+  stripExperienceContextFromMakerMessage,
+  type AgentInputQueuedMessage,
+} from '../../shared/agentInputQueue.js';
 
 import {
   createHostSendFailure,
@@ -471,8 +474,13 @@ function readPersistUserMessageOption(sendOpts: MakerSendOptions): {
   return {
     clientId: persist.clientId,
     content: persist.content,
-    ...(persist.agentFacingWireContent && typeof persist.agentFacingWireContent === 'object'
-      ? { agentFacingWireContent: persist.agentFacingWireContent as IpcUserMessage }
+    ...(typeof persist.agentFacingWireContent === 'string' ||
+    (persist.agentFacingWireContent && typeof persist.agentFacingWireContent === 'object')
+      ? {
+          agentFacingWireContent: stripExperienceContextFromMakerMessage(
+            persist.agentFacingWireContent as IpcUserMessage,
+          ) as IpcUserMessage,
+        }
       : {}),
     ...(typeof persist.sdkSessionId === 'string' ? { sdkSessionId: persist.sdkSessionId } : {}),
     ...(persist.autoResume === true ? { autoResume: true as const } : {}),

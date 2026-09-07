@@ -16,6 +16,10 @@ import { useNavigate } from 'react-router-dom';
 import { Folder, MessageSquarePlus, Mic, Pen, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AgentInputReference } from '@cindy/maker-shared/agent-input-projection';
+import {
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
 import { requiresFullAccessConfirmation } from '@cindy/maker-shared/permission-mode';
 import { ImageLightbox } from '@/components/chat/ImageLightbox';
 import { ImageHoverPreview } from '@/components/chat/ImageHoverPreview';
@@ -158,6 +162,7 @@ import {
 import { useConfirmDialog } from '@/components/ui/confirm-dialog-provider';
 import { PermissionSelector } from './PermissionSelector';
 import { ExtraDirsButton, type CollaborationMenuConfig } from './ExtraDirsButton';
+import { ExperiencePackButton } from './ExperiencePackButton';
 import { expandHostCapabilityInvocation } from '../../cindy-brain/hostCapabilityInvocation';
 import {
   focusComposerEndNextFrame,
@@ -450,6 +455,21 @@ interface ComposerModeMenuConfig {
   onToggle: (enabled: boolean) => void;
 }
 
+/**
+ * Click-time guard for project-experience mutations.
+ *
+ * A send may settle after the composer has been reused for another task (or
+ * after the user has picked a different experience).  The selection value by
+ * itself is not enough as a guard because `undefined` is a meaningful state:
+ * it can mean either "no selection" or an explicit clear intent.  Keep the
+ * mutation revision and the clear bit together so an async completion can
+ * only consume the exact state it captured at click time.
+ */
+
+type ExperienceSelectionCommitOptions = {
+  forceRevision?: boolean;
+};
+
 interface ChatInputProps {
   onSend: (
     message: string,
@@ -469,6 +489,10 @@ interface ChatInputProps {
       pastedTextRanges?: PastedTextRange[];
       /** Exact local display ranges for slash commands confirmed by this composer. */
       slashCommandRanges?: SlashCommandRange[];
+      /** UI-only project experience selection; Main resolves正文 at dispatch. */
+      experience?: ExperienceSelectionSnapshot;
+      /** Explicitly clear the task's frozen project-experience context. */
+      experienceCleared?: boolean;
       /**
        * New Maker 会异步创建会话并自己清理草稿，onSend 为保留编辑器
        * 始终返回 false。它在消息真正移交给新会话后调本回调，与
@@ -808,6 +832,10 @@ interface ChatInputProps {
    * 语义见 ModelSelectorProps.selectedFavoriteUid。
    */
   selectedFavoriteUid?: string | null;
+  /** Metadata-only selection restored after a remote handoff interruption. */
+  restoredExperienceSelection?: ExperienceSelectionSnapshot;
+  /** Explicit clear restored after a remote handoff interruption. */
+  restoredExperienceCleared?: boolean;
 }
 
 /** 统一模型选择器联合列表的候选引擎全集(与 SELECTABLE_VENDORS 同一顺序)。 */
@@ -1135,6 +1163,8 @@ export function ChatInput({
   collaboration,
   onUnifiedDraftSelect,
   selectedFavoriteUid = null,
+  restoredExperienceSelection,
+  restoredExperienceCleared = false,
 }: ChatInputProps) {
   // device-link 远程会话:null = 已确认本地会话,undefined = 所有权尚未解析,string = 远程会话。
   // 预测守卫用原始值区分 null vs undefined,下游通路继续用 ?? undefined 归一化。
@@ -1187,6 +1217,113 @@ export function ChatInput({
   // call sites keep working unchanged; NewMakerDraftRoute passes an explicit
   // sentinel to keep the transient draft alive across sidebar switches.
   const storageKey = draftKey ?? sessionId;
+  // Project experience is composer metadata. The selection (IDs only) follows
+  // the same draft/session boundary as text and attachments; resolved正文 is
+  // still Main-owned and never enters this store.
+  const [experienceSelection, setExperienceSelection] = useState<ExperienceSelectionSnapshot>();
+  const [experienceCleared, setExperienceCleared] = useState(false);
+  const [experiencePanelOpen, setExperiencePanelOpen] = useState(false);
+  const [experienceSelectionReady, setExperienceSelectionReady] = useState(!sessionId);
+  // Keep these refs authoritative at mutation boundaries.  Reassigning them
+  // from every render can overwrite a click-time update before React commits
+  // it, which would make an async send completion clear a newer choice.
+  const experienceSelectionRef = useRef<ExperienceSelectionSnapshot>(experienceSelection);
+  const experienceClearedRef = useRef(experienceCleared);
+  const experienceSelectionRevisionRef = useRef(0);
+  const commitExperienceSelection = useCallback(
+    (
+      next: ExperienceSelectionSnapshot | undefined,
+      nextCleared: boolean,
+      options?: ExperienceSelectionCommitOptions,
+    ) => {
+      const changed =
+        JSON.stringify(experienceSelectionRef.current ?? null) !== JSON.stringify(next ?? null) ||
+        experienceClearedRef.current !== nextCleared;
+      if (changed || options?.forceRevision === true) {
+        experienceSelectionRevisionRef.current += 1;
+      }
+      experienceSelectionRef.current = next;
+      experienceClearedRef.current = nextCleared;
+      setExperienceSelection(next);
+      setExperienceCleared(nextCleared);
+    },
+    [],
+  );
+  const updateExperienceSelection = useCallback(
+    (value?: ExperienceSelectionSnapshot, options?: { explicitClear?: boolean }) => {
+      const normalized = value ? normalizeExperienceSelectionSnapshot(value) : undefined;
+      const shouldMarkCleared = options?.explicitClear === true && !normalized;
+      setExperienceSelectionReady(true);
+      commitExperienceSelection(normalized ?? undefined, shouldMarkCleared, {
+        forceRevision: true,
+      });
+      if (sessionId && !draftKey) {
+        const request = { sessionId, selection: normalized ?? null };
+        void window.electronAPI.experiencePacks.setSelection(request).catch((error) => {
+          log.warn('project experience selection save failed:', error);
+          toast.error(t('newChat.chatInput.projectExperience.saveFailed'));
+        });
+      }
+      if (!storageKey) return;
+      const existing = getComposerDraft(storageKey);
+      saveComposerDraft(
+        storageKey,
+        {
+          text: existing?.text ?? null,
+          attachments: existing?.attachments ?? [],
+          quotes: existing?.quotes ?? [],
+          browserComments: existing?.browserComments ?? [],
+          ...(existing?.pendingGhostId ? { pendingGhostId: existing.pendingGhostId } : {}),
+          ...(existing?.pendingHostCapabilityGhostId
+            ? { pendingHostCapabilityGhostId: existing.pendingHostCapabilityGhostId }
+            : {}),
+          ...(existing?.focusAtEnd ? { focusAtEnd: true } : {}),
+          experience: normalized ?? undefined,
+          ...(shouldMarkCleared ? { experienceCleared: true } : { experienceCleared: false }),
+        },
+        { silent: true, preserveRemoteOptimisticRecovery: true },
+      );
+    },
+    [commitExperienceSelection, storageKey, sessionId, draftKey, t],
+  );
+  useEffect(() => {
+    const restored = normalizeExperienceSelectionSnapshot(restoredExperienceSelection);
+    const draft = storageKey ? getComposerDraft(storageKey) : undefined;
+    const draftSelection = normalizeExperienceSelectionSnapshot(draft?.experience);
+    const draftHasChoice = !!draftSelection || draft?.experienceCleared === true;
+    const next = draftHasChoice ? draftSelection : restored;
+    const nextCleared = draftHasChoice ? !draftSelection : restoredExperienceCleared;
+    commitExperienceSelection(next ?? undefined, nextCleared);
+    setExperiencePanelOpen(false);
+    setExperienceSelectionReady(!sessionId || !!draftKey || draftHasChoice || !!restored || nextCleared);
+    if (!sessionId || draftKey) return;
+    const revision = experienceSelectionRevisionRef.current;
+    const owner = getDataOwnerGeneration();
+    let cancelled = false;
+    const restoreSelection = async (): Promise<void> => {
+      try {
+        if (draftHasChoice || restored || nextCleared) {
+          const request = { sessionId, selection: next ?? null };
+          await window.electronAPI.experiencePacks.setSelection(request);
+          return;
+        }
+        const result = await window.electronAPI.experiencePacks.getSelection(sessionId);
+        if (cancelled || !isDataOwnerGenerationCurrent(owner) || revision !== experienceSelectionRevisionRef.current) return;
+        const selection = result.selection ?? undefined;
+        commitExperienceSelection(selection, !selection);
+        setExperienceSelectionReady(true);
+        const current = getComposerDraft(sessionId);
+        const saved = { ...current, text: current?.text ?? null, attachments: current?.attachments ?? [], experience: selection, experienceCleared: !selection };
+        saveComposerDraft(sessionId, saved, { silent: true });
+      } catch (error) {
+        if (cancelled) return;
+        log.warn('project experience selection restore failed:', error);
+        toast.error(t('newChat.chatInput.projectExperience.saveFailed'));
+      }
+    };
+    void restoreSelection();
+    return () => { cancelled = true; };
+  }, [commitExperienceSelection, restoredExperienceCleared, restoredExperienceSelection, storageKey, sessionId, draftKey, t]);
   // perf/session-switch 探针(见文件头 perfLog 注释):按 storageKey 换代计一次
   // render 起点,layout effect 里量到 commit 完成;覆盖"remount"与"复用组件仅换
   // key"两种切换形态。纯诊断:所有测量走 import.meta.env.DEV,生产构建里 body
@@ -2706,6 +2843,14 @@ export function ChatInput({
               ? { pendingHostCapabilityGhostId: existing.pendingHostCapabilityGhostId }
               : {}),
             ...(existing?.focusAtEnd ? { focusAtEnd: true } : {}),
+            // Omit experience metadata when the composer has no selection:
+            // `saveDraft` treats an own `experience: undefined` as an explicit
+            // clear, while ordinary text saves must preserve a selection that
+            // another writer (or a still-running hydration effect) owns.
+            ...(experienceSelectionRef.current
+              ? { experience: experienceSelectionRef.current }
+              : {}),
+            ...(experienceClearedRef.current ? { experienceCleared: true } : {}),
           },
           { silent: true },
         );
@@ -3006,6 +3151,8 @@ export function ChatInput({
     serialized: SerializedComposerContent;
     attachments: AttachedFile[];
     comments: BrowserCommentDraftItem[];
+    experience?: ExperienceSelectionSnapshot;
+    experienceCleared?: boolean;
   } | null>(null);
   const voiceInputOptions = useMemo(
     () => ({
@@ -3724,12 +3871,20 @@ export function ChatInput({
         (!existingFreeze || existingFreeze.sourceStorageKey === voiceOwnerKey)
       ) {
         const sourceDraft = getComposerDraft(prevEditorKey);
+        const sourceExperience =
+          normalizeExperienceSelectionSnapshot(sourceDraft?.experience) ??
+          experienceSelectionRef.current;
+        const sourceExperienceCleared =
+          sourceDraft?.experienceCleared === true ||
+          (!sourceExperience && experienceClearedRef.current);
         frozenVoiceSendRef.current = {
           kind: pendingStopAndSend ? 'send' : 'persist',
           sourceStorageKey: voiceOwnerKey,
           serialized: serializeEditorContent(editor),
           attachments: [...(sourceDraft?.attachments ?? [])],
           comments: [...(sourceDraft?.browserComments ?? browserCommentsRef.current)],
+          ...(sourceExperience ? { experience: sourceExperience } : {}),
+          ...(sourceExperienceCleared ? { experienceCleared: true } : {}),
         };
       }
     }
@@ -3810,6 +3965,9 @@ export function ChatInput({
       if (!isDataOwnerIdCurrent(dataOwnerAtSubscription)) return;
       const draft = getComposerDraft(storageKey);
       if (!draft) return;
+      const nextExperience = normalizeExperienceSelectionSnapshot(draft.experience);
+      const nextExperienceCleared = draft.experienceCleared === true && !nextExperience;
+      commitExperienceSelection(nextExperience ?? undefined, nextExperienceCleared);
       const nextBrowserComments = [...(draft.browserComments ?? [])];
       browserCommentsRef.current = nextBrowserComments;
       setBrowserComments(nextBrowserComments);
@@ -3841,7 +3999,7 @@ export function ChatInput({
         isRestoringRef.current = false;
       }
     });
-  }, [editor, storageKey]);
+  }, [commitExperienceSelection, editor, storageKey]);
 
   // device-link 归属解析成「已确认远程」后补剥 Host capability 芯片。草稿恢复
   // 效果依赖 [editor, storageKey],归属从 undefined(未解析)→ 远程 string 时不会
@@ -4990,6 +5148,11 @@ export function ChatInput({
       const sourceSessionId = sessionId;
       const sourceStorageKey = storageKey;
       const sendInFlightKey = sourceStorageKey ?? sourceSessionId ?? '__draft__';
+      // Freeze the metadata selection at click time just like the editor
+      // snapshot. The Main process will resolve正文 later; Renderer never
+      // receives or transports the selected module contents.
+      const liveSelectedExperience = experienceSelectionRef.current;
+      const liveSelectedExperienceCleared = experienceClearedRef.current;
       if (dispatchSendInFlightKeysRef.current.has(sendInFlightKey)) return;
       const optimisticallyClearRemoteComposer = Boolean(deviceLinkDeviceId && sourceSessionId);
       // Device-link sends freeze the entire composer at click time. Any remote
@@ -5020,6 +5183,18 @@ export function ChatInput({
         frozenVoiceSendRef.current?.sourceStorageKey === sourceStorageKey
           ? frozenVoiceSendRef.current
           : null;
+      const frozenExperience = normalizeExperienceSelectionSnapshot(
+        frozenSourceAtStart?.experience ?? sourceDraftAtStart?.experience,
+      );
+      const frozenExperienceCleared =
+        frozenSourceAtStart?.experienceCleared === true ||
+        (frozenSourceAtStart === null && sourceDraftAtStart?.experienceCleared === true);
+      const selectedExperience = editorOwnsSourceAtStart
+        ? liveSelectedExperience
+        : frozenExperience ?? undefined;
+      const selectedExperienceCleared = editorOwnsSourceAtStart
+        ? liveSelectedExperienceCleared
+        : frozenExperienceCleared && !frozenExperience;
       let documentBeforeOptimisticClear = editorOwnsSourceAtStart
         ? editor.getJSON()
         : (sourceDraftAtStart?.text ?? { type: 'doc', content: [{ type: 'paragraph' }] });
@@ -5316,11 +5491,49 @@ export function ChatInput({
         const routedText = hostCapability
           ? expandHostCapabilityInvocation(textToSend, hostCapability, hostCapability.name)
           : textToSend;
-        const sendSnapshot = captureComposerSendSnapshot(
-          editor.getJSON(),
-          latestAttachmentsRef.current,
-          browserCommentsRef.current,
-        );
+
+        if (!experienceSelectionReady && sourceSessionId) {
+          toast.warning(t('newChat.chatInput.projectExperience.loading'));
+          return;
+        }
+        // Automatic routing is a user-visible choice gate. A unique match is
+        // allowed through; no-match/ambiguous input reopens this picker and
+        // leaves the composer untouched. A selected package must pass preview
+        // validation; users can explicitly turn it off to send without it.
+        if (selectedExperience) {
+          try {
+            const request = {
+              text: routedText,
+              selection: selectedExperience,
+              sessionId: sourceSessionId,
+            };
+            const routeResult = await window.electronAPI.experiencePacks.resolve(request);
+            if (routeResult.requiresUserChoice) {
+              setExperiencePanelOpen(true);
+              toast.warning(
+                t('newChat.chatInput.projectExperience.chooseWorkflow'),
+                { duration: 4000 },
+              );
+              return;
+            }
+            if (!routeResult.plan) {
+              toast.warning(routeResult.reason ?? t('newChat.chatInput.projectExperience.loadFailed'));
+              return;
+            }
+          } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            log.warn('project experience route preview failed:', reason);
+            const message = t('newChat.chatInput.projectExperience.loadFailed');
+            toast.error(message);
+            return;
+          }
+        }
+        const sendSnapshot = captureComposerSendSnapshot(editor.getJSON(), {
+          attachments: latestAttachmentsRef.current,
+          browserComments: browserCommentsRef.current,
+          ...(selectedExperience ? { experience: selectedExperience } : {}),
+          ...(selectedExperienceCleared ? { experienceCleared: true } : {}),
+        });
         if (
           !optimisticallyClearRemoteComposer &&
           editorOwnsSourceDraft({
@@ -5339,6 +5552,10 @@ export function ChatInput({
           attachmentsBeforeOptimisticClear = [...latestAttachmentsRef.current];
           commentsBeforeOptimisticClear = [...browserCommentsRef.current];
         }
+        // A remote optimistic send can settle after the click-time selection
+        // has been cleared.  Remember the exact revision produced by this
+        // send so late failure recovery may restore it only when the user has
+        // not changed the composer in the meantime.
         let recentUsageMarked = false;
         const markRecentPluginUsage = () => {
           if (!usedGhost || recentUsageMarked) return;
@@ -5367,12 +5584,14 @@ export function ChatInput({
             !options?.preserveNewerContent &&
             !optimisticallyClearRemoteComposer &&
             isCurrentComposer &&
-            !isComposerSendSnapshotCurrent(
-              sendSnapshot,
-              editor.getJSON(),
-              latestAttachmentsRef.current,
-              browserCommentsRef.current,
-            )
+            !isComposerSendSnapshotCurrent(sendSnapshot, editor.getJSON(), {
+              attachments: latestAttachmentsRef.current,
+              browserComments: browserCommentsRef.current,
+              ...(experienceSelectionRef.current
+                ? { experience: experienceSelectionRef.current }
+                : {}),
+              ...(experienceClearedRef.current ? { experienceCleared: true } : {}),
+            })
           ) {
             return;
           }
@@ -5407,11 +5626,17 @@ export function ChatInput({
                 text: currentDraft.text,
                 attachments: currentDraft.attachments,
                 browserComments: currentDraft.browserComments ?? [],
+                ...(currentDraft.experience
+                  ? { experience: currentDraft.experience }
+                  : {}),
+                ...(currentDraft.experienceCleared ? { experienceCleared: true } : {}),
               },
               {
                 text: documentBeforeOptimisticClear,
                 attachments: attachmentsBeforeOptimisticClear,
                 browserComments: commentsBeforeOptimisticClear,
+                ...(selectedExperience ? { experience: selectedExperience } : {}),
+                ...(selectedExperienceCleared ? { experienceCleared: true } : {}),
               },
             );
             const changed =
@@ -5421,7 +5646,10 @@ export function ChatInput({
               next.browserComments.length !== (currentDraft.browserComments ?? []).length ||
               next.browserComments.some(
                 (comment, index) => comment !== (currentDraft.browserComments ?? [])[index],
-              );
+              ) ||
+              JSON.stringify(next.experience ?? null) !==
+                JSON.stringify(currentDraft.experience ?? null) ||
+              next.experienceCleared !== (currentDraft.experienceCleared === true);
             if (!changed) return;
             saveComposerDraft(
               sourceStorageKey,
@@ -5430,6 +5658,8 @@ export function ChatInput({
                 text: next.text,
                 attachments: [...next.attachments],
                 browserComments: [...next.browserComments],
+                experience: next.experience,
+                ...(next.experienceCleared ? { experienceCleared: true } : { experienceCleared: false }),
               },
               { silent: true, preserveRemoteOptimisticRecovery: true },
             );
@@ -5442,11 +5672,17 @@ export function ChatInput({
                 text: currentDocument,
                 attachments: latestAttachmentsRef.current,
                 browserComments: browserCommentsRef.current,
+                ...(experienceSelectionRef.current
+                  ? { experience: experienceSelectionRef.current }
+                  : {}),
+                ...(experienceClearedRef.current ? { experienceCleared: true } : {}),
               },
               {
                 text: documentBeforeOptimisticClear,
                 attachments: attachmentsBeforeOptimisticClear,
                 browserComments: commentsBeforeOptimisticClear,
+                ...(selectedExperience ? { experience: selectedExperience } : {}),
+                ...(selectedExperienceCleared ? { experienceCleared: true } : {}),
               },
             );
             const changed =
@@ -5458,7 +5694,10 @@ export function ChatInput({
               next.browserComments.length !== browserCommentsRef.current.length ||
               next.browserComments.some(
                 (comment, index) => comment !== browserCommentsRef.current[index],
-              );
+              ) ||
+              JSON.stringify(next.experience ?? null) !==
+                JSON.stringify(experienceSelectionRef.current ?? null) ||
+              next.experienceCleared !== experienceClearedRef.current;
             if (!changed) return;
             isRestoringRef.current = true;
             try {
@@ -5485,6 +5724,8 @@ export function ChatInput({
                   attachments: [...next.attachments],
                   quotes: existing?.quotes ?? [],
                   browserComments: [...next.browserComments],
+                  experience: next.experience,
+                  ...(next.experienceCleared ? { experienceCleared: true } : { experienceCleared: false }),
                 },
                 { silent: true, preserveRemoteOptimisticRecovery: true },
               );
@@ -5539,12 +5780,18 @@ export function ChatInput({
                 : null,
               attachments: attachmentsBeforeOptimisticClear,
               browserComments: commentsBeforeOptimisticClear,
+              ...(selectedExperience ? { experience: selectedExperience } : {}),
+              ...(selectedExperienceCleared ? { experienceCleared: true } : {}),
             },
             isCurrentComposer
               ? {
                   text: isEditorEmpty(editor) ? null : editor.getJSON(),
                   attachments: latestAttachmentsRef.current,
                   browserComments: browserCommentsRef.current,
+                  ...(experienceSelectionRef.current
+                    ? { experience: experienceSelectionRef.current }
+                    : {}),
+                  ...(experienceClearedRef.current ? { experienceCleared: true } : {}),
                 }
               : undefined,
             recoveryBatch ? { recoveryBatch } : undefined,
@@ -5566,6 +5813,10 @@ export function ChatInput({
           const restoredComments = [...(restored.browserComments ?? [])];
           browserCommentsRef.current = restoredComments;
           setBrowserComments(restoredComments);
+          const restoredExperience = normalizeExperienceSelectionSnapshot(restored.experience);
+          const restoredExperienceCleared =
+            restored.experienceCleared === true && !restoredExperience;
+          commitExperienceSelection(restoredExperience ?? undefined, restoredExperienceCleared);
         };
         const onRemoteOptimisticFailure = optimisticallyClearRemoteComposer
           ? (clientId: string, error?: unknown) => {
@@ -5612,6 +5863,7 @@ export function ChatInput({
           }
           markRecentPluginUsage();
         };
+        const onRemoteOptimisticFailureWithExperience = onRemoteOptimisticFailure;
         const restoreRemoteComposerAndRelease = () => {
           try {
             restoreOptimisticallyClearedComposer();
@@ -5715,8 +5967,12 @@ export function ChatInput({
               ...(pastedTextRanges.length > 0 ? { pastedTextRanges } : {}),
               slashCommandRanges,
               ...(usedGhost ? { onAccepted: markRecentPluginUsage } : {}),
-              ...(onRemoteOptimisticFailure ? { onRemoteOptimisticFailure } : {}),
+              ...(onRemoteOptimisticFailureWithExperience
+                ? { onRemoteOptimisticFailure: onRemoteOptimisticFailureWithExperience }
+                : {}),
               onDeferredAccepted,
+              ...(selectedExperience ? { experience: selectedExperience } : {}),
+              ...(selectedExperienceCleared ? { experienceCleared: true } : {}),
             },
           );
         } catch (error) {
@@ -5770,6 +6026,9 @@ export function ChatInput({
       captureSendFocusForRestore,
       slashCommandsReady,
       mergedCommands,
+      commitExperienceSelection,
+      updateExperienceSelection,
+      experienceSelectionReady,
     ],
   );
   useEffect(() => {
@@ -8538,6 +8797,16 @@ export function ChatInput({
                       maxHeight={paletteMaxHeight}
                     />
                   }
+                  disabled={composerMutationLocked}
+                  dense={effectiveDenseToolbar}
+                  visualVariant={isCreateAgentVariant ? 'create-agent' : 'default'}
+                />
+                <ExperiencePackButton
+                  sessionId={sessionId}
+                  value={experienceSelection}
+                  onChange={updateExperienceSelection}
+                  open={experiencePanelOpen}
+                  onOpenChange={setExperiencePanelOpen}
                   disabled={composerMutationLocked}
                   dense={effectiveDenseToolbar}
                   visualVariant={isCreateAgentVariant ? 'create-agent' : 'default'}

@@ -2111,6 +2111,10 @@ registerColor('error-border', {
   light: 'rgba(220, 38, 38, 0.4)',
   dark: '#7f1d1d',
 }, '错误卡片边框');
+registerColor('cartethyia-damage-color', { light: '#D5A9FF', dark: '#D5A9FF' }, 'Cartethyia battle artwork: purple floating damage');
+registerColor('cartethyia-damage-outline', { light: '#30204F', dark: '#30204F' }, 'Cartethyia battle artwork: damage outline on the terrain');
+registerColor('cartethyia-skill-damage-color', { light: '#F0DFFF', dark: '#F0DFFF' }, 'Cartethyia battle artwork: luminous skill damage');
+
 registerColor('error-fg', {
   light: '#dc2626',
   dark: '#f87171',

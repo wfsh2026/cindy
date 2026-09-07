@@ -42,6 +42,19 @@ function queuedMessage(files: AgentInputQueuedMessage['files']): AgentInputQueue
 }
 
 describe('agentInputQueue', () => {
+  it('tells the agent to stop prior experience rules after an explicit clear without altering user history', () => {
+    const queued = queuedMessage([]);
+    queued.experienceCleared = true;
+    const message = buildMakerUserMessage(queued);
+    if (typeof message === 'string') throw new Error('Expected structured experience-clear message');
+    expect(message.content).toEqual([
+      { type: 'text', text: queued.text },
+      { type: 'text', text: 'PROJECT_EXPERIENCE_DISABLED: The user has turned off project experience for this session. Do not apply previous experience-pack conversation formats or workflow instructions to this or subsequent replies unless the user enables a pack again.' },
+    ]);
+    expect(queued.persistedContent).toBe('inspect attachment');
+    expect(queued.chatMessage.content).toBe('inspect attachment');
+  });
+
   it('sends queued GIF attachments as file blocks', () => {
     expect(
       buildMakerUserMessage(

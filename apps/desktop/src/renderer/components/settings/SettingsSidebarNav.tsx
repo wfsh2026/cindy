@@ -62,6 +62,7 @@ const TAB_ICON: Record<VisibleSettingsTab, SettingsNavIcon> = {
   billing: CircleDollarSign,
   usage: ChartColumn,
   personalization: Sparkles,
+  'personal-mods': Boxes,
   providers: Boxes,
   'voice-input': Mic,
   shortcuts: Keyboard,

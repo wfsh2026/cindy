@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
 import { ComposerModeHost, ComposerModeSlot } from '../ComposerModeHost';
@@ -53,4 +53,9 @@ describe('ComposerModeHost', () => {
     const pausedWhileInactive = inactiveSprite?.classList.contains('cartethyia-battle__sprite-strip--paused');
     expect(pausedWhileInactive).toBe(true);
   });
+});
+
+vi.mock('@/features/composer-modes/useInstalledPersonalMod', async () => {
+  const { installedModFixture } = await import('./personalModFixture');
+  return { useInstalledPersonalMod: () => ({ mod: installedModFixture, loading: false, error: false }), refreshPersonalMod: async () => undefined };
 });

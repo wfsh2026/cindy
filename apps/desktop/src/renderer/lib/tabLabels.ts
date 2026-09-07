@@ -12,6 +12,7 @@ export type SettingsTab =
   | 'billing'
   | 'usage'
   | 'personalization'
+  | 'personal-mods'
   | 'providers'
   | 'api-keys'
   | 'voice-input'
@@ -32,6 +33,7 @@ export type SettingsTab =
 export const TAB_IDS = [
   'general',
   'personalization',
+  'personal-mods',
   'providers',
   'billing',
   // 「用量历史」紧随计费:两者都回答"我用了多少",但分工明确 —— billing 管账单与账户
@@ -64,6 +66,7 @@ export const TAB_LABEL_KEY: Record<SettingsTab, string> = {
   billing: 'settings.tabs.billing',
   usage: 'settings.tabs.usage',
   personalization: 'settings.tabs.personalization',
+  'personal-mods': 'settings.tabs.personalMods',
   'api-keys': 'settings.tabs.apiKeys',
   'voice-input': 'settings.tabs.voiceInput',
   shortcuts: 'settings.tabs.shortcuts',

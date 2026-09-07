@@ -11,6 +11,7 @@ import {
   GHOST_LOCALE_MAX_BYTES,
   GHOST_ICON_MAX_BYTES,
   GHOST_INSTALL_MANIFEST_MAX_BYTES,
+  GHOST_EXPERIENCE_PACK_MAX_BYTES,
   GHOST_MANUAL_ENTRY_FILE,
   GHOST_MANUAL_MD_MAX_BYTES,
   GHOST_SKILL_MD_MAX_BYTES,
@@ -2316,6 +2317,40 @@ export class GhostManager {
     const v = validateGhostManifest(manifestRaw);
     if (!v.ok) {
       return { rejection: { code: 'file-invalid', reason: `清单不合格:${v.reason}` } };
+    }
+    // experiencePack is a read-only metadata contribution. Validate its entry
+    // at the same package boundary as the manifest so a declared path can
+    // never install successfully while being absent, a directory, a symlink,
+    // invalid UTF-8, or executable content. The remaining indexes are parsed
+    // lazily by experiencePackService.
+    if (v.manifest.experiencePack) {
+      const experiencePath = `${prefix}${v.manifest.experiencePack.entry}`;
+      const experienceEntry = zip.file(experiencePath);
+      if (!experienceEntry || experienceEntry.dir || isZipSymbolicLink(experienceEntry)) {
+        return {
+          rejection: {
+            code: 'file-invalid',
+            reason: `清单声明了 experiencePack.entry,但压缩包内缺少普通文件 ${v.manifest.experiencePack.entry}`,
+          },
+        };
+      }
+      try {
+        const experienceBytes = await readZipEntryBufferWithLimit(
+          experienceEntry,
+          GHOST_EXPERIENCE_PACK_MAX_BYTES,
+          `experiencePack ${v.manifest.experiencePack.entry}`,
+        );
+        const decoder = new TextDecoder('utf-8', { fatal: true });
+        const experienceText = decoder.decode(experienceBytes);
+        JSON.parse(experienceText);
+      } catch {
+        return {
+          rejection: {
+            code: 'file-invalid',
+            reason: `experiencePack.entry 不是合法 UTF-8 JSON 或超过 ${GHOST_EXPERIENCE_PACK_MAX_BYTES} 字节`,
+          },
+        };
+      }
     }
     if (!v.manifest.node && buf.byteLength > MAX_BASIC_CINDY_FILE_BYTES) {
       return {

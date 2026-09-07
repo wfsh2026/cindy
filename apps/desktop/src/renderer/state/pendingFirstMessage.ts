@@ -27,6 +27,10 @@
 import type { AttachedFile, MentionedResource } from '@/lib/fileTypes';
 import type { PastedTextRange, SlashCommandRange } from '@/lib/imageRef';
 import type { AgentInputReference } from '@cindy/maker-shared/agent-input-projection';
+import {
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
 import type { DeferredUiAssignment } from '@/features/cc-agent/deferredUiAssignment';
 
 /**
@@ -56,6 +60,10 @@ export interface PendingPayload {
   agentReferences?: AgentInputReference[];
   pastedTextRanges?: PastedTextRange[];
   slashCommandRanges?: SlashCommandRange[];
+  /** UI-only project-experience selection;正文 is resolved by Main after handoff. */
+  experience?: ExperienceSelectionSnapshot;
+  /** Explicitly clear the task's frozen project-experience context. */
+  experienceCleared?: boolean;
   /** 非空 = 发首轮之前先在被控端开协同(见 PendingRemoteCollab)。 */
   remoteCollab?: PendingRemoteCollab;
   /** 本机 Worker 已创建但尚未派单；首条消息 accepted 后再派。 */
@@ -152,9 +160,19 @@ const RECOVERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type RecoverableHandoffKind = 'message' | 'goal';
 
+export type RecoverableHandoffInput = {
+  text: string;
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
+};
+
 interface RecoverableHandoff {
   kind: RecoverableHandoffKind;
   text: string;
+  /** Selection metadata only; experience正文 is never stored in this copy. */
+  experience?: ExperienceSelectionSnapshot;
+  /** Explicit composer intent to clear a frozen experience context. */
+  experienceCleared?: boolean;
   createdAt: number;
 }
 
@@ -210,9 +228,20 @@ function parseRecoveryTable(raw: string): {
       pruned = true;
       continue;
     }
+    const rawExperience = (entry as { experience?: unknown }).experience;
+    const experience = rawExperience === undefined
+      ? undefined
+      : normalizeExperienceSelectionSnapshot(rawExperience);
+    if (rawExperience !== undefined && !experience) pruned = true;
+    const rawExperienceCleared = (entry as { experienceCleared?: unknown }).experienceCleared;
+    if (rawExperienceCleared !== undefined && typeof rawExperienceCleared !== 'boolean') {
+      pruned = true;
+    }
     table[sessionId] = {
       kind: entry.kind as RecoverableHandoffKind,
       text: entry.text as string,
+      ...(experience ? { experience } : {}),
+      ...(rawExperienceCleared === true && !experience ? { experienceCleared: true } : {}),
       createdAt: entry.createdAt as number,
     };
   }
@@ -250,11 +279,26 @@ function writeRecoveryTable(table: Record<string, RecoverableHandoff>): void {
 export function rememberRecoverableHandoff(
   sessionId: string,
   kind: RecoverableHandoffKind,
-  text: string,
+  input: string | RecoverableHandoffInput,
 ): void {
+  const text = typeof input === 'string' ? input : input.text;
   if (!sessionId || text === '') return;
   const table = readRecoveryTable();
-  table[sessionId] = { kind, text, createdAt: Date.now() };
+  const experience = typeof input === 'string' ? undefined : input.experience;
+  const experienceCleared = typeof input === 'string' ? false : input.experienceCleared === true;
+  // An explicit clear always wins if a malformed/over-complete caller happens
+  // to provide both fields.  Keeping the record in this canonical shape makes
+  // the three-state contract unambiguous after a reload.
+  const normalizedExperience = !experienceCleared && experience
+    ? normalizeExperienceSelectionSnapshot(experience)
+    : null;
+  table[sessionId] = {
+    kind,
+    text,
+    ...(normalizedExperience ? { experience: normalizedExperience } : {}),
+    ...(experienceCleared && !normalizedExperience ? { experienceCleared: true } : {}),
+    createdAt: Date.now(),
+  };
   writeRecoveryTable(table);
 }
 
@@ -305,13 +349,33 @@ export function takeRecoverableHandoff(
   sessionId: string,
   kind: RecoverableHandoffKind,
 ): string | null {
+  return takeRecoverableHandoffDetails(sessionId, kind)?.text ?? null;
+}
+
+/**
+ * Read and consume the recoverable handoff together with its metadata-only
+ * experience selection. The old string-only API above remains for callers
+ * that do not need to restore the picker state.
+ */
+export function takeRecoverableHandoffDetails(
+  sessionId: string,
+  kind: RecoverableHandoffKind,
+): {
+  text: string;
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
+} | null {
   if (!sessionId) return null;
   const table = readRecoveryTable();
   const entry = table[sessionId];
   if (!entry || entry.kind !== kind) return null;
   delete table[sessionId];
   writeRecoveryTable(table);
-  return entry.text;
+  return {
+    text: entry.text,
+    ...(entry.experience ? { experience: entry.experience } : {}),
+    ...(entry.experienceCleared ? { experienceCleared: true } : {}),
+  };
 }
 
 /** 测试用。 */

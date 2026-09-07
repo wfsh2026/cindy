@@ -41,6 +41,18 @@ const comment = {
 };
 
 describe('composer send snapshot', () => {
+  it('compares retained experience metadata and detects a later explicit clear', () => {
+    const experience = { version: 1 as const, packId: 'sausage', mode: 'auto' as const, workflowId: null, ignoredNodeIds: [], ignoredModuleIds: [] };
+    const fields = { attachments: [attachment], browserComments: [comment], experience };
+    const snapshot = captureComposerSendSnapshot(document, fields);
+    const unchanged = isComposerSendSnapshotCurrent(snapshot, document, fields);
+    expect(unchanged).toBe(true);
+    const cleared = { ...fields, experience: undefined, experienceCleared: true };
+    const changed = isComposerSendSnapshotCurrent(snapshot, document, cleared);
+    expect(changed).toBe(false);
+    expect(snapshot.experience).toEqual(experience);
+  });
+
   it('accepts unchanged editor and object versions', () => {
     const attachments = [attachment];
     const comments = [comment];

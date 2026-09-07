@@ -30,6 +30,7 @@ import {
 
 const _require = createRequire(__filename);
 const DESKTOP_PACKAGE_VERSION = (_require('./package.json') as { version: string }).version;
+const ELECTRON_RELEASE_CHECKSUMS = _require('electron/checksums.json') as Record<string, string>;
 
 // ── 构建期身份(2026-07-17 Cindy 渠道分叉) ─────────────────────────────────────
 // 区域默认 global;中国大陆包由发布脚本显式注入 CINDY_AUTH_REGION=cn。appId 随区域
@@ -1356,6 +1357,9 @@ if (isWin) {
 
 const config: ForgeConfig = {
   packagerConfig: {
+    // The pinned Electron npm package ships official release hashes. Validate
+    // cached archives with those hashes instead of re-fetching them from GitHub.
+    download: { checksums: ELECTRON_RELEASE_CHECKSUMS },
     // sharp 的底层 libvips 共享库 (libvips-cpp.dylib / libvips-42.dll /
     // libvips-cpp.so) 在不同平台上的位置不同:
     //   - macOS / Linux: 住在独立的 @img/sharp-libvips-{platform}-{arch}/ 包,

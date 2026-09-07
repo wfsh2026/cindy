@@ -14,6 +14,7 @@ export * from './fixtures.js';
 export * from './deviceLinkContract.js';
 export * from './errorRedaction.js';
 export * from './expandedBlockMemory.js';
+export * from './experiencePack.js';
 export * from './interaction.js';
 export * from './internalCitation.js';
 export * from './liveTaskPriority.js';

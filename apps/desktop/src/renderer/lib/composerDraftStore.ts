@@ -46,6 +46,10 @@ import {
   normalizeComposerDocumentJSON,
   plainTextToComposerDocument,
 } from './composerListDocument';
+import {
+  normalizeExperienceSelectionSnapshot,
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
 
 const log = createLogger('ComposerDraftStore');
 
@@ -79,6 +83,10 @@ export interface ComposerDraft {
    * 不需要带。
    */
   browserComments?: BrowserCommentDraftItem[];
+  /** Metadata-only project-experience selection;正文 is resolved by Main. */
+  experience?: ExperienceSelectionSnapshot;
+  /** Explicit composer intent to remove a task's frozen project-experience context. */
+  experienceCleared?: boolean;
 }
 
 export interface RemoteOptimisticDraftFragment {
@@ -86,12 +94,16 @@ export interface RemoteOptimisticDraftFragment {
   text: JSONContent | null;
   attachments: readonly AttachedFile[];
   browserComments: readonly BrowserCommentDraftItem[];
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
 }
 
 export interface RemoteOptimisticDraftSnapshot {
   text: JSONContent | null;
   attachments: readonly AttachedFile[];
   browserComments: readonly BrowserCommentDraftItem[];
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
 }
 
 /**
@@ -135,6 +147,47 @@ function areAttachedFileSnapshotsEqual(left: AttachedFile, right: AttachedFile):
     JSON.stringify(left.annotationStrokes ?? null) ===
       JSON.stringify(right.annotationStrokes ?? null)
   );
+}
+
+type ComposerExperienceState = {
+  present: boolean;
+  experience?: ExperienceSelectionSnapshot;
+  cleared: boolean;
+};
+
+function readComposerExperienceState(value: {
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
+} | undefined): ComposerExperienceState {
+  if (!value) return { present: false, cleared: false };
+  const hasExperience = Object.hasOwn(value, 'experience');
+  const hasClearedField = Object.hasOwn(value, 'experienceCleared');
+  const hasCleared = value.experienceCleared === true;
+  const experience = value.experience
+    ? normalizeExperienceSelectionSnapshot(value.experience) ?? undefined
+    : undefined;
+  // `experience: undefined, experienceCleared: false` is emitted by the
+  // composer when it clears only its local draft selection after a successful
+  // send.  It must not become a task-level clear directive, and it must not be
+  // treated as a recoverable fragment selection.  An own undefined without the
+  // boolean is retained as the legacy explicit-clear shape for old callers.
+  if (hasExperience && !experience && hasClearedField && value.experienceCleared === false) {
+    return { present: false, cleared: false };
+  }
+  return {
+    present: hasExperience || hasCleared,
+    ...(experience ? { experience } : {}),
+    cleared: hasCleared || (hasExperience && value.experience === undefined),
+  };
+}
+
+function hasComposerExperienceDirective(value: {
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
+} | undefined): boolean {
+  if (!value) return false;
+  if (Object.hasOwn(value, 'experience')) return true;
+  return value.experienceCleared === true;
 }
 
 /**
@@ -182,6 +235,7 @@ export function removeRemoteOptimisticDraftFragment(
     : current.text;
   const fragmentAttachmentsById = new Map(fragment.attachments.map((file) => [file.id, file]));
   const fragmentCommentIds = new Set(fragment.browserComments.map((comment) => comment.id));
+  const currentExperience = readComposerExperienceState(current);
   return {
     text: nextText,
     attachments: current.attachments.filter((file) => {
@@ -191,6 +245,12 @@ export function removeRemoteOptimisticDraftFragment(
     browserComments: current.browserComments.filter(
       (comment) => !fragmentCommentIds.has(comment.id),
     ),
+    ...(currentExperience.experience
+      ? { experience: currentExperience.experience }
+      : {}),
+    ...(currentExperience.cleared
+      ? { experienceCleared: true }
+      : {}),
   };
 }
 
@@ -308,6 +368,7 @@ export function draftHasContent(draft: ComposerDraft | undefined): boolean {
   if (draft.attachments.length > 0) return true;
   if (draft.quotes && draft.quotes.length > 0) return true;
   if (draft.browserComments && draft.browserComments.length > 0) return true;
+  // A retained task preference is not an unsent message.
   return tiptapDocHasContent(draft.text);
 }
 
@@ -359,7 +420,8 @@ export function isDraftDiscardTokenCurrent(token: ComposerDraftDiscardToken): bo
 }
 
 /**
- * Whether `sessionId` currently has a non-empty draft (text or attachments).
+ * Whether `sessionId` currently has a non-empty draft (text, attachments,
+ * comments, or a selected project-experience configuration).
  * Computed fresh on each call so it never drifts from the Map — cheap because
  * a draft doc is small. Used as the `useSyncExternalStore` getSnapshot in
  * `useComposerDraftPresence`; returns a boolean primitive so React bails out
@@ -418,7 +480,45 @@ export function saveDraft(
           quotes: [],
         }
       : draft;
-  drafts.set(key, withQuotes);
+  // `experience` has three useful states at this API boundary:
+  //   - omitted: preserve the previous selection while another writer updates
+  //     text/attachments;
+  //   - `experienceCleared: true`: clear the task selection;
+  //   - a value: replace it after strict normalization.
+  // An own undefined paired with `experienceCleared: false` only clears the
+  // current composer draft and is stored as an omitted field.  For backwards
+  // compatibility, an own undefined with no boolean remains the old explicit
+  // clear shape.
+  // Object.hasOwn is intentional; checking `draft.experience === undefined`
+  // cannot distinguish the first two cases. The explicit boolean survives
+  // JSON/localStorage boundaries where an own `undefined` is omitted.
+  const existing = drafts.get(key);
+  const hasExperienceField = Object.hasOwn(draft, 'experience');
+  const hasExperienceClearedField = Object.hasOwn(draft, 'experienceCleared');
+  const normalizedExperience = normalizeExperienceSelectionSnapshot(draft.experience);
+  const legacyExperienceClear =
+    hasExperienceField && !hasExperienceClearedField && draft.experience === undefined;
+  const explicitExperienceClear = draft.experienceCleared === true || legacyExperienceClear;
+  const localDraftClear =
+    hasExperienceField && !normalizedExperience && draft.experienceCleared === false;
+  const requestedExperience = explicitExperienceClear || localDraftClear
+    ? undefined
+    : hasExperienceField
+      ? normalizedExperience ?? undefined
+      : existing?.experience;
+  const requestedExperienceCleared = explicitExperienceClear
+    ? true
+    : localDraftClear || draft.experienceCleared === false
+      ? false
+      : hasExperienceField
+        ? false
+        : existing?.experienceCleared === true;
+  const storedDraft: ComposerDraft = { ...withQuotes };
+  if (requestedExperience) storedDraft.experience = requestedExperience;
+  else delete storedDraft.experience;
+  if (requestedExperienceCleared) storedDraft.experienceCleared = true;
+  else delete storedDraft.experienceCleared;
+  drafts.set(key, storedDraft);
   if (!opts?.silent) {
     const set = listeners.get(key);
     if (set)
@@ -437,15 +537,17 @@ export function saveDraft(
 }
 
 /**
- * Drop the draft for `sessionId` from the Map. Idempotent.
- *
- * Call sites:
- * - After successful send (the composer is already cleared).
- * - When a session is deleted or archived (avoid Map leak).
+ * Clear sent content while retaining the task's project-experience preference.
+ * Discard and new-task handoff use clearDraftAndNotify to remove all metadata.
  */
 export function clearDraft(sessionId: string): void {
   const key = draftKey(sessionId);
-  drafts.delete(key);
+  const previous = drafts.get(key);
+  if (previous?.experience || previous?.experienceCleared) {
+    drafts.set(key, { text: null, attachments: [], experience: previous.experience, experienceCleared: previous.experienceCleared });
+  } else {
+    drafts.delete(key);
+  }
   remoteOptimisticRecoveries.delete(key);
   recomputeDraftPresence(sessionId);
   syncDraftUrlsToMain();
@@ -477,7 +579,7 @@ export function discardDraft(sessionId: string): void {
  * composer content off to a freshly-created session and then navigates away.
  * That route's `onSend` returns `false`, so ChatInput never runs its own
  * post-send `clearContent` — the typed text stays in the Tiptap editor. A bare
- * `clearDraft` only deletes the Map entry; on unmount ChatInput's cleanup
+ * `clearDraft` only clears stored content; on unmount ChatInput's cleanup
  * effect snapshots the still-populated editor back under the same key,
  * resurrecting the text the next time the route mounts.
  *
@@ -591,6 +693,8 @@ export function saveComposerTextAfterAsyncTransition(
       attachments: existing?.attachments ?? [],
       quotes: existing?.quotes ?? [],
       browserComments: existing?.browserComments ?? [],
+      ...(existing?.experience ? { experience: existing.experience } : {}),
+      ...(existing?.experienceCleared ? { experienceCleared: true } : {}),
       ...(existing?.pendingGhostId ? { pendingGhostId: existing.pendingGhostId } : {}),
       ...(existing?.pendingHostCapabilityGhostId
         ? { pendingHostCapabilityGhostId: existing.pendingHostCapabilityGhostId }
@@ -631,11 +735,26 @@ export function restoreRemoteOptimisticDraft(
   const currentComments = [
     ...(effectiveOverride?.browserComments ?? existing?.browserComments ?? []),
   ];
+  const overrideHasExperience =
+    effectiveOverride !== undefined &&
+    (Object.hasOwn(effectiveOverride, 'experience') ||
+      Object.hasOwn(effectiveOverride, 'experienceCleared'));
+  const currentExperienceSource = overrideHasExperience ? effectiveOverride : existing;
+  const currentExperience = readComposerExperienceState(currentExperienceSource);
+  const fragmentExperience = readComposerExperienceState(fragment);
+  const currentHasDirective = hasComposerExperienceDirective(currentExperienceSource);
+  const restoredExperience = currentHasDirective
+    ? currentExperience
+    : currentExperience.present
+      ? currentExperience
+      : fragmentExperience;
   const baseDraft: ComposerDraft = {
     text: currentText,
     attachments: currentAttachments,
     quotes: [],
     browserComments: currentComments,
+    ...(restoredExperience.experience ? { experience: restoredExperience.experience } : {}),
+    ...(restoredExperience.cleared ? { experienceCleared: true } : {}),
     ...(existing?.pendingGhostId ? { pendingGhostId: existing.pendingGhostId } : {}),
     ...(existing?.pendingHostCapabilityGhostId
       ? { pendingHostCapabilityGhostId: existing.pendingHostCapabilityGhostId }
@@ -647,6 +766,8 @@ export function restoreRemoteOptimisticDraft(
       text: draft.text,
       attachments: draft.attachments,
       browserComments: draft.browserComments ?? [],
+      ...(draft.experience ? { experience: draft.experience } : {}),
+      ...(draft.experienceCleared ? { experienceCleared: true } : {}),
     });
   };
 

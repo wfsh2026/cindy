@@ -1,10 +1,12 @@
 import {
   GHOST_LOCALES,
   GHOST_MANIFEST_SUMMARY_MAX_CHARS,
+  GHOST_EXPERIENCE_PACK_MAX_BYTES,
   GHOST_OAUTH_SCOPES_MAX,
   isValidCindyVersion,
   type GhostLocale,
   type GhostManifestLocales,
+  type GhostExperiencePackDecl,
 } from '@cindy/plugin-protocol';
 import type { IOSSimulatorMcpErrorCode } from '@cindy/mcps';
 import { findSplitChildByPanelKind, insertRootSplitPane, type Layout } from './layoutTree';
@@ -42,6 +44,7 @@ export const GHOST_INSTALL_MANIFEST_MAX_BYTES = 256 * 1024;
 
 /** ghost.json 的 description / whenToUse 字符上限，正本在 plugin-protocol。 */
 export { GHOST_MANIFEST_SUMMARY_MAX_CHARS };
+export { GHOST_EXPERIENCE_PACK_MAX_BYTES };
 
 /** 意识文件扩展名。 */
 export const CINDY_FILE_EXT = '.cindy';
@@ -1479,6 +1482,8 @@ export interface GhostManifest {
    * (声明过凭证/连接的意识任一项就绪即 ready)。
    */
   setup?: GhostSetupDecl;
+  /** Read-only project experience contribution; indexes are loaded by the host service. */
+  experiencePack?: GhostExperiencePackDecl;
   /**
    * 显式触发指令(聊天输入框 `/<command>`,与 Skill 共用命令入口;
    * 2026-07-09 Lizi 定案:由意识作者自定,装入时主机与已装意识查重,
@@ -2906,6 +2911,7 @@ const GHOST_MANIFEST_KNOWN_TOP_LEVEL_FIELDS = new Set([
   'preview',
   'skill',
   'setup',
+  'experiencePack',
   'command',
   'keywords',
   'panel',
@@ -3750,6 +3756,7 @@ export function validateGhostManifest(value: unknown): ManifestValidation {
     raw.entry,
     raw.icon,
     raw.settingsHtml,
+    isPlainObject(raw.experiencePack) ? raw.experiencePack.entry : undefined,
     isPlainObject(raw.panel) ? raw.panel.html : undefined,
     isPlainObject(raw.mainView) ? raw.mainView.html : undefined,
     isPlainObject(raw.node) ? raw.node.entry : undefined,
@@ -4012,6 +4019,31 @@ export function validateGhostManifest(value: unknown): ManifestValidation {
   }
   if (raw.settingsHtml !== undefined && !isSafeGhostRelativePath(raw.settingsHtml)) {
     return { ok: false, reason: 'settingsHtml 必须是安装目录内的安全相对路径' };
+  }
+  let experiencePack: GhostExperiencePackDecl | undefined;
+  if (raw.experiencePack !== undefined) {
+    if (!isPlainObject(raw.experiencePack)) {
+      return { ok: false, reason: 'experiencePack 必须是对象({ entry: "experience/pack.json" })' };
+    }
+    const experienceEntry = raw.experiencePack.entry;
+    const unknownExperienceField = Object.keys(raw.experiencePack).find((key) => key !== 'entry');
+    if (unknownExperienceField !== undefined) {
+      return {
+        ok: false,
+        reason: `experiencePack 含不允许的字段 ${JSON.stringify(unknownExperienceField)}`,
+      };
+    }
+    if (
+      typeof experienceEntry !== 'string' ||
+      !isPortableGhostRelativePath(experienceEntry) ||
+      !experienceEntry.toLowerCase().endsWith('.json')
+    ) {
+      return {
+        ok: false,
+        reason: 'experiencePack.entry 必须是安装目录内以 .json 结尾的安全相对路径',
+      };
+    }
+    experiencePack = { entry: experienceEntry };
   }
   if (raw.settingsHeight !== undefined) {
     if (raw.settingsHtml === undefined) {
@@ -6002,6 +6034,7 @@ export function validateGhostManifest(value: unknown): ManifestValidation {
       ...(slots.includes('workspace') ? { workspace: true as const } : {}),
       ...(slots.includes('ios-simulator') ? { iosSimulator: true as const } : {}),
       ...(setup !== undefined ? { setup } : {}),
+      ...(experiencePack !== undefined ? { experiencePack } : {}),
       ...(raw.command !== undefined ? { command: raw.command as string } : {}),
       ...(keywords !== undefined ? { keywords } : {}),
       ...(panel !== undefined ? { panel } : {}),

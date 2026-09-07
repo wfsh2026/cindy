@@ -20,6 +20,15 @@ export type GhostManifestLocales = {
 /** Maximum size of one locale JSON resource in a `.cindy` package. */
 export const GHOST_LOCALE_MAX_BYTES = 64 * 1024;
 
+/** Maximum bytes of the experience-pack entry read during package install. */
+export const GHOST_EXPERIENCE_PACK_MAX_BYTES = 256 * 1024;
+
+/** Optional read-only project experience contribution carried by a .cindy package. */
+export interface GhostExperiencePackDecl {
+  /** Package-relative JSON entry; the experience service reads the remaining indexes lazily. */
+  entry: string;
+}
+
 /**
  * 意识 id 规则:小写字母/数字开头,后续允许小写字母/数字/连字符,总长 1–32。
  * 收紧到这个集合并排除 Windows 设备保留名,因为 id 直接用作安装目录名
@@ -987,6 +996,11 @@ export interface GhostManifest {
   manual?: GhostManualNeeds;
   /** 使用前置检查；引用必须绑定本清单已声明的凭证、连接或设置项。 */
   setup?: GhostSetupDecl;
+  /**
+   * Optional read-only project-experience contribution. It is metadata only:
+   * the host never executes code from the declared entry or from its indexes.
+   */
+  experiencePack?: GhostExperiencePackDecl;
   /** v3 未知顶层字段原样保留，但 Host 不解释、不展示、不授权。 */
   [key: string]: unknown;
 }
@@ -1168,6 +1182,7 @@ const GHOST_MANIFEST_KNOWN_TOP_LEVEL_FIELDS = new Set([
   'skill',
   'manual',
   'setup',
+  'experiencePack',
   'notify',
   'badge',
   'confirm',
@@ -1359,6 +1374,7 @@ export function validateGhostManifest(value: unknown): ManifestValidation {
     raw.entry,
     raw.icon,
     raw.settingsHtml,
+    isPlainObject(raw.experiencePack) ? raw.experiencePack.entry : undefined,
     isPlainObject(raw.panel) ? raw.panel.html : undefined,
     isPlainObject(raw.mainView) ? raw.mainView.html : undefined,
     isPlainObject(raw.node) ? raw.node.entry : undefined,
@@ -1630,6 +1646,31 @@ export function validateGhostManifest(value: unknown): ManifestValidation {
   }
   if (raw.settingsHtml !== undefined && !isSafeGhostRelativePath(raw.settingsHtml)) {
     return { ok: false, reason: 'settingsHtml 必须是安装目录内的安全相对路径' };
+  }
+  let experiencePack: GhostExperiencePackDecl | undefined;
+  if (raw.experiencePack !== undefined) {
+    if (!isPlainObject(raw.experiencePack)) {
+      return { ok: false, reason: 'experiencePack 必须是对象({ entry: "experience/pack.json" })' };
+    }
+    const experienceEntry = raw.experiencePack.entry;
+    if (
+      typeof experienceEntry !== 'string' ||
+      !isSafeGhostRelativePath(experienceEntry) ||
+      !experienceEntry.toLowerCase().endsWith('.json')
+    ) {
+      return {
+        ok: false,
+        reason: 'experiencePack.entry 必须是安装目录内以 .json 结尾的安全相对路径',
+      };
+    }
+    const unknownExperienceField = Object.keys(raw.experiencePack).find((key) => key !== 'entry');
+    if (unknownExperienceField !== undefined) {
+      return {
+        ok: false,
+        reason: `experiencePack 含不允许的字段 ${JSON.stringify(unknownExperienceField)}`,
+      };
+    }
+    experiencePack = { entry: experienceEntry };
   }
   if (raw.settingsHeight !== undefined) {
     if (raw.settingsHtml === undefined) {
@@ -3841,6 +3882,7 @@ export function validateGhostManifest(value: unknown): ManifestValidation {
         : {}),
       ...(manual !== undefined ? { manual } : {}),
       ...(setup !== undefined ? { setup } : {}),
+      ...(experiencePack !== undefined ? { experiencePack } : {}),
     },
   };
 }

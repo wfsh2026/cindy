@@ -85,7 +85,7 @@ describe('Cartethyia battle state machine', () => {
     expect(monsterDeath.normalHitsTaken).toBe(3);
   });
 
-  it('技能只播放受击反馈，不计入普通攻击死亡次数', () => {
+  it('技能排队等待普通攻击及受击完成，不计入普通攻击死亡次数', () => {
     const initial = createCartethyiaBattleState();
     const approaching = reduceCartethyiaBattleState(initial, {
       type: 'signal',
@@ -93,21 +93,26 @@ describe('Cartethyia battle state machine', () => {
       requiredNormalHits: 4,
     });
     const attacking = completeScene(approaching);
-    const skill = reduceCartethyiaBattleState(attacking, {
+    const queued = reduceCartethyiaBattleState(attacking, {
       type: 'signal',
       signal: runningSignal({ currentActionSummary: '修改代码' }),
     });
+    const normalHit = completeScene(queued);
+    const skill = completeScene(normalHit);
     const skillHit = completeScene(skill);
     const resumed = completeScene(skillHit);
 
+    expect(queued.cue).toBe('hero-attack');
+    expect(queued.epoch).toBe(attacking.epoch);
+    expect(queued.skillPending).toBe(true);
     expect(skill.cue).toBe('skill');
     expect(skillHit.cue).toBe('monster-hit');
-    expect(skillHit.normalHitsTaken).toBe(0);
+    expect(skillHit.normalHitsTaken).toBe(1);
     expect(resumed.cue).toBe('hero-attack');
-    expect(resumed.normalHitsTaken).toBe(0);
+    expect(resumed.normalHitsTaken).toBe(1);
   });
 
-  it('击杀动画完成后前进，再生成并等待下一只怪物靠近', () => {
+  it('击杀后先原地胜利，再归位等待、刷新怪物，双方再次同时接近', () => {
     const initial = createCartethyiaBattleState();
     const approaching = reduceCartethyiaBattleState(initial, {
       type: 'signal',
@@ -118,20 +123,26 @@ describe('Cartethyia battle state machine', () => {
     const secondAttack = completeNormalExchange(firstAttack);
     const thirdAttack = completeNormalExchange(secondAttack);
     const monsterDeath = completeNormalExchange(thirdAttack);
-    const advancing = completeScene(monsterDeath);
-    const spawning = completeScene(advancing, 10);
+    const victory = completeScene(monsterDeath);
+    const advancing = completeScene(victory);
+    const waiting = completeScene(advancing);
+    const spawning = completeScene(waiting, 10);
     const monsterApproaching = completeScene(spawning);
     const nextAttack = completeScene(monsterApproaching);
 
-    expect(advancing.cue).toBe('hero-advance');
+    expect(victory.cue).toBe('victory');
+    expect(advancing.cue).toBe('hero-return');
+    expect(waiting.cue).toBe('respawn-wait');
+    expect(waiting.encounterId).toBe(monsterDeath.encounterId);
+    expect(spawning.encounterId).toBe(monsterDeath.encounterId + 1);
     expect(spawning.cue).toBe('monster-spawn');
     expect(spawning.requiredNormalHits).toBe(10);
     expect(spawning.normalHitsTaken).toBe(0);
-    expect(monsterApproaching.cue).toBe('monster-approach');
+    expect(monsterApproaching.cue).toBe('hero-approach');
     expect(nextAttack.cue).toBe('hero-attack');
   });
 
-  it('任务成功会结束当前怪物并停在胜利，不再生成下一只', () => {
+  it('任务成功会结束当前怪物，胜利后归位空闲，不再生成下一只', () => {
     const initial = createCartethyiaBattleState();
     const approaching = reduceCartethyiaBattleState(initial, {
       type: 'signal',
@@ -144,11 +155,15 @@ describe('Cartethyia battle state machine', () => {
       signal: runningSignal({ phase: 'completed' }),
     });
     const victory = completeScene(terminal);
-    const stableVictory = completeScene(victory, 8);
+    const returning = completeScene(victory);
+    const idle = completeScene(returning, 8);
+    const stableIdle = completeScene(idle);
 
     expect(terminal.cue).toBe('monster-death');
+    expect(returning.cue).toBe('hero-return');
     expect(victory.cue).toBe('victory');
-    expect(stableVictory).toBe(victory);
+    expect(idle.cue).toBe('idle');
+    expect(stableIdle).toBe(idle);
   });
 
   it('任务失败由怪物攻击与角色受击收口到空闲', () => {
@@ -235,5 +250,36 @@ describe('Cartethyia battle state machine', () => {
 
     expect(sleeping.cue).toBe('sleep');
     expect(staleSleep).toBe(sleeping);
+  });
+
+  it('命中帧只结算一次，过期命中不会影响下一段攻击', () => {
+    const initial = createCartethyiaBattleState();
+    const signal = runningSignal();
+    const approaching = reduceCartethyiaBattleState(initial, { type: 'signal', signal });
+    const attacking = completeScene(approaching);
+    const impactEvent = { type: 'attack-impact' as const, epoch: attacking.epoch };
+    const hit = reduceCartethyiaBattleState(attacking, impactEvent);
+    const duplicate = reduceCartethyiaBattleState(hit, impactEvent);
+    const recovering = completeScene(hit);
+    const stale = reduceCartethyiaBattleState(recovering, impactEvent);
+    expect(hit.normalHitsTaken).toBe(1);
+    expect(hit.impact?.damage).toBe(100);
+    expect(duplicate).toBe(hit);
+    expect(recovering.normalHitsTaken).toBe(1);
+    expect(stale).toBe(recovering);
+  });
+
+  it.each(['hero-return', 'respawn-wait'] as const)('任务在 %s 阶段完成不会重新变出怪物', (cue) => {
+    const initial = createCartethyiaBattleState();
+    const signal = runningSignal();
+    const running = reduceCartethyiaBattleState(initial, { type: 'signal', signal });
+    const returning: CartethyiaBattleState = { ...running, cue };
+    const completedSignal = runningSignal({ phase: 'completed' });
+    const completed = reduceCartethyiaBattleState(returning, { type: 'signal', signal: completedSignal });
+    const victory = completeScene(completed);
+    const stable = completeScene(victory);
+    expect(victory.cue).toBe('idle');
+    expect(stable).toBe(victory);
+    expect(stable.encounterId).toBe(running.encounterId);
   });
 });

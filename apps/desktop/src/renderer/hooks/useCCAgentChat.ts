@@ -55,6 +55,7 @@ import type { ChatDisplaySnapshot } from '@/components/chat/ChatDisplaySnapshotC
 import type { AttachedFile, MentionedResource } from '@/lib/fileTypes';
 import type { PastedTextRange, SlashCommandRange } from '@/lib/imageRef';
 import type { AgentInputReference } from '@cindy/maker-shared/agent-input-projection';
+import type { ExperienceSelectionSnapshot } from '@cindy/maker-shared/experience-pack';
 import { createLogger } from '@/lib/logger';
 import { isRemoteSessionSticky } from '@/lib/makerTransport';
 import type { UsageLimitRecoveryHint } from '@/lib/usageLimitRecovery';
@@ -125,6 +126,8 @@ interface UseCCAgentChatReturn {
     mentions?: MentionedResource[],
     opts?: {
       vendorOptions?: Record<string, unknown>;
+      experience?: ExperienceSelectionSnapshot;
+      experienceCleared?: boolean;
       quotesEncoded?: boolean;
       agentReferences?: AgentInputReference[];
       pastedTextRanges?: PastedTextRange[];
@@ -150,6 +153,8 @@ interface UseCCAgentChatReturn {
     mentions?: MentionedResource[],
     opts?: {
       vendorOptions?: Record<string, unknown>;
+      experience?: ExperienceSelectionSnapshot;
+      experienceCleared?: boolean;
       quotesEncoded?: boolean;
       agentReferences?: AgentInputReference[];
       pastedTextRanges?: PastedTextRange[];
@@ -412,6 +417,8 @@ export function useCCAgentChat(
       mentions?: MentionedResource[],
       opts?: {
         vendorOptions?: Record<string, unknown>;
+        experience?: ExperienceSelectionSnapshot;
+        experienceCleared?: boolean;
         quotesEncoded?: boolean;
         agentReferences?: AgentInputReference[];
         pastedTextRanges?: PastedTextRange[];
@@ -468,6 +475,8 @@ export function useCCAgentChat(
       mentions?: MentionedResource[],
       opts?: {
         vendorOptions?: Record<string, unknown>;
+        experience?: ExperienceSelectionSnapshot;
+        experienceCleared?: boolean;
         quotesEncoded?: boolean;
         agentReferences?: AgentInputReference[];
         pastedTextRanges?: PastedTextRange[];

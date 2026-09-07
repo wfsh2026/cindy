@@ -31,6 +31,9 @@ import {
   type AgentInputReference,
 } from '@cindy/maker-shared/agent-input-projection';
 import {
+  type ExperienceSelectionSnapshot,
+} from '@cindy/maker-shared/experience-pack';
+import {
   connectedProvidersForAgent,
   EFFORT_VALUES,
   providerOffersModel,
@@ -232,11 +235,12 @@ import {
   consumePending,
   consumePendingGoal,
   deliverRecoverableHandoff,
-  takeRecoverableHandoff,
+  takeRecoverableHandoffDetails,
   type RecoverableHandoffKind,
 } from '@/state/pendingFirstMessage';
 import {
   saveDraft as saveComposerDraft,
+  getDraft as getComposerDraft,
   getDraftPresence as getComposerDraftPresence,
   plainTextToTiptapDoc,
   restoreRemoteOptimisticDraft,
@@ -831,9 +835,8 @@ export function CCAgentSessionView({
   const controlledBannerCollapsed = useComposerCollapsed(sessionId ?? null);
   const showExpandedControlledBanner = hasControlledBanner && !controlledBannerCollapsed;
   const isMac = window.electronAPI?.platform === 'darwin';
-  const composerModeAvailable = window.electronAPI?.platform === 'win32';
-  const { mode: composerMode, setMode: setComposerMode } = useComposerModePreference();
-  const activeComposerMode = composerModeAvailable ? composerMode : 'standard';
+  const { mode: composerMode, setMode: setComposerMode, available: composerModeAvailable } = useComposerModePreference();
+  const activeComposerMode = composerMode;
   const [composerModeStopGeneration, setComposerModeStopGeneration] = useState(0);
   const composerModeMenu = useMemo(() => {
     if (!composerModeAvailable) return undefined;
@@ -1640,6 +1643,8 @@ export function CCAgentSessionView({
     agentReferences?: AgentInputReference[];
     pastedTextRanges?: PastedTextRange[];
     slashCommandRanges?: SlashCommandRange[];
+    experience?: ExperienceSelectionSnapshot;
+    experienceCleared?: boolean;
     onRemoteOptimisticFailure?: (clientId: string, error?: unknown) => void;
     onDeferredAccepted?: () => void;
   } | null>(null);
@@ -3174,6 +3179,8 @@ export function CCAgentSessionView({
               pendingAgentReferences?.length ||
               pendingPastedTextRanges?.length ||
               pendingSlashCommandRanges !== undefined ||
+              pending.experience !== undefined ||
+              pending.experienceCleared === true ||
               pending.onRemoteOptimisticFailure !== undefined ||
               pending.onDeferredAccepted !== undefined
               ? {
@@ -3188,6 +3195,8 @@ export function CCAgentSessionView({
                   ...(pendingSlashCommandRanges !== undefined
                     ? { slashCommandRanges: pendingSlashCommandRanges }
                     : {}),
+                  ...(pending.experience ? { experience: pending.experience } : {}),
+                  ...(pending.experienceCleared ? { experienceCleared: true } : {}),
                   ...(pending.onRemoteOptimisticFailure
                     ? { onRemoteOptimisticFailure: pending.onRemoteOptimisticFailure }
                     : {}),
@@ -3297,6 +3306,8 @@ export function CCAgentSessionView({
         agentReferences?: AgentInputReference[];
         pastedTextRanges?: PastedTextRange[];
         slashCommandRanges?: SlashCommandRange[];
+        experience?: ExperienceSelectionSnapshot;
+        experienceCleared?: boolean;
         onRemoteOptimisticFailure?: (clientId: string, error?: unknown) => void;
         onDeferredAccepted?: () => void;
       },
@@ -3437,6 +3448,8 @@ export function CCAgentSessionView({
           ...(opts?.slashCommandRanges !== undefined
             ? { slashCommandRanges: opts.slashCommandRanges }
             : {}),
+          ...(opts?.experience ? { experience: opts.experience } : {}),
+          ...(opts?.experienceCleared ? { experienceCleared: true } : {}),
           ...(opts?.onRemoteOptimisticFailure
             ? { onRemoteOptimisticFailure: opts.onRemoteOptimisticFailure }
             : {}),
@@ -3478,6 +3491,8 @@ export function CCAgentSessionView({
         ...(opts?.slashCommandRanges !== undefined
           ? { slashCommandRanges: opts.slashCommandRanges }
           : {}),
+        ...(opts?.experience ? { experience: opts.experience } : {}),
+        ...(opts?.experienceCleared ? { experienceCleared: true } : {}),
         ...(opts?.onRemoteOptimisticFailure
           ? { onRemoteOptimisticFailure: opts.onRemoteOptimisticFailure }
           : {}),
@@ -3914,6 +3929,14 @@ export function CCAgentSessionView({
   // 只回填、不自动补发(理由见 pendingFirstMessage 的「可恢复副本」注释)。
   // 内存里还有 pending 时不该走这里 —— 那是正常交接,由下面的消费逻辑负责。
   const handoffRestoredRef = useRef<string | null>(null);
+  const [restoredExperienceSelection, setRestoredExperienceSelection] =
+    useState<ExperienceSelectionSnapshot>();
+  const [restoredExperienceCleared, setRestoredExperienceCleared] = useState(false);
+  useEffect(() => {
+    handoffRestoredRef.current = null;
+    setRestoredExperienceSelection(undefined);
+    setRestoredExperienceCleared(false);
+  }, [sessionId]);
   const restoreRecoverableHandoff = useCallback(
     (kind: RecoverableHandoffKind) => {
       if (!sessionId) return;
@@ -3923,12 +3946,20 @@ export function CCAgentSessionView({
       // 此时**不取走**副本,留给下一次输入框为空时再回填 —— 宁可晚一点恢复,
       // 也不能为了恢复把用户正在写的东西覆盖掉。
       if (getComposerDraftPresence(sessionId)) return;
-      const text = takeRecoverableHandoff(sessionId, kind);
-      if (text === null) return;
+      const details = takeRecoverableHandoffDetails(sessionId, kind);
+      if (details === null) return;
       handoffRestoredRef.current = restoreKey;
       // 非 silent:挂载中的 ChatInput 要靠这次 notify 把正文 setContent 进编辑器
       // (与 rewind / fork 预填同一条既有通道)。
-      saveComposerDraft(sessionId, { text: plainTextToTiptapDoc(text), attachments: [] });
+      const restoredDraft = {
+        text: plainTextToTiptapDoc(details.text),
+        attachments: [],
+        ...(details.experience ? { experience: details.experience } : {}),
+        ...(details.experienceCleared ? { experienceCleared: true } : {}),
+      };
+      saveComposerDraft(sessionId, restoredDraft);
+      setRestoredExperienceSelection(details.experience);
+      setRestoredExperienceCleared(details.experienceCleared === true && !details.experience);
       toast.info(
         kind === 'goal'
           ? t('newChat.collaboration.handoffRecoveredGoal')
@@ -3955,6 +3986,13 @@ export function CCAgentSessionView({
       return;
     }
     pendingConsumedRef.current = true;
+    if (pending.experience) {
+      setRestoredExperienceSelection(pending.experience);
+      setRestoredExperienceCleared(false);
+    } else if (pending.experienceCleared === true) {
+      setRestoredExperienceSelection(undefined);
+      setRestoredExperienceCleared(true);
+    }
     void (async () => {
       let deferredUiAssignment = pending.deferredUiAssignment;
       // device-link 草稿开了协同:先把协同开起来,再发首轮 —— 否则 Lead 的第一个 turn
@@ -4009,6 +4047,8 @@ export function CCAgentSessionView({
               text: plainTextToTiptapDoc(pending.text),
               attachments: pending.files ?? [],
               browserComments: [],
+              ...(pending.experience ? { experience: pending.experience } : {}),
+              ...(pending.experienceCleared ? { experienceCleared: true } : {}),
             });
           }
           await deliverRecoverableHandoff(sessionId, () => true);
@@ -4066,7 +4106,9 @@ export function CCAgentSessionView({
               pending.quotesEncoded ||
               pendingAgentReferences?.length ||
               pendingPastedTextRanges?.length ||
-              pendingSlashCommandRanges !== undefined
+              pendingSlashCommandRanges !== undefined ||
+              pending.experience !== undefined ||
+              pending.experienceCleared === true
               ? {
                   ...(pending.vendorOptions ? { vendorOptions: pending.vendorOptions } : {}),
                   ...(pending.quotesEncoded ? { quotesEncoded: true } : {}),
@@ -4079,6 +4121,8 @@ export function CCAgentSessionView({
                   ...(pendingSlashCommandRanges !== undefined
                     ? { slashCommandRanges: pendingSlashCommandRanges }
                     : {}),
+                  ...(pending.experience ? { experience: pending.experience } : {}),
+                  ...(pending.experienceCleared ? { experienceCleared: true } : {}),
                 }
               : undefined,
           ),
@@ -5061,6 +5105,8 @@ export function CCAgentSessionView({
                     // 详见 ChatInput 的 disableAutofocus prop 注释。
                     disableAutofocus={isCompactRail || disableAutofocus}
                     focusOnStorageKeyChange={ownsRoute}
+                    restoredExperienceSelection={restoredExperienceSelection}
+                    restoredExperienceCleared={restoredExperienceCleared}
                     // F-COLLAB:「+」菜单里的协同模式项。普通 Lead 的项目/对话会话都渲染,
                     // 项目级与用户级策略范围由 collabEntry 决定;只排除 Worker 子会话
                     // (worker 自己不能再开协同)。

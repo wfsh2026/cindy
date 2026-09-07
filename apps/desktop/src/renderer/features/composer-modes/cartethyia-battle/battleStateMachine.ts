@@ -14,9 +14,9 @@ export type CartethyiaBattleCue =
   | 'monster-attack'
   | 'hero-hit'
   | 'monster-death'
-  | 'hero-advance'
+  | 'hero-return'
+  | 'respawn-wait'
   | 'monster-spawn'
-  | 'monster-approach'
   | 'victory';
 
 export interface CartethyiaBattleSignal {
@@ -27,6 +27,13 @@ export interface CartethyiaBattleSignal {
 
 type CartethyiaBattleHitKind = 'normal' | 'skill' | null;
 type CartethyiaBattleTerminal = 'completed' | 'error' | null;
+
+export interface CartethyiaBattleImpact {
+  epoch: number;
+  target: 'hero' | 'monster';
+  kind: 'normal' | 'skill';
+  damage: number;
+}
 
 /**
  * Keeps the decorative encounter loop independent from the task lifecycle. Task signals can
@@ -45,6 +52,8 @@ export interface CartethyiaBattleState {
   normalHitsTaken: number;
   hitKind: CartethyiaBattleHitKind;
   terminalRequested: CartethyiaBattleTerminal;
+  impact: CartethyiaBattleImpact | null;
+  skillPending: boolean;
 }
 
 export type CartethyiaBattleEvent =
@@ -55,6 +64,7 @@ export type CartethyiaBattleEvent =
     }
   | { type: 'stopped'; generation: number }
   | { type: 'scene-completed'; epoch: number; nextRequiredNormalHits?: number }
+  | { type: 'attack-impact'; epoch: number }
   | { type: 'sleep'; epoch: number };
 
 export function requiredNormalHitsForRandom(randomValue: number): number {
@@ -80,6 +90,8 @@ export function createCartethyiaBattleState(): CartethyiaBattleState {
     normalHitsTaken: 0,
     hitKind: null,
     terminalRequested: null,
+    impact: null,
+    skillPending: false,
   };
 }
 
@@ -121,10 +133,12 @@ function startEncounter(
     normalHitsTaken: 0,
     hitKind: null,
     terminalRequested: null,
+    impact: null,
+    skillPending: false,
   };
 }
 
-function canInterruptWithSkill(cue: CartethyiaBattleCue): boolean {
+function canQueueSkill(cue: CartethyiaBattleCue): boolean {
   return (
     cue === 'hero-attack' || cue === 'monster-hit' || cue === 'monster-attack' || cue === 'hero-hit'
   );
@@ -156,6 +170,8 @@ function reduceSignal(
       normalHitsTaken: 0,
       hitKind: null,
       terminalRequested: null,
+      impact: null,
+      skillPending: false,
     };
   }
   if (state.terminalSuppressed) {
@@ -166,23 +182,33 @@ function reduceSignal(
     }
   }
   if (current.phase === 'completed') {
+    if (state.cue === 'hero-return' || state.cue === 'victory' || state.cue === 'monster-death') {
+      return { ...state, signal: current, terminalRequested: 'completed' };
+    }
+    const alreadyHome = state.cue === 'respawn-wait' || state.cue === 'idle' || state.cue === 'sleep' || state.cue === 'waiting';
     return {
       ...state,
-      cue: 'monster-death',
+      cue: alreadyHome ? 'idle' : 'monster-death',
       epoch: state.epoch + 1,
       signal: current,
       hitKind: null,
       terminalRequested: 'completed',
+      impact: null,
     };
   }
   if (current.phase === 'error') {
+    if (state.cue === 'hero-return' || state.cue === 'victory' || state.cue === 'monster-death') {
+      return { ...state, signal: current, terminalRequested: 'error' };
+    }
+    const alreadyHome = state.cue === 'respawn-wait' || state.cue === 'idle' || state.cue === 'sleep' || state.cue === 'waiting';
     return {
       ...state,
-      cue: 'monster-attack',
+      cue: alreadyHome ? 'idle' : 'monster-attack',
       epoch: state.epoch + 1,
       signal: current,
       hitKind: null,
       terminalRequested: 'error',
+      impact: null,
     };
   }
   if (current.phase === 'needs-interaction') {
@@ -202,14 +228,8 @@ function reduceSignal(
   const summaryChanged =
     current.currentActionSummary !== null &&
     current.currentActionSummary !== state.signal?.currentActionSummary;
-  if (summaryChanged && canInterruptWithSkill(state.cue)) {
-    return {
-      ...state,
-      cue: 'skill',
-      epoch: state.epoch + 1,
-      signal: current,
-      hitKind: 'skill',
-    };
+  if (summaryChanged && canQueueSkill(state.cue)) {
+    return { ...state, signal: current, skillPending: true };
   }
   return { ...state, signal: current };
 }
@@ -218,8 +238,8 @@ function completeScene(
   state: CartethyiaBattleState,
   event: Extract<CartethyiaBattleEvent, { type: 'scene-completed' }>,
 ): CartethyiaBattleState {
-  if (event.epoch !== state.epoch) return state;
-  if (state.cue === 'hero-approach' || state.cue === 'monster-approach') {
+  if (event.epoch !== state.epoch || state.signal?.phase === 'needs-interaction') return state;
+  if (state.cue === 'hero-approach') {
     return { ...state, cue: 'hero-attack', epoch: state.epoch + 1 };
   }
   if (state.cue === 'hero-attack') {
@@ -227,7 +247,7 @@ function completeScene(
       ...state,
       cue: 'monster-hit',
       epoch: state.epoch + 1,
-      normalHitsTaken: state.normalHitsTaken + 1,
+      normalHitsTaken: state.impact?.epoch === state.epoch ? state.normalHitsTaken : state.normalHitsTaken + 1,
       hitKind: 'normal',
     };
   }
@@ -235,11 +255,14 @@ function completeScene(
     return { ...state, cue: 'monster-hit', epoch: state.epoch + 1, hitKind: 'skill' };
   }
   if (state.cue === 'monster-hit') {
+    if (state.normalHitsTaken >= state.requiredNormalHits) {
+      return { ...state, cue: 'monster-death', epoch: state.epoch + 1, hitKind: null, skillPending: false };
+    }
     if (state.hitKind === 'skill') {
       return { ...state, cue: 'hero-attack', epoch: state.epoch + 1, hitKind: null };
     }
-    if (state.normalHitsTaken >= state.requiredNormalHits) {
-      return { ...state, cue: 'monster-death', epoch: state.epoch + 1, hitKind: null };
+    if (state.skillPending) {
+      return { ...state, cue: 'skill', epoch: state.epoch + 1, hitKind: null, skillPending: false };
     }
     return { ...state, cue: 'monster-attack', epoch: state.epoch + 1, hitKind: null };
   }
@@ -247,14 +270,21 @@ function completeScene(
     return { ...state, cue: 'hero-hit', epoch: state.epoch + 1 };
   }
   if (state.cue === 'hero-hit') {
-    const nextCue = state.terminalRequested === 'error' ? 'idle' : 'hero-attack';
-    return { ...state, cue: nextCue, epoch: state.epoch + 1 };
+    const nextCue = state.terminalRequested === 'error' ? 'idle' : state.skillPending ? 'skill' : 'hero-attack';
+    const impact = nextCue === 'idle' ? null : state.impact;
+    return { ...state, cue: nextCue, epoch: state.epoch + 1, impact, skillPending: false };
   }
   if (state.cue === 'monster-death') {
-    const nextCue = state.terminalRequested === 'completed' ? 'victory' : 'hero-advance';
+    return { ...state, cue: 'victory', epoch: state.epoch + 1, impact: null, skillPending: false };
+  }
+  if (state.cue === 'victory') {
+    return { ...state, cue: 'hero-return', epoch: state.epoch + 1, impact: null };
+  }
+  if (state.cue === 'hero-return') {
+    const nextCue = state.terminalRequested ? 'idle' : 'respawn-wait';
     return { ...state, cue: nextCue, epoch: state.epoch + 1 };
   }
-  if (state.cue === 'hero-advance') {
+  if (state.cue === 'respawn-wait') {
     const normalizedHits = normalizeRequiredNormalHits(event.nextRequiredNormalHits);
     return {
       ...state,
@@ -267,7 +297,7 @@ function completeScene(
     };
   }
   if (state.cue === 'monster-spawn') {
-    return { ...state, cue: 'monster-approach', epoch: state.epoch + 1 };
+    return { ...state, cue: 'hero-approach', epoch: state.epoch + 1 };
   }
   return state;
 }
@@ -277,6 +307,16 @@ export function reduceCartethyiaBattleState(
   event: CartethyiaBattleEvent,
 ): CartethyiaBattleState {
   if (event.type === 'signal') return reduceSignal(state, event);
+  if (event.type === 'attack-impact') {
+    const attack = state.cue === 'hero-attack' || state.cue === 'skill' || state.cue === 'monster-attack';
+    const paused = state.signal?.phase === 'needs-interaction';
+    if (!attack || paused || event.epoch !== state.epoch || state.impact?.epoch === event.epoch) return state;
+    const target = state.cue === 'monster-attack' ? 'hero' : 'monster';
+    const kind = state.cue === 'skill' ? 'skill' : 'normal';
+    const damage = target === 'hero' ? 32 : kind === 'skill' ? 200 : 100;
+    const normalHitsTaken = state.cue === 'hero-attack' ? state.normalHitsTaken + 1 : state.normalHitsTaken;
+    return { ...state, normalHitsTaken, impact: { epoch: event.epoch, target, kind, damage } };
+  }
   if (event.type === 'stopped') {
     if (event.generation === state.stopGeneration) return state;
     return {
@@ -290,6 +330,8 @@ export function reduceCartethyiaBattleState(
       normalHitsTaken: 0,
       hitKind: null,
       terminalRequested: null,
+      impact: null,
+      skillPending: false,
     };
   }
   if (event.type === 'scene-completed') return completeScene(state, event);

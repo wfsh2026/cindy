@@ -42,6 +42,7 @@ import { CreateWorkerPopover, type CreateWorkerForm } from './CreateWorkerPopove
 import { createWorkerLabel } from './workerLabel';
 import { useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { ExperienceSelectionSnapshot } from '@cindy/maker-shared/experience-pack';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { themeService } from '@/themes/theme-service';
@@ -285,6 +286,56 @@ import { requestSidebarProjectRestore } from './lib/sidebarProjectRestore';
 
 const log = createLogger('NewMakerDraftRoute');
 const IS_MAC_PLATFORM = typeof window !== 'undefined' && window.electronAPI?.platform === 'darwin';
+
+type ExperienceSendEnvelope = {
+  experience?: ExperienceSelectionSnapshot;
+  experienceCleared?: boolean;
+};
+
+/**
+ * Preserve the distinction between an omitted experience field, a deliberate
+ * task clear, and the neutral composer-only clear (`undefined + false`).
+ * Callers at the route boundary must not rebuild this object with truthiness
+ * checks because `experienceCleared: true` is meaningful without a selection.
+ */
+function makeExperienceSendEnvelope(
+  value: ExperienceSendEnvelope | undefined,
+): ExperienceSendEnvelope | undefined {
+  if (
+    value === undefined ||
+    (!Object.hasOwn(value, 'experience') && !Object.hasOwn(value, 'experienceCleared'))
+  ) {
+    return undefined;
+  }
+  return {
+    ...(Object.hasOwn(value, 'experience') ? { experience: value.experience } : {}),
+    ...(Object.hasOwn(value, 'experienceCleared')
+      ? { experienceCleared: value.experienceCleared }
+      : {}),
+  };
+}
+
+/** Select the metadata to restore when a create/send handoff fails. */
+function experienceForDraftRestore(
+  draft: { experience?: ExperienceSelectionSnapshot; experienceCleared?: boolean } | undefined,
+  envelope: ExperienceSendEnvelope | undefined,
+): ExperienceSendEnvelope | undefined {
+  if (envelope !== undefined) {
+    const hasExperience = Object.hasOwn(envelope, 'experience');
+    const hasClearFlag = Object.hasOwn(envelope, 'experienceCleared');
+    if (envelope.experienceCleared === true) return { experienceCleared: true };
+    if (hasExperience && envelope.experience) return { experience: envelope.experience };
+    // The neutral pair intentionally clears only the composer draft. An old
+    // renderer that supplied own `experience: undefined` without a boolean
+    // used the legacy task-clear shape, so retain that compatibility here.
+    if (hasExperience && !hasClearFlag && envelope.experience === undefined) {
+      return { experienceCleared: true };
+    }
+    return undefined;
+  }
+  if (draft?.experienceCleared === true) return { experienceCleared: true };
+  return draft?.experience ? { experience: draft.experience } : undefined;
+}
 
 interface DraftWorktreeBranchTarget {
   /** null = 当前电脑；string = device-link 被控工作端。 */
@@ -2517,6 +2568,7 @@ export function NewMakerDraftRoute() {
             text: strippedText,
             attachments: rehomedAttachments ?? [],
             browserComments: rehomedComments,
+            ...(existingDraft.experience ? { experience: existingDraft.experience } : {}),
           });
           clearComposerDraftAndNotify(NEW_MAKER_DRAFT_KEY);
           attachmentState.clearFiles();
@@ -3357,10 +3409,15 @@ export function NewMakerDraftRoute() {
         agentReferences?: AgentInputReference[];
         pastedTextRanges?: PastedTextRange[];
         slashCommandRanges?: SlashCommandRange[];
+        experience?: ExperienceSelectionSnapshot;
+        experienceCleared?: boolean;
         onAccepted?: () => void;
       },
     ): Promise<boolean | undefined> => {
       if (sendInFlightRef.current) return false;
+      // Capture the complete metadata envelope before any asynchronous gate.
+      // The three states are intentionally preserved by own-property checks.
+      const experienceEnvelope = makeExperienceSendEnvelope(opts);
       if (effectiveCollab.enabled && collabPolicy.loading) {
         toast.warning(t('newChat.collaboration.loadingHint'));
         return false;
@@ -3777,7 +3834,8 @@ export function NewMakerDraftRoute() {
             // 提交点之后每多一次 await,「对端会话已建好、正文却还没有第二份」的窗口就长一分;
             // rehomeDraftAttachments 是本机 IPC,但含 base64 / 草稿缓存图片时并不快,期间
             // 应用退出或崩溃,正文就没了。副本只存正文、不依赖附件迁移结果,所以可以先落。
-            rememberRecoverableHandoff(remoteSessionId, 'message', message);
+            const recoverableHandoff = { text: message, ...(experienceEnvelope ?? {}) };
+            rememberRecoverableHandoff(remoteSessionId, 'message', recoverableHandoff);
             // F-COLLAB / device-link:草稿开了协同 → **不在这里 await**,把「开协同」连同
             // 首条消息一起交接给 SessionView(见 pendingFirstMessage.PendingRemoteCollab)。
             //
@@ -3797,6 +3855,7 @@ export function NewMakerDraftRoute() {
               text: message,
               files: rehydratedFiles,
               mentions,
+              ...(experienceEnvelope ?? {}),
               ...(shouldEnableCollab
                 ? {
                     remoteCollab: {
@@ -3936,6 +3995,7 @@ export function NewMakerDraftRoute() {
             const preNavDraft = getComposerDraft(NEW_MAKER_DRAFT_KEY);
             const preNavDraftDoc = preNavDraft?.text ?? null;
             const preNavBrowserComments = preNavDraft?.browserComments ?? [];
+            const preNavExperience = experienceForDraftRestore(preNavDraft, experienceEnvelope);
             navigate(`/cc-agent/${newSession.id}`, { replace: true });
             // clearDraftAndNotify (not bare clear): onSend returned false above
             // so ChatInput never cleared its editor — without notifying it, the
@@ -3957,6 +4017,7 @@ export function NewMakerDraftRoute() {
                   text: preNavDraftDoc ?? plainTextToTiptapDoc(message),
                   attachments: excludeCommentScreenshots(rehomedFiles, rehomedComments),
                   browserComments: rehomedComments,
+                  ...(preNavExperience ?? {}),
                 });
                 // 第一条消息退回草稿 = 它没被交出去,也就永远不会有权威标题回流。
                 // 不撤回的话标题预览会一直盖着 DB 里的哨兵(每次全量刷新后重新盖上),
@@ -4093,6 +4154,7 @@ export function NewMakerDraftRoute() {
                   rehomedFiles,
                   mentions,
                   {
+                    ...(experienceEnvelope ?? {}),
                     ...(opts?.quotesEncoded ? { quotesEncoded: true } : {}),
                     ...(opts?.agentReferences?.length
                       ? { agentReferences: rebaseRanges(opts.agentReferences) }
@@ -4224,6 +4286,7 @@ export function NewMakerDraftRoute() {
           const sendWorkingDir = workingDir ?? newSession.workingDir;
           const preNavDraft = getComposerDraft(NEW_MAKER_DRAFT_KEY);
           const preNavDraftDoc = preNavDraft?.text ?? null;
+          const preNavExperience = experienceForDraftRestore(preNavDraft, experienceEnvelope);
           const preNavBrowserComments = rewriteBrowserCommentsFromRehomedFiles(
             preNavDraft?.browserComments,
             rehydratedFiles,
@@ -4235,6 +4298,7 @@ export function NewMakerDraftRoute() {
               text: preNavDraftDoc ?? plainTextToTiptapDoc(message),
               attachments: excludeCommentScreenshots(rehydratedFiles, preNavBrowserComments),
               browserComments: preNavBrowserComments,
+              ...(preNavExperience ?? {}),
             });
             emitAutoTitlePreviewCleared(newSession.id);
             clearSessionStarting(newSession.id);
@@ -4280,6 +4344,7 @@ export function NewMakerDraftRoute() {
                 text: message,
                 files: rehydratedFiles,
                 mentions,
+                ...(experienceEnvelope ?? {}),
                 ...(opts?.quotesEncoded ? { quotesEncoded: true } : {}),
                 ...(opts?.agentReferences?.length ? { agentReferences: opts.agentReferences } : {}),
                 ...(opts?.pastedTextRanges?.length
@@ -4321,6 +4386,7 @@ export function NewMakerDraftRoute() {
               rehydratedFiles,
               mentions,
               {
+                ...(experienceEnvelope ?? {}),
                 ...(opts?.quotesEncoded ? { quotesEncoded: true } : {}),
                 ...(opts?.agentReferences?.length
                   ? { agentReferences: rebaseRanges(opts.agentReferences) }

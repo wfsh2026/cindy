@@ -1,0 +1,24 @@
+{
+  "format": "cindy-personal-mod",
+  "schemaVersion": 1,
+  "template": "composer-battle-v1",
+  "id": "cartethyia-battle",
+  "version": "1.0.0",
+  "assets": {
+    "ground": "ground-platform-v2.png",
+    "heroIdle": "hero-idle.png",
+    "heroMove": "hero-move.png",
+    "heroAttack": "hero-attack-v2.png",
+    "heroSkill": "hero-skill-v2.png",
+    "heroHit": "hero-hit-v2.png",
+    "heroVictory": "hero-victory-v2.png",
+    "heroSleep": "hero-sleep.png",
+    "monsterIdle": "monster-idle-v2.png",
+    "monsterHit": "monster-hit-v2.png",
+    "monsterDeath": "monster-death-v2.png",
+    "arc": "effect-arc.png",
+    "energy": "effect-energy.png",
+    "impact": "effect-impact.png",
+    "shard": "effect-shard.png"
+  }
+}

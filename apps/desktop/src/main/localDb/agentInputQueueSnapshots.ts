@@ -20,6 +20,7 @@ import {
   sanitizeQueuedMessageForPersistence,
   type AgentInputQueuedMessage,
 } from '../../shared/agentInputQueue.js';
+import { normalizeExperienceSelectionSnapshot } from '@cindy/maker-shared/experience-pack';
 
 const log = createLogger('agent-input-queue-snapshots');
 
@@ -266,6 +267,23 @@ export async function loadAgentInputQueueSnapshotCounts(
 export function isRestorableQueuedMessage(value: unknown): value is AgentInputQueuedMessage {
   if (!value || typeof value !== 'object') return false;
   const msg = value as AgentInputQueuedMessage;
+  let persistedHasExperienceContext = false;
+  if (typeof msg.persistedContent === 'string') {
+    try {
+      const parsed = JSON.parse(msg.persistedContent) as unknown;
+      persistedHasExperienceContext = Boolean(
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed) &&
+          Object.hasOwn(parsed as Record<string, unknown>, 'experienceContext'),
+      );
+    } catch {
+      persistedHasExperienceContext = false;
+    }
+  }
+  const chatMessage = msg.chatMessage as (AgentInputQueuedMessage['chatMessage'] & {
+    experienceContext?: unknown;
+  }) | undefined;
+  const experienceCleared = msg.experienceCleared;
+  const chatExperienceCleared = chatMessage?.experienceCleared;
   return (
     typeof msg.clientId === 'string' && msg.clientId.length > 0 &&
     typeof msg.text === 'string' &&
@@ -274,7 +292,14 @@ export function isRestorableQueuedMessage(value: unknown): value is AgentInputQu
     !!msg.createOpts && typeof msg.createOpts === 'object' &&
     (msg.createOpts.agentKind === 'claude-code' ||
       msg.createOpts.agentKind === 'codex' ||
-      msg.createOpts.agentKind === 'pi')
+      msg.createOpts.agentKind === 'pi') &&
+    !Object.hasOwn(msg, 'experienceContext') &&
+    !Object.hasOwn(chatMessage ?? {}, 'experienceContext') &&
+    !persistedHasExperienceContext &&
+    (experienceCleared === undefined || typeof experienceCleared === 'boolean') &&
+    (chatExperienceCleared === undefined || typeof chatExperienceCleared === 'boolean') &&
+    (msg.experience === undefined || normalizeExperienceSelectionSnapshot(msg.experience) !== null) &&
+    (chatMessage?.experience === undefined || normalizeExperienceSelectionSnapshot(chatMessage.experience) !== null)
   );
 }
 

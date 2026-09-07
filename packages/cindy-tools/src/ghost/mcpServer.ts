@@ -117,6 +117,8 @@ const D_GHOST_FORGE_GUIDE = [
   "先按第 0 章「设计对齐」用带选项的提问卡片和用户确认界面形态(停靠面板/插件页内",
   "面板/纯工具)等关键决策,再按需读相关章;新插件可用 ghost_forge_scaffold 生成骨架,",
   "修改完成后缺省用 ghost_forge_pack 校验并生成 .cindy 产物；只有用户明确要求直接安装或更新时，才调用独立的 ghost_forge_install。本工具自身不安装插件。",
+  ".cindy 是项目经验包的唯一分发格式；若插件声明 manifest.experiencePack.entry（例如 experience/pack.json），该入口必须是轻量 JSON 索引入口。主机只按索引渐进读取，正文只由 Main 持有，绝不执行经验包 JS。",
+  "经验模块 status=ready 表示正文已迁移且可校验，pending 表示暂不可运行；sources.path/sha256/bytes 只用于追溯和完整性约束。经验包不得包含凭证、绝对路径、运行状态、日志或生成产物。",
 ].join("\n");
 
 const D_GHOST_FORGE_SCAFFOLD = [
@@ -136,6 +138,7 @@ const D_GHOST_FORGE_PACK = [
   "失败返回结构化错误(MANIFEST_INVALID 等,message 带具体原因),",
   "按 message 修正源码后重新打包即可。成功只表示 cindyPath 对应的产物已经生成；",
   "只有用户明确发起安装后，插件才会进入 Cindy。publish 同样不会触发装入。",
+  "经验包仍必须通过 manifest.experiencePack.entry 接入 .cindy；入口只放轻量索引，正文按索引渐进加载。pack/index 中 ready/pending、sources.path/sha256/bytes 必须真实一致；不得把凭证、绝对路径、运行状态、日志或产物写入包。主机不会执行经验包脚本，正文不会进入 Renderer。",
 ].join("\n");
 
 const D_GHOST_FORGE_INSTALL = [
