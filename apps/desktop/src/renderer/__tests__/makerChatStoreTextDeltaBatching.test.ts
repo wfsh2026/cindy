@@ -53,35 +53,39 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-vi.mock('@/lib/imageRef', () => ({
-  parseUserContent: vi.fn((content: unknown) => {
-    let value = content;
-    if (typeof content === 'string' && content.startsWith('{')) {
-      try {
-        value = JSON.parse(content);
-      } catch {
-        // Plain user text that merely starts with "{" remains plain text.
+vi.mock('@/lib/imageRef', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/imageRef')>();
+  return {
+    ...actual,
+    parseUserContent: vi.fn((content: unknown) => {
+      let value = content;
+      if (typeof content === 'string' && content.startsWith('{')) {
+        try {
+          value = JSON.parse(content);
+        } catch {
+          // Plain user text that merely starts with "{" remains plain text.
+        }
       }
-    }
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const record = value as Record<string, unknown>;
-      if (typeof record.text === 'string') {
-        return {
-          text: record.text,
-          images: Array.isArray(record.images) ? record.images : [],
-          files: Array.isArray(record.files) ? record.files : [],
-          ...(Array.isArray(record.agentReferences)
-            ? { agentReferences: record.agentReferences }
-            : {}),
-        };
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const record = value as Record<string, unknown>;
+        if (typeof record.text === 'string') {
+          return {
+            text: record.text,
+            images: Array.isArray(record.images) ? record.images : [],
+            files: Array.isArray(record.files) ? record.files : [],
+            ...(Array.isArray(record.agentReferences)
+              ? { agentReferences: record.agentReferences }
+              : {}),
+          };
+        }
       }
-    }
-    return { text: String(content), images: [], files: [] };
-  }),
-  stringifyUserContent: vi.fn((text: string, images = [], files = []) =>
-    JSON.stringify({ text, images, files }),
-  ),
-}));
+      return { text: String(content), images: [], files: [] };
+    }),
+    stringifyUserContent: vi.fn((text: string, images = [], files = []) =>
+      JSON.stringify({ text, images, files }),
+    ),
+  };
+});
 
 vi.mock('@/lib/composerDraftStore', () => ({
   saveDraft: vi.fn(),

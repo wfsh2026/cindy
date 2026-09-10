@@ -40,6 +40,8 @@ import type { Manifest } from './manifestService';
 import { download, DownloadError } from './downloader/index';
 import { ProgressNormalizer } from './updateProgressNormalizer';
 import { compareAppUpdateVersions } from './updateVersionPolicy';
+import { applyOfficialNoticeAction, getOfficialUpdateSnapshot, getPersonalUpdateBuildInfo, officialUpdateScopeKey, recordOfficialUpdateCheck } from './officialUpdateNotice';
+import type { OfficialNoticeRequest, OfficialUpdateSnapshot } from '../shared/personalBuildInfo';
 
 import { createLogger, maskPath } from './logger';
 import {
@@ -92,6 +94,7 @@ type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' 
 
 interface UpdateStatusPayload {
   status: UpdateStatus;
+  official?: OfficialUpdateSnapshot;
   version?: string;
   progress?: number;
   errorCode?: string;
@@ -237,7 +240,9 @@ function broadcastChannelSettings(): void {
 function setStatus(status: UpdateStatus, extra?: Partial<UpdateStatusPayload>): void {
   currentStatus = status;
   lastErrorCode = extra?.errorCode;
-  broadcastStatus({ status, ...extra });
+  const official = getOfficialUpdateSnapshot();
+  const payload = { status, ...extra, ...(official ? { official } : {}) };
+  broadcastStatus(payload);
   if (status === 'ready' && !startupUpdateCheckInProgress && !extra?.errorCode) {
     void evaluateAutoRelaunch('status-ready');
   }
@@ -1132,10 +1137,14 @@ async function doCheckForUpdate(manifestOverride?: Manifest | null): Promise<Che
     setStatus('checking');
   }
 
+  const personalBuild = getPersonalUpdateBuildInfo();
+  const officialScope = personalBuild ? officialUpdateScopeKey() : undefined;
   const manifest = manifestOverride ?? await fetchManifest();
+  if (officialScope) await recordOfficialUpdateCheck(manifest?.app.version ?? null, officialScope);
   if (!manifest) {
     log.info('Manifest fetch failed');
     if (!wasReady && !wasAvailable) currentStatus = 'idle';
+    if (personalBuild) setStatus(currentStatus);
     return 'manifest_failed';
   }
 
@@ -1143,7 +1152,8 @@ async function doCheckForUpdate(manifestOverride?: Manifest | null): Promise<Che
   const currentVersion = app.getVersion();
   log.info('Version check: current=%s, latest=%s, ready=%s', currentVersion, latestVersion, previousReadyVersion ?? '<none>');
 
-  const versionRelation = compareAppUpdateVersions(latestVersion, currentVersion);
+  const comparisonVersion = personalBuild?.upstreamVersion ?? currentVersion;
+  const versionRelation = compareAppUpdateVersions(latestVersion, comparisonVersion);
   if (notifyOnlyUpdateMode) {
     discardNotifyOnlyUpdateArtifacts();
     if (versionRelation === 'invalid') {
@@ -2067,7 +2077,23 @@ export function initUpdateService(): void {
 
   ipcMain.handle('update-get-status', () => {
     const version = currentStatus === 'available' ? availableVersion : readyVersion;
-    return { status: currentStatus, version, errorCode: lastErrorCode };
+    const official = getOfficialUpdateSnapshot();
+    return { status: currentStatus, version, errorCode: lastErrorCode, ...(official ? { official } : {}) };
+  });
+
+  ipcMain.handle('official-update-notice-action', async (event, payload: unknown) => {
+    assertTrustedAppRendererEvent(event);
+    if (!payload || typeof payload !== 'object') throwIpcError('INVALID_PARAMS', 'notice action required');
+    const request = payload as OfficialNoticeRequest;
+    if (typeof request.scopeKey !== 'string' || typeof request.version !== 'string' || !['shown', 'snooze', 'ignore'].includes(request.action)) {
+      throwIpcError('INVALID_PARAMS', 'invalid notice action');
+    }
+    const accepted = await applyOfficialNoticeAction(request);
+    const official = getOfficialUpdateSnapshot();
+    const version = currentStatus === 'available' ? availableVersion : readyVersion;
+    const statusPayload = { status: currentStatus, version, ...(official ? { official } : {}) };
+    broadcastStatus(statusPayload);
+    return { accepted };
   });
 
   ipcMain.handle('update-auto-settings-get', () => {
@@ -2239,11 +2265,15 @@ export function initUpdateService(): void {
       // Step 1: prefer manifest (so we don't relaunch into a stale intermediate version).
       // 启动态用短超时，避免 external CDN 慢时阻塞启动关键路径（#26）。
       // 后台 30-min 轮询仍走默认 30s 超时。
+      const personalBuild = getPersonalUpdateBuildInfo();
+      const officialScope = personalBuild ? officialUpdateScopeKey() : undefined;
       const manifest = await fetchManifest(STARTUP_MANIFEST_TIMEOUT_MS);
+      if (officialScope) await recordOfficialUpdateCheck(manifest?.app.version ?? null, officialScope);
 
       if (!manifest) {
         if (notifyOnlyUpdateMode) {
           log.info('Notify-only manifest fetch failed; no local payload fallback is allowed');
+          if (personalBuild) setStatus('idle');
           return { hasUpdate: false, action: 'none' as const, error: 'manifest_failed' as const };
         }
         // Network unavailable — fall back to local patch.
@@ -2266,7 +2296,8 @@ export function initUpdateService(): void {
       const currentVersion = app.getVersion();
       log.info('Startup: current=%s, latest=%s', currentVersion, latestVersion);
 
-      const startupVersionRelation = compareAppUpdateVersions(latestVersion, currentVersion);
+      const comparisonVersion = personalBuild?.upstreamVersion ?? currentVersion;
+      const startupVersionRelation = compareAppUpdateVersions(latestVersion, comparisonVersion);
       if (notifyOnlyUpdateMode) {
         discardNotifyOnlyUpdateArtifacts();
         if (startupVersionRelation === 'invalid') {

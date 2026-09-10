@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { resolvePersonalBuildInfo, type OfficialNoticeRequest, type OfficialUpdateSnapshot } from '../shared/personalBuildInfo';
 import {
   isExperiencePackGetResult,
   isExperiencePackListResult,
@@ -1023,6 +1024,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }),
   osRelease: ipcRenderer.sendSync('get-os-release') as string,
   appVersion: ipcRenderer.sendSync('get-app-version') as string,
+  personalBuildInfo: resolvePersonalBuildInfo(process.platform, import.meta.env.VITE_CINDY_AUTH_REGION),
   clientEndpoints: { websiteUrl: clientEndpointsInfo?.websiteUrl ?? '' },
   preferredSystemLocale: readInitialPreferredSystemLocale(),
   appDisplayVersion: appDisplayVersionInfo.display,
@@ -2650,8 +2652,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     version?: string;
     error?: 'manifest_failed' | 'download_failed';
   }> => Promise.resolve({ hasUpdate: false, action: 'none' }),
-  getUpdateStatus: (): Promise<{ status: string; version?: string; errorCode?: string }> =>
+  getUpdateStatus: (): Promise<{ status: string; version?: string; errorCode?: string; official?: OfficialUpdateSnapshot }> =>
     ipcRenderer.invoke('update-get-status'),
+  officialUpdateNoticeAction: (request: OfficialNoticeRequest): Promise<{ accepted: boolean }> => ipcRenderer.invoke('official-update-notice-action', request),
   getAutoUpdateSettings: (): Promise<{
     autoRelaunchOnIdle: boolean;
     isCustomized?: boolean;

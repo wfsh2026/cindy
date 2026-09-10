@@ -52,12 +52,16 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-vi.mock('@/lib/imageRef', () => ({
-  parseUserContent: vi.fn((c: string) => ({ text: c, images: [], files: [] })),
-  stringifyUserContent: vi.fn((text: string, images = [], files = []) =>
-    JSON.stringify({ text, images, files }),
-  ),
-}));
+vi.mock('@/lib/imageRef', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/imageRef')>();
+  return {
+    ...actual,
+    parseUserContent: vi.fn((c: string) => ({ text: c, images: [], files: [] })),
+    stringifyUserContent: vi.fn((text: string, images = [], files = []) =>
+      JSON.stringify({ text, images, files }),
+    ),
+  };
+});
 
 vi.mock('@/lib/composerDraftStore', () => ({
   saveDraft: vi.fn(),

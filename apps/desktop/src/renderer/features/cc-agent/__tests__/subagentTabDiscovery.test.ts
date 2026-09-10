@@ -139,11 +139,7 @@ describe('startSubagentTabDiscovery', () => {
     dispose();
   });
 
-  it('does not register the Pi-only tab for non-Pi history alone', async () => {
-    // The tab is Pi-only and SubagentsBody drops every non-Pi row, so a task
-    // that switched to Pi but still has Claude Code / Codex history would have
-    // opened a permanently empty tab. The remote read is already Pi-narrowed on
-    // the Main side; this is the local path.
+  it('registers the shared tab for Claude Code and Codex history', async () => {
     const h = harness();
     h.listLocal.mockResolvedValue(nonPiRuns('claude-code', 'codex'));
 
@@ -157,9 +153,9 @@ describe('startSubagentTabDiscovery', () => {
       isRequestOwnerCurrent: () => true,
     });
     await settle();
-    expect(h.registerTab).not.toHaveBeenCalled();
+    expect(h.registerTab).toHaveBeenCalledOnce();
 
-    // The first Pi run in the same mixed history does register it.
+    // Later Pi history reuses the same entry.
     h.listLocal.mockResolvedValue(mixedRuns());
     h.emitLocalChange();
     await settle();
@@ -480,20 +476,9 @@ describe('startSubagentTabDiscovery', () => {
       expect(depsLine).toContain('onPresenceChange:');
     });
 
-    it('declares the entry available for a local Pi task or for one that owns runs', () => {
+    it('declares the entry available for a local task or a remote task owning runs', () => {
       expect(source).toContain(
-        "(session.agentKind === 'pi' && !session.remoteHostId) || durablePiRunsPresent",
-      );
-      // The harness alone is not enough: `agents/pi` treats a session with a
-      // `remoteHostId` as remote and never installs the durable Subagent
-      // extension for it, so an SSH-hosted Pi task can never own a run.
-      // Declaring the entry from `agentKind` alone opened a tab that stays
-      // empty forever and whose controls address the local filesystem rather
-      // than the remote host. `durablePiRunsPresent` stays ungated: device-link
-      // is supported and discovers remotely, and an SSH task's local list is
-      // always empty so it cannot come back through that branch.
-      expect(source).not.toContain(
-        "session ? session.agentKind === 'pi' || durablePiRunsPresent : undefined",
+        "!session.remoteHostId || subagentRunsPresent",
       );
       // Unresolved session still reads as "not known yet" rather than
       // "unavailable" — the shell distinguishes the two.
@@ -501,7 +486,7 @@ describe('startSubagentTabDiscovery', () => {
       // Presence is keyed by the session it was observed for, so navigating to
       // another task cannot inherit the previous one's answer.
       expect(source).toContain(
-        "const durablePiRunsPresent = Boolean(sessionId) && sessionOwningDurablePiRuns === sessionId;",
+        "const subagentRunsPresent = Boolean(sessionId) && sessionOwningSubagentRuns === sessionId;",
       );
     });
   });

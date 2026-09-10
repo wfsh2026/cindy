@@ -367,12 +367,10 @@ describe('OrcaWorkflowRoute source invariants', () => {
     expect(sessionViewSource).toContain(
       'declare(sessionId, { initialCollapsed, writeInitialCollapsedRecord, subagentsAvailable });',
     );
-    // The declaration is multi-line since the Subagents entry also follows
-    // durable Pi runs (a task switched off Pi keeps the tab while its runs
-    // exist), so the attribute and its expression are pinned separately.
+    // Local Claude, Codex and Pi tasks expose the reader; historical runs keep it available.
     expect(sessionViewSource).toContain('subagentsAvailable={');
     expect(sessionViewSource).toContain(
-      "(session.agentKind === 'pi' && !session.remoteHostId) || durablePiRunsPresent",
+      'session ? !session.remoteHostId || subagentRunsPresent : undefined',
     );
     // The harness alone must not declare the entry for an SSH-hosted task:
     // `agents/pi` disables the durable Subagent extension whenever

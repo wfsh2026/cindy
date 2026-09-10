@@ -73,6 +73,7 @@ const localizedCache = new Map<string, ReleaseNotes>();
 // Version-index cache — one shot per session; the app version is immutable
 // while the process lives, so a successful fetch never needs to repeat.
 let indexCache: string[] | null = null;
+let indexFetchedAt = 0;
 
 /** Return the legacy/root content in the same shape as a localized block. */
 function legacyContentFromRoot(raw: RawReleaseNotes): RawLocalizedContent {
@@ -183,10 +184,11 @@ async function fetchRawReleaseNotes(version: string): Promise<RawReleaseNotes | 
  * intermediate versions to pull when the user upgrades across releases.
  */
 export async function fetchReleaseNotesIndex(): Promise<string[] | null> {
-  if (indexCache) return indexCache;
+  if (indexCache && Date.now() - indexFetchedAt < 30_000) return indexCache;
   const raw = await window.electronAPI.fetchReleaseNotesIndex();
   if (!raw) return null;
   indexCache = raw;
+  indexFetchedAt = Date.now();
   return raw;
 }
 

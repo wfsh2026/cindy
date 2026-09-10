@@ -274,6 +274,8 @@ export function useUpdateNotice(): UseUpdateNoticeReturn {
 
   useEffect(() => {
     const appVersion = window.electronAPI.appVersion;
+    // Personal builds have their own version/official-baseline notice controller.
+    if (window.electronAPI.personalBuildInfo) return;
     let lastRead: string | null = null;
     try {
       lastRead = localStorage.getItem(STORAGE_KEY);

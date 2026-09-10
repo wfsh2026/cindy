@@ -23,6 +23,7 @@ import {
 } from '@cindy/maker-shared/subagent-workspace';
 
 import { activeOwnerScopeKey, getActiveDataOwnerPushStamp } from '../../appSessionState.js';
+import { readNativeSubagentTranscript } from '../nativeSubagentTranscript.js';
 import { isDeviceLinkInvoke } from '../../device-link/invoke-context.js';
 import {
   isDataOwnerBroadcastScopeCurrent,
@@ -411,7 +412,6 @@ export function registerSubagentRunsIpc(
     const page = await listSubagentRuns(sessionId, {
       cursor,
       limit,
-      ...(isDeviceLinkInvoke() ? { provider: 'pi' as const } : {}),
     });
     return {
       supported: page !== null,
@@ -425,9 +425,6 @@ export function registerSubagentRunsIpc(
     const body = requireObject(input, 'subagent run detail input');
     const sessionId = requireString(body.sessionId, 'sessionId');
     const provider = requireEnum(body.provider, SUBAGENT_PROVIDERS, 'provider');
-    if (isDeviceLinkInvoke() && provider !== 'pi') {
-      return { supported: false, run: null } satisfies SubagentRunDetailResponse;
-    }
     const runIdOrAlias = requireString(body.runIdOrAlias, 'runIdOrAlias');
     // Reused by the projection below: generation recency has to be judged on
     // the same snapshot reconciliation just wrote the row from, not on a second
@@ -534,19 +531,25 @@ export function registerSubagentRunsIpc(
     const body = requireObject(input, 'subagent transcript input');
     const sessionId = requireString(body.sessionId, 'sessionId');
     const provider = requireEnum(body.provider, SUBAGENT_PROVIDERS, 'provider');
-    if (isDeviceLinkInvoke() && provider !== 'pi') {
-      return { supported: false, entries: [] } satisfies SubagentTranscriptPageResponse;
-    }
     const runIdOrAlias = requireString(body.runIdOrAlias, 'runIdOrAlias');
     const cursor = body.cursor === undefined ? undefined : requireString(body.cursor, 'cursor');
     const requestedLimit = body.limit === undefined ? undefined : requireNonNegativeInt(body.limit, 'limit');
     const limit = isDeviceLinkInvoke()
       ? Math.min(requestedLimit ?? 25, 25)
       : requestedLimit;
+    const ownerKey = activeOwnerScopeKey();
     const run = await getSubagentRunDetail(sessionId, provider, runIdOrAlias);
-    if (!run || provider !== 'pi' || !run.capabilities.viewFullTranscript) {
+    if (!run || ownerKey !== activeOwnerScopeKey()) {
       return { supported: false, entries: [] } satisfies SubagentTranscriptPageResponse;
     }
+    if (provider !== 'pi') {
+      const options = { cursor, limit };
+      const page = await readNativeSubagentTranscript(run, options);
+      if (ownerKey !== activeOwnerScopeKey()) return { supported: false, entries: [] } satisfies SubagentTranscriptPageResponse;
+      const visible = await getSubagentRunDetail(sessionId, provider, run.id);
+      return visible && ownerKey === activeOwnerScopeKey() ? page : { supported: false, entries: [] };
+    }
+    if (!run.capabilities.viewFullTranscript) return { supported: false, entries: [] } satisfies SubagentTranscriptPageResponse;
     // `providerRunIds` is oldest-first (the rolling window in
     // `localDb/subagentRuns.ts` evicts from the front), so this is the run's
     // generations in the order they happened. Taking only the last one — what

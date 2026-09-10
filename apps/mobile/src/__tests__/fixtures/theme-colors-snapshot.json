@@ -1,6 +1,10 @@
 {
   "source": "apps/mobile/src/theme/tokens.ts ThemeColors",
   "light": {
+    "subagentIdentity1": "#9b72cf",
+    "subagentIdentity2": "#619d4b",
+    "subagentIdentity3": "#558dc0",
+    "subagentIdentity4": "#b48c42",
     "surface": "#EDEDED",
     "surfaceElevated": "#F8F8F8",
     "surfaceTranslucent": "rgba(237, 237, 237, 0.78)",
@@ -104,6 +108,10 @@
     }
   },
   "dark": {
+    "subagentIdentity1": "#c4a1ef",
+    "subagentIdentity2": "#9aca85",
+    "subagentIdentity3": "#91bdea",
+    "subagentIdentity4": "#dfbc77",
     "surface": "#2A2828",
     "surfaceElevated": "#312F2F",
     "surfaceTranslucent": "rgba(42, 40, 40, 0.78)",

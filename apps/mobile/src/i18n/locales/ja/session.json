@@ -446,5 +446,51 @@
     "noExtraDirsSummary": "追加ディレクトリはありません",
     "attachmentUploadFailed": "添付のアップロードに失敗しました。再試行するか、このメッセージを削除してください。",
     "authGateHint": "{{agent}} はこのパソコンに接続済みのモデルプロバイダーがないため、送信は失敗します。パソコンの {{appName}} で「設定 → モデルプロバイダー」を設定してください。"
+  },
+  "subagents": {
+    "elapsed": "所要時間 {{duration}}",
+    "noRunning": "実行中の Subagent はありません",
+    "running": "実行中",
+    "finished": "完了",
+    "openDetails": "詳細を見る",
+    "allRuns": "すべての Subagent",
+    "close": "閉じる",
+    "record": "実行記録",
+    "result": "結果",
+    "search": "実行記録を検索",
+    "filters": {
+      "all": "すべて",
+      "messages": "メッセージ",
+      "tools": "ツール",
+      "errors": "エラー"
+    },
+    "status": {
+      "queued": "待機中",
+      "running": "実行中",
+      "completed": "完了",
+      "failed": "失敗",
+      "stopped": "停止"
+    },
+    "roles": {
+      "parent": "親タスク",
+      "subagent": "Subagent",
+      "tool": "ツール",
+      "system": "アクティビティ"
+    },
+    "unsupported": "このデバイスは記録の読み取りに対応していません。",
+    "notFound": "この Subagent は利用できません。",
+    "loadFailed": "読み込みに失敗しました。タップして再試行。",
+    "copied": "コピーしました",
+    "copyFailed": "コピーに失敗しました。タップして再試行。",
+    "noResult": "返された結果はまだありません。",
+    "copy": "結果をコピー",
+    "quote": "親タスクに引用",
+    "partial": "記録の一部が欠落または省略されています。",
+    "empty": "一致する記録はありません。",
+    "loadMore": "さらに読み込む",
+    "latest": "新しい内容 · 最新を表示",
+    "toolInput": "入力",
+    "toolOutput": "出力",
+    "toolError": "エラー"
   }
 }

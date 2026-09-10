@@ -35,6 +35,33 @@ class MockResponse extends EventEmitter {
 }
 
 describe('releaseNotesService', () => {
+  it('refreshes the version index while the application remains open', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(100_000);
+    try {
+      const { fetchReleaseNotesIndex } = await import('../releaseNotesService');
+      const fetchIndex = async (versions: string[]) => {
+        const request = new MockRequest();
+        const response = new MockResponse();
+        requestMock.mockReturnValueOnce(request);
+        const pending = fetchReleaseNotesIndex();
+        const json = JSON.stringify(versions);
+        const data = Buffer.from(json, 'utf8');
+        request.emit('response', response);
+        response.emit('data', data);
+        response.emit('end');
+        return pending;
+      };
+      await fetchIndex(['0.1.72']);
+      const cached = await fetchReleaseNotesIndex();
+      expect(cached).toEqual(['0.1.72']);
+      expect(requestMock).toHaveBeenCalledOnce();
+      vi.setSystemTime(131_000);
+      const refreshed = await fetchIndex(['0.1.72', '0.1.73']);
+      expect(refreshed).toEqual(['0.1.72', '0.1.73']);
+      expect(requestMock).toHaveBeenCalledTimes(2);
+    } finally { vi.useRealTimers(); }
+  });
   beforeEach(() => {
     vi.resetModules();
     requestMock.mockReset();

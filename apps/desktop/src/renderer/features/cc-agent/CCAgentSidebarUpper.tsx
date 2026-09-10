@@ -1422,6 +1422,14 @@ function ExpandedView({
     () => visibleSidebarProjects(projectUniverse.projects, hiddenProjectKeys, localPlatform),
     [projectUniverse.projects, hiddenProjectKeys, localPlatform],
   );
+  const currentProjectKey = useMemo(() => {
+    if (!viewedSessionId) return undefined;
+    for (const project of visibleProjectUniverse) {
+      const containsViewedTask = project.sessions.some((session) => session.id === viewedSessionId);
+      if (containsViewedTask) return project.projectKey;
+    }
+    return undefined;
+  }, [visibleProjectUniverse, viewedSessionId]);
 
   // 内联会话搜索:输入行在 SidebarTopNav 末行,状态经 ConversationSearchProvider 共享;
   // query 非空时同一份顶部导航 sticky 钉住,结果替换下方列表,不再用 overlay 盖输入框。
@@ -3518,6 +3526,7 @@ function ExpandedView({
                   ) => (
                     <ProjectNodeView
                       project={project}
+                      currentProjectKey={currentProjectKey}
                       displaySessions={displaySessions}
                       sessionVariant={sessionVariant}
                       statusFilter={filter.status}
@@ -3574,6 +3583,7 @@ function ExpandedView({
                 <ProjectsSection
                   unclassified={visibleUnclassified}
                   projects={visibleProjectsWithVendor}
+                  currentProjectKey={currentProjectKey}
                   dialogues={visibleDialogues}
                   allKnownProjects={visibleProjectUniverse}
                   dialogueCount={allGroups.dialogues.length}

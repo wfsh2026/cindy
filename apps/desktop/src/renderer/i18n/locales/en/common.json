@@ -2717,7 +2717,7 @@
         "nestedLabel": "Allow subagents to spawn subagents",
         "nestedHint": "Only applies to legacy multi-agent (V1); Sol / Terra (V2) ignore this setting.",
         "nestedAria": "Allow subagents to spawn subagents",
-      "localOnlyHint": "These guardrails only apply to Codex running on this machine; Codex over SSH remotes is not affected."
+        "localOnlyHint": "These guardrails only apply to Codex running on this machine; Codex over SSH remotes is not affected."
       },
       "smartRouting": {
         "label": "Codex smart routing",
@@ -6652,6 +6652,8 @@
       "collapseAllAria": "Collapse all files"
     },
     "subagents": {
+      "elapsed": "Time spent {{duration}}",
+      "noRunning": "No active subagents",
       "running": "Running",
       "finished": "Finished",
       "empty": "No Subagent in this task yet",
@@ -6697,7 +6699,7 @@
         "resume": "Resume Subagent"
       },
       "returnedResult": "Returned result",
-      "copyResult": "Copy",
+      "copyResult": "Copy result",
       "copiedResult": "Copied",
       "resultTruncated": "The returned result was truncated for display.",
       "latestUpdate": "Latest update",
@@ -6760,7 +6762,20 @@
         "completed": "Completed",
         "failed": "Failed",
         "stopped": "Stopped"
-      }
+      },
+      "openDetails": "View details",
+      "readerViews": "Subagent views",
+      "partialRecord": "Some execution records are unavailable or truncated.",
+      "noReturnedResult": "No result has been returned yet.",
+      "quoteResult": "Quote in parent task",
+      "copied": "Copied",
+      "copyFailed": "Could not copy. Try again.",
+      "quoted": "Added to the parent task draft.",
+      "quoteUnavailable": "Open the parent task input to quote this result.",
+      "newContent": "New content · Go to latest",
+      "sendTo": "Send to: {{name}}",
+      "readOnly": "This execution is read-only.",
+      "runningCount": "Subagents · {{count}} running"
     },
     "backgroundTasks": {
       "running": "Running",
@@ -6822,6 +6837,49 @@
     }
   },
   "update": {
+    "official": {
+      "title": "Official updates",
+      "available": "Official update · {{version}}",
+      "unsynced": "Not yet included in this personal build · View changes",
+      "personalVersion": "Personal version: {{version}}",
+      "baseline": "Official baseline: {{version}}",
+      "latest": "Latest official version: {{version}}",
+      "checkedAt": "Last successful check: {{time}}",
+      "notChecked": "Not checked yet",
+      "checkFailed": "This check failed. Showing the last successful result.",
+      "loading": "Loading official release notes…",
+      "notesPending": "Notes for this release are temporarily unavailable. Retry later or open the official releases page.",
+      "copy": "Copy sync request",
+      "copied": "Sync request copied",
+      "copyFailed": "Could not copy. Please retry.",
+      "website": "Official releases",
+      "retry": "Retry notes",
+      "snooze": "Remind me tomorrow",
+      "ignore": "Don't remind for this version",
+      "actionStale": "The official version changed. Review it before trying again.",
+      "saveFailed": "Could not save this preference. Please retry.",
+      "checkAvailable": "An official update has not yet been synced",
+      "checkCurrent": "No newer official version in this channel",
+      "syncRequest": "Analyze and sync Cindy's official update while preserving personal features.\nPersonal version: {{personal}}\nOfficial baseline: {{baseline}}\nBaseline commit: {{commit}}\nTarget official version: {{latest}}\nReleases: {{url}}\nCompare changes and conflicts first. Advance the baseline only after integration and verification; selected fixes do not mean a full sync."
+    },
+    "personal": {
+      "unread": "Personal changes · Unread",
+      "title": "Personal changes",
+      "changes": {
+        "subagentReader": {
+          "title": "Subagent reader",
+          "text": "Chinese names and colored icons open detailed execution content."
+        },
+        "subagentLinks": {
+          "title": "Subagents below conclusions",
+          "text": "Each completed conclusion keeps shortcuts to its Subagents for later reading."
+        },
+        "officialNotices": {
+          "title": "Independent official update notices",
+          "text": "Personal versions advance independently. Official updates use the integrated official baseline."
+        }
+      }
+    },
     "banner": {
       "title": "Updated to {{version}}",
       "subtitle": "Relaunch to apply",

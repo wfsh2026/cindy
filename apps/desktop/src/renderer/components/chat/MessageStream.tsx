@@ -358,6 +358,7 @@ export function isScrollNavigationKey(key: string): boolean {
 import { suppressScrollbarActivation } from '@/lib/scrollbarAutoHide';
 import { useAutomaticHistoryLoadBudget } from './useAutomaticHistoryLoadBudget';
 import { collectAssistantTurnUsageDetails } from '@/lib/userTurnUsage';
+import { collectAssistantTurnSubagents, type AssistantTurnSubagent } from '@/lib/assistantTurnSubagents';
 import type { TurnUsageDetails } from '../../../shared/turnUsageDetails';
 import { hasReviewableTurnChanges, type TurnChangeSetSummary } from '../../../shared/turnChangeSet';
 
@@ -2247,6 +2248,7 @@ function renderWorkGroupChild(
     singleResultMap: Map<string, string>;
     assistantsWithFollowingUserBoundary: ReadonlySet<string>;
     turnFinalAssistantClientIds: ReadonlySet<string>;
+    subagentsByAssistantId: ReadonlyMap<string, readonly AssistantTurnSubagent[]>;
     subagentModelByToolUseId: ReadonlyMap<string, string>;
     userTurnUsageDetailsByAssistantId: ReadonlyMap<string, TurnUsageDetails>;
   },
@@ -2286,6 +2288,7 @@ function renderWorkGroupChild(
           props.assistantsWithFollowingUserBoundary,
         )}
         assistantIsTurnFinal={props.turnFinalAssistantClientIds.has(item.message.clientId)}
+        turnSubagents={props.subagentsByAssistantId.get(item.message.clientId)}
         userTurnUsageDetails={props.userTurnUsageDetailsByAssistantId.get(item.message.clientId)}
         isFirstUserMessage={item.message.clientId === props.firstUserMessageClientId}
         isLastUserMessage={item.message.clientId === props.lastUserMessageClientId}
@@ -2596,6 +2599,9 @@ export function MessageStream({
     () => collectTurnFinalAssistantClientIds(visibleMessages),
     [visibleMessages],
   );
+  const subagentsByAssistantId = useMemo(() => {
+    return collectAssistantTurnSubagents(visibleMessages, turnFinalAssistantClientIds);
+  }, [visibleMessages, turnFinalAssistantClientIds]);
   // subagent-model-chip: parentToolUseId(Agent/Task 行 id)→ 子代理模型,
   // 供 AgentActionsBlock 给 Agent/Task 行反查并渲染模型 chip。
   const subagentModelByToolUseId = useMemo(() => buildSubagentModelMap(messages), [messages]);
@@ -5353,6 +5359,7 @@ export function MessageStream({
                               singleResultMap,
                               assistantsWithFollowingUserBoundary,
                               turnFinalAssistantClientIds,
+                              subagentsByAssistantId,
                               subagentModelByToolUseId,
                               userTurnUsageDetailsByAssistantId,
                             }),
@@ -5484,6 +5491,7 @@ export function MessageStream({
                             assistantsWithFollowingUserBoundary,
                           )}
                           assistantIsTurnFinal={turnFinalAssistantClientIds.has(msg.clientId)}
+                          turnSubagents={subagentsByAssistantId.get(msg.clientId)}
                           userTurnUsageDetails={userTurnUsageDetailsByAssistantId.get(msg.clientId)}
                           isFirstUserMessage={msg.clientId === firstUserMessageClientId}
                           isLastUserMessage={msg.clientId === lastUserMessageClientId}
@@ -5580,6 +5588,7 @@ const MessageItem = memo(function MessageItem({
   sessionRunning,
   assistantForkBlocked,
   assistantIsTurnFinal,
+  turnSubagents,
   userTurnUsageDetails,
   isFirstUserMessage,
   isLastUserMessage,
@@ -5611,6 +5620,7 @@ const MessageItem = memo(function MessageItem({
    *  (collectTurnFinalAssistantClientIds). Gates the hover action bar —
    *  mid-turn texts don't mount it, keeping the stream compact. */
   assistantIsTurnFinal?: boolean;
+  turnSubagents?: readonly AssistantTurnSubagent[];
   /** Aggregated token/cache/model details for this assistant's visible user turn. */
   userTurnUsageDetails?: TurnUsageDetails;
   /** True iff this message is the first user message in the visible list.
@@ -5715,6 +5725,7 @@ const MessageItem = memo(function MessageItem({
           // 任务执行过程中(尾部 turn 流式中,forkBlocked=true)不出现操作行;
           // turn 结束后只有收尾正文出现 —— 中间句彻底不挂 bar。
           showActionBar={Boolean(assistantIsTurnFinal) && !assistantForkBlocked}
+          turnSubagents={turnSubagents}
           turnMoney={message.turnMoney}
           turnCostUsd={message.turnCostUsd}
           turnCostIsEstimate={message.turnCostIsEstimate}

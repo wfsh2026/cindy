@@ -1,3 +1,5 @@
+import { subagentDisplayTitle, subagentWorkLabel } from '@cindy/maker-shared/subagent-workspace';
+import { SubagentAvatar } from './SubagentAvatar';
 import { createContext, Fragment, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -268,6 +270,7 @@ import { dedupeToolMediaByUrl } from '@cindy/maker-shared/message-render';
 import { tokenizeThinkingText } from '@cindy/maker-shared/thinking-text';
 import {
   buildAgentTaskCardModel,
+  isSubagentSpawnToolName,
   type AgentTaskCardModel,
   type AgentTaskStatus,
 } from '@cindy/maker-shared/agent-task';
@@ -592,6 +595,7 @@ export interface ShareableMessageViewport {
 }
 
 interface MessageActions {
+  onOpenSubagent?: (selection: { provider: 'claude-code' | 'codex' | 'pi'; runIdOrAlias: string }) => void;
   /** 长按/操作条「复制消息链接」:复制该消息的会话深链(带 ?message= 锚点)。 */
   onCopyMessageLink?: (clientId: string) => void;
   /** Insert this message's anchored link as an atom in the active composer. */
@@ -640,6 +644,7 @@ interface MessageActions {
 }
 
 export function MessageRenderer({
+  onOpenSubagent,
   topOverlayHeight,
   focusedItemKey,
   followLatestRequestKey,
@@ -1585,6 +1590,7 @@ export function MessageRenderer({
     if (shareSelectionActiveRef.current) scheduleStickyShareCheckRef.current?.(true);
   }, []);
   const actions: MessageActions & { firstUserMessageClientId?: string } = useMemo(() => ({
+    onOpenSubagent,
     onAddMessageToComposer,
     onCopyMessageLink,
     onForkMessage,
@@ -1613,6 +1619,7 @@ export function MessageRenderer({
     isSessionStreaming,
     screenWidth: viewportLayout.contentWidth,
   }), [
+    onOpenSubagent,
     busyClientId,
     busyAction,
     continuationInFlightProjectionCapability,
@@ -2818,7 +2825,7 @@ const RenderItemView = memo(function RenderItemView({
       );
       break;
     case 'agent_task':
-      node = <AgentTaskCard item={item} screenWidth={actions.screenWidth} />;
+      node = <AgentTaskCard item={item} screenWidth={actions.screenWidth} onOpenSubagent={actions.onOpenSubagent} />;
       break;
     case 'work_group':
       node = <WorkGroupCard item={item} actions={actions} />;
@@ -4170,9 +4177,11 @@ function readAgentTaskToolInput(toolCall: MobileAgentTaskItem['toolCall']): unkn
 function AgentTaskCard({
   item,
   screenWidth,
+  onOpenSubagent,
 }: {
   item: MobileAgentTaskItem;
   screenWidth?: number;
+  onOpenSubagent?: MessageActions['onOpenSubagent'];
 }) {
   const styles = useThemedStyles(makeStyles);
   const { t } = useTranslation();
@@ -4197,6 +4206,28 @@ function AgentTaskCard({
   const hasDetails = !!(
     model.description || model.summary || model.spawnedAgentName || model.lastToolName || model.outputFile
   );
+  const spawnToolName = item.toolCall?.label ?? '';
+  const spawnTool = isSubagentSpawnToolName(spawnToolName);
+  const canOpenSubagent = spawnTool || item.update?.taskType === 'pi_subagent';
+  const source = item.toolCall?.source;
+  const content = source?.content;
+  const inputId = content && typeof content === 'object' && 'toolUseId' in content && typeof content.toolUseId === 'string' ? content.toolUseId : undefined;
+  const parentToolUseId = source?.toolUseId ?? inputId ?? item.update?.parentToolUseId;
+  const runIdOrAlias = parentToolUseId ?? item.update?.taskId;
+  if (onOpenSubagent && canOpenSubagent && runIdOrAlias) {
+    const identity = { parentToolUseId, id: item.update?.taskId, title: model.title ?? undefined, description: model.description };
+    const work = subagentWorkLabel(identity);
+    const name = subagentDisplayTitle(identity);
+    const selection = { provider: model.provider, runIdOrAlias };
+    return <Pressable accessibilityRole="button" accessibilityLabel={`${name} · ${work ?? ''} · ${agentTaskStatusLabel(model.status)}`} testID="message.agentTaskToggle"
+      style={styles.subagentEntry} onPress={() => onOpenSubagent(selection)}>
+      <SubagentAvatar source={identity} size={iconSize.lg} />
+      <Text numberOfLines={1} style={styles.detailText}>{name}</Text>
+      {work && <Text numberOfLines={1} style={[styles.foldSubtitle, styles.subagentEntryTitle]}>{work}</Text>}
+      <Text numberOfLines={1} style={styles.foldSubtitle}>{agentTaskStatusLabel(model.status)}</Text>
+    </Pressable>;
+  }
+
   return (
     <FoldablePanel
       blockId={item.key}
@@ -4208,6 +4239,7 @@ function AgentTaskCard({
       layout={layout}
       variant="card"
       testID="message.agentTaskToggle"
+
     >
       {hasDetails ? (
         <View style={[styles.stackSmall, { gap: layout.stackSmallGap }]}>
@@ -4459,6 +4491,19 @@ function SubagentCard({
       ? t('message.renderer.workedDuration', { duration: formatDuration(item.durationMs) })
       : agentTaskStatusLabel(item.status);
   const subtitle = [item.header.description, statusText].filter(Boolean).join(' · ');
+  if (actions.onOpenSubagent) {
+    const runIdOrAlias = item.key.slice('subagent-'.length);
+    const identity = { parentToolUseId: runIdOrAlias, description: item.header.description ?? undefined };
+    const work = subagentWorkLabel(identity);
+    const name = subagentDisplayTitle(identity);
+    const selection = { provider: 'claude-code' as const, runIdOrAlias };
+    return <Pressable accessibilityRole="button" accessibilityLabel={`${name} · ${work ?? ''} · ${statusText}`} style={styles.subagentEntry} testID="message.subagentToggle" onPress={() => actions.onOpenSubagent?.(selection)}>
+      <SubagentAvatar source={identity} size={iconSize.lg} />
+      <Text numberOfLines={1} style={styles.detailText}>{name}</Text>
+      {work && <Text numberOfLines={1} style={[styles.foldSubtitle, styles.subagentEntryTitle]}>{work}</Text>}
+      <Text style={styles.foldSubtitle}>{agentTaskStatusLabel(item.status)}</Text>
+    </Pressable>;
+  }
   return (
     <CollabCardShell
       blockId={item.key}
@@ -4470,6 +4515,7 @@ function SubagentCard({
     >
       {(layout) => (
         <View style={[styles.stack, { gap: layout.stackGap }]}>
+
           {/* 两级展开(与 WorkGroupCard 同规则):内层子卡保持各自折叠头行,按需下钻。 */}
           {item.childItems.map((child) => (
             <RenderItemView key={child.key} item={child} actions={actions} />
@@ -8427,6 +8473,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
+  subagentEntry: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 44 },
+  subagentEntryTitle: { flexShrink: 1 },
   foldHeaderPlain: {
     gap: 6,
     minHeight: 22,

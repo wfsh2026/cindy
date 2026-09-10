@@ -57,6 +57,8 @@ const inFlight = new Map<string, Promise<RawReleaseNotes | null>>();
 // for this platform. Cached on success only — a failed fetch falls through so
 // a subsequent call can retry.
 let indexCache: string[] | null = null;
+let indexFetchedAt = 0;
+let indexSource = '';
 
 // ── Core ───────────────────────────────────────────────────────────────────
 
@@ -224,10 +226,11 @@ export async function fetchReleaseNotes(version: string): Promise<RawReleaseNote
  * for the process lifetime.
  */
 export async function fetchReleaseNotesIndex(): Promise<string[] | null> {
-  if (indexCache) return indexCache;
-
   const platform = getPlatformKey();
-  const url = `${getBaseUrl()}/notice/${platform}/index.json?t=${Date.now()}`;
+  const baseUrl = getBaseUrl();
+  const source = `${baseUrl}/notice/${platform}/index.json`;
+  if (indexCache && indexSource === source && Date.now() - indexFetchedAt < 30_000) return indexCache;
+  const url = `${source}?t=${Date.now()}`;
   const json = await fetchCdnJson<unknown>(url);
   if (!Array.isArray(json)) {
     if (json !== null) log.warn('index.json is not an array; ignoring');
@@ -235,6 +238,8 @@ export async function fetchReleaseNotesIndex(): Promise<string[] | null> {
   }
   const versions = json.filter((v): v is string => typeof v === 'string');
   indexCache = versions;
+  indexFetchedAt = Date.now();
+  indexSource = source;
   log.info('Fetched index OK: %d versions', versions.length);
   return versions;
 }

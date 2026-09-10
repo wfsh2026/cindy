@@ -6650,6 +6650,8 @@
       "collapseAllAria": "すべてのファイルを折りたたむ"
     },
     "subagents": {
+      "elapsed": "所要時間 {{duration}}",
+      "noRunning": "実行中の Subagent はありません",
       "running": "実行中",
       "finished": "終了",
       "empty": "このタスクにはまだサブエージェントがありません",
@@ -6695,7 +6697,7 @@
         "resume": "サブエージェントを再開"
       },
       "returnedResult": "返された結果",
-      "copyResult": "コピー",
+      "copyResult": "結果をコピー",
       "copiedResult": "コピー済み",
       "resultTruncated": "返された結果は表示用に省略されています。",
       "latestUpdate": "最新の更新",
@@ -6758,7 +6760,20 @@
         "completed": "完了",
         "failed": "失敗",
         "stopped": "停止"
-      }
+      },
+      "openDetails": "詳細を表示",
+      "readerViews": "サブエージェント表示",
+      "partialRecord": "一部の実行記録は未保存、読み取り不可、または切り詰められています。",
+      "noReturnedResult": "結果はまだ返されていません。",
+      "quoteResult": "親タスクに引用",
+      "copied": "コピーしました",
+      "copyFailed": "コピーできませんでした。再試行してください。",
+      "quoted": "親タスクの下書きに追加しました。",
+      "quoteUnavailable": "親タスクの入力欄を開いてから引用してください。",
+      "newContent": "新しい内容 · 最新へ",
+      "sendTo": "送信先：{{name}}",
+      "readOnly": "この実行は閲覧のみです。",
+      "runningCount": "サブエージェント · {{count}} 件実行中"
     },
     "backgroundTasks": {
       "running": "実行中",
@@ -6820,6 +6835,49 @@
     }
   },
   "update": {
+    "official": {
+      "title": "公式アップデート",
+      "available": "公式の新バージョン · {{version}}",
+      "unsynced": "個人版に未反映 · 更新内容を表示",
+      "personalVersion": "個人版：{{version}}",
+      "baseline": "反映済みの公式版：{{version}}",
+      "latest": "公式の最新バージョン：{{version}}",
+      "checkedAt": "最終確認成功：{{time}}",
+      "notChecked": "未確認",
+      "checkFailed": "確認に失敗しました。前回成功時の結果を表示しています。",
+      "loading": "公式の更新内容を読み込み中…",
+      "notesPending": "このバージョンの更新内容は現在取得できません。再試行するか公式リリースページを開いてください。",
+      "copy": "同期依頼をコピー",
+      "copied": "同期依頼をコピーしました",
+      "copyFailed": "コピーに失敗しました。再試行してください。",
+      "website": "公式リリースを開く",
+      "retry": "更新内容を再取得",
+      "snooze": "明日通知する",
+      "ignore": "このバージョンは通知しない",
+      "actionStale": "公式バージョンが変わりました。再確認してください。",
+      "saveFailed": "設定を保存できませんでした。再試行してください。",
+      "checkAvailable": "未反映の公式アップデートがあります",
+      "checkCurrent": "このチャンネルに新しい公式バージョンはありません",
+      "syncRequest": "個人版の機能を維持して Cindy の公式更新を分析・同期してください。\n個人版：{{personal}}\n反映済み公式版：{{baseline}}\n基準コミット：{{commit}}\n同期先の公式版：{{latest}}\nリリース：{{url}}\n変更と競合を比較し、統合・検証後にのみ基準を更新してください。一部の修正の適用は完全な同期ではありません。"
+    },
+    "personal": {
+      "unread": "個人版の変更 · 未読",
+      "title": "個人版の変更",
+      "changes": {
+        "subagentReader": {
+          "title": "サブエージェントの閲覧",
+          "text": "中国語の名前と色付きアイコンから実行内容を確認できます。"
+        },
+        "subagentLinks": {
+          "title": "回答下のサブエージェント",
+          "text": "完了した回答の下に、その回答で使用したサブエージェントへの入口を残します。"
+        },
+        "officialNotices": {
+          "title": "独立した公式更新通知",
+          "text": "個人版の番号と独立して、反映済みの公式バージョンを基準に更新を確認します。"
+        }
+      }
+    },
     "banner": {
       "title": "{{version}} に更新済み",
       "subtitle": "再起動して適用",

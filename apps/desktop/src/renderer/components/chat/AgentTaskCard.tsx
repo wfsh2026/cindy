@@ -18,6 +18,8 @@ import {
 } from '@cindy/maker-shared/agent-task';
 
 import { useExpandedBlockMemory } from '@/hooks/useExpandedBlockMemory';
+import { subagentDisplayTitle, subagentWorkLabel } from '@cindy/maker-shared/subagent-workspace';
+import { SubagentAvatar } from './SubagentAvatar';
 import { Collapse } from '@/components/ui/collapse';
 import { Spinner } from '@/components/ui/spinner';
 import type { AgentTaskUpdate, ChatMessage } from '@/hooks/useCCAgentChat';
@@ -37,6 +39,7 @@ import { formatCompactTokens } from '@/lib/usageFormat';
 import { CODEX_SUBAGENT_EFFORTS } from '../../../shared/subagentModelSettings';
 import {
   PI_SUBAGENT_TOOL_NAME,
+  isSubagentSpawnToolName,
   subagentSpawnReceiptName,
   subagentSpawnResultIndicatesRunning,
 } from '@cindy/maker-shared/agent-task';
@@ -156,7 +159,6 @@ export function AgentTaskCard({
   persistedStatus,
   subagentModel,
   sessionId,
-  sessionAgentKind,
 }: AgentTaskCardProps) {
   const { t } = useTranslation();
   const blockId = `task:${toolCall?.clientId ?? update?.taskId ?? 'unknown'}`;
@@ -337,9 +339,9 @@ export function AgentTaskCard({
   const panelReachable = useSidebarPanelReachable(sessionId);
   const canOpenInPanel = Boolean(sessionId) && Boolean(workflowTaskId) && panelReachable;
   const subagentFocusId = update?.taskId ?? toolCall?.toolUseId;
+  const spawnTool = isSubagentSpawnToolName(toolCall?.toolName ?? '');
   const canOpenSubagentInPanel =
-    isPiDurableSubagent &&
-    sessionAgentKind === 'pi' &&
+    !isWorkflow && !isBash && (spawnTool || isPiDurableSubagent) &&
     Boolean(sessionId) &&
     Boolean(subagentFocusId) &&
     panelReachable;
@@ -406,6 +408,23 @@ export function AgentTaskCard({
     return parts;
   }, [duration, providerLabel, status, t, update?.usage?.totalTokens, update?.usage?.toolUses]);
 
+  if (canOpenSubagentInPanel) {
+    const source = { title, description, parentToolUseId: toolCall?.toolUseId ?? update?.parentToolUseId, id: update?.taskId };
+    const fallback = t('chat.agentTask.emptyTitle');
+    const label = subagentDisplayTitle(source, fallback);
+    const work = subagentWorkLabel(source);
+    const statusLabel = t(`chat.agentTask.status.${status}`);
+    return <div className="flex w-full justify-start" data-message-client-id={toolCall?.clientId}>
+      <button type="button" onClick={openSubagentInPanel} data-subagent-entry="true" title={work ? `${label} · ${work}` : label}
+        className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-full py-1 pr-2 text-left text-13 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
+        <SubagentAvatar source={source} size={16} />
+        <span className="shrink-0">{label}</span>
+        {work && <span className="min-w-0 truncate">{work}</span>}
+        <span role="status" className={status === 'failed' ? 'shrink-0 text-[var(--error-fg)]' : 'shrink-0 text-[var(--text-tertiary)]'}>{statusLabel}</span>
+      </button>
+    </div>;
+  }
+
   return (
     // data-message-client-id:MessageStream 的消息级 focus(后台任务面板行点击 /
     // 搜索跳转)靠该锚点滚动定位 —— 普通消息行有,任务卡也必须有,否则面板点
@@ -420,9 +439,11 @@ export function AgentTaskCard({
         <div className="flex w-full items-start gap-2">
         <button
           type="button"
-          onClick={isWorkflow && canOpenInPanel ? openInPanel : toggle}
+          onClick={isWorkflow && canOpenInPanel ? openInPanel : canOpenSubagentInPanel ? openSubagentInPanel : toggle}
           className="flex min-w-0 flex-1 items-start gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-          {...(isWorkflow && canOpenInPanel
+          {...(canOpenSubagentInPanel
+            ? { 'aria-label': t('rightSidebar.subagents.openDetails') }
+            : isWorkflow && canOpenInPanel
             ? { 'aria-label': t('chat.agentTask.openInPanel') }
             : {
                 'aria-expanded': expanded,
@@ -489,7 +510,7 @@ export function AgentTaskCard({
               </span>
             )}
           </span>
-          {isWorkflow && canOpenInPanel ? (
+          {(isWorkflow && canOpenInPanel) || canOpenSubagentInPanel ? (
             <PanelRight
               size={14}
               className="mt-1 shrink-0 text-[var(--text-tertiary)]"
@@ -511,16 +532,16 @@ export function AgentTaskCard({
           <button
             type="button"
             onClick={openSubagentInPanel}
-            title={t('chat.agentTask.openInPanel')}
-            aria-label={t('chat.agentTask.openInPanel')}
+            title={t('rightSidebar.subagents.openDetails')}
+            aria-label={t('rightSidebar.subagents.openDetails')}
             data-agent-task-open-subagents="true"
             className={cn(
-              'mt-[2px] inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
+              'mt-[2px] inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-full px-2 text-12',
               'text-[var(--text-secondary)] hover:bg-[var(--surface-chip)] hover:text-[var(--text-primary)]',
               'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
             )}
           >
-            <PanelRight size={12} aria-hidden="true" />
+            <span>{t('rightSidebar.subagents.openDetails')}</span>
           </button>
         )}
         {canStop && (
@@ -545,7 +566,10 @@ export function AgentTaskCard({
 
         {/* live workflow 卡不渲染展开区(详情在后台任务面板);历史 workflow 卡
             (无 live taskId,面板无数据)保留展开区兜底展示 description/summary。 */}
-        {!(isWorkflow && canOpenInPanel) && (
+        {canOpenSubagentInPanel && (summary || update?.lastToolName || description) && (
+          <p className="mt-1 line-clamp-2 select-text text-12 leading-5 text-[var(--text-secondary)]">{summary || update?.lastToolName || description}</p>
+        )}
+        {!(isWorkflow && canOpenInPanel) && !canOpenSubagentInPanel && (
           <Collapse open={expanded}>
             <div className="mt-2 border-l-2 border-[var(--agent-actions-rail)] pl-3 text-13 leading-5 text-[var(--text-secondary)]">
               {description && <p className="mb-1">{description}</p>}

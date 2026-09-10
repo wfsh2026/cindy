@@ -1614,6 +1614,44 @@ describe('startup update relaunch safety', () => {
 });
 
 describe('Windows notify-only updates', () => {
+  it('uses the personal official baseline in both startup and manual checks without installing', async () => {
+    vi.stubEnv('VITE_CINDY_AUTH_REGION', 'cn');
+    appGetVersion.mockReturnValue('0.1.80');
+    const manifest = updateManifest('0.1.73');
+    fetchManifest.mockResolvedValue(manifest);
+    const service = await freshUpdateService('win32', 'x64');
+    service.initUpdateService();
+    try {
+      const startup = ipcHandlers.get('update-check-startup');
+      const initial = await startup?.();
+      const manual = await service.checkForUpdate(manifest);
+      const getStatus = ipcHandlers.get('update-get-status');
+      const status = getStatus?.();
+      expect(initial).toMatchObject({ hasUpdate: true, action: 'none', version: '0.1.73' });
+      expect(manual).toBe('available');
+      expect(status).toMatchObject({ official: { upstreamVersion: '0.1.72', latestVersion: '0.1.73', hasUpdate: true } });
+      expect(download).not.toHaveBeenCalled();
+      expect(spawnProcess).not.toHaveBeenCalled();
+      const noticeAction = ipcHandlers.get('official-update-notice-action');
+      const request = { scopeKey: 'cn:win32-x64:release', version: '0.1.73', action: 'ignore' };
+      const ignored = await noticeAction?.({}, request);
+      expect(ignored).toEqual({ accepted: true });
+      const invalid = noticeAction?.({}, { ...request, action: 'install' });
+      await expect(invalid).rejects.toThrow();
+      service.stopUpdateService();
+      appGetVersion.mockReturnValue('0.1.81');
+      const reopened = await freshUpdateService('win32', 'x64');
+      reopened.initUpdateService();
+      try {
+        const readRestored = ipcHandlers.get('update-get-status');
+        const restored = readRestored?.();
+        expect(restored).toMatchObject({ official: { ignoredVersion: '0.1.73', hasUpdate: true, upstreamVersion: '0.1.72' } });
+      } finally { reopened.stopUpdateService(); }
+    } finally {
+      service.stopUpdateService();
+      vi.unstubAllEnvs();
+    }
+  });
   it('reports a newer manifest without downloading or staging it', async () => {
     const manifest = updateManifest('0.0.65');
     const service = await freshUpdateService('win32');

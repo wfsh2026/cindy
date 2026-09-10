@@ -175,6 +175,7 @@ export interface ProjectsSectionProps {
   collapsed: Set<string>;
   isAllCollapsed: boolean;
   activeSessionId?: string;
+  currentProjectKey?: string;
   /**
    * 当前注视中的任务(files 路由下 activeSessionId 为空,回落到被浏览文件所属任务)。
    * 优先级排序用它钉住打开时的档位;只有从完成未读切走才置顶。
@@ -245,6 +246,7 @@ export function ProjectsSection({
   collapsed,
   isAllCollapsed,
   activeSessionId,
+  currentProjectKey,
   viewedSessionId,
   runningSessionIds,
   attachedSessionIds,
@@ -790,6 +792,7 @@ export function ProjectsSection({
     <ProjectNode
       key={project.projectKey}
       project={project}
+      currentProjectKey={currentProjectKey}
       statusFilter={filter.status}
       isCollapsed={collapsed.has(project.projectKey)}
       collapsedAttentionTone={

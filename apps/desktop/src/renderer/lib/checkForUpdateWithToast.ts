@@ -4,6 +4,12 @@ type Translate = (key: string) => string;
 
 export async function checkForUpdateWithToast(t: Translate): Promise<void> {
   const { result } = await window.electronAPI.checkForUpdate();
+  if (window.electronAPI.personalBuildInfo && (result === 'available' || result === 'idle')) {
+    const key = result === 'available' ? 'update.official.checkAvailable' : 'update.official.checkCurrent';
+    const message = t(key);
+    toast.success(message);
+    return;
+  }
   switch (result) {
     case 'available':
       toast.success(t('titleBar.updateCheckToast.available'));

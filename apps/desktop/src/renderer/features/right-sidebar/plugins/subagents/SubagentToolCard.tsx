@@ -65,13 +65,13 @@ export function SubagentToolCard({
   const hasBody = Boolean(inputJson) || Boolean(result?.trim());
   return (
     <div className="flex w-full justify-start">
-      <div className="max-w-full overflow-hidden rounded-xl border border-[var(--msg-tool-card-border)] bg-[var(--msg-tool-card-bg)]">
+      <div className="w-full min-w-0 overflow-hidden">
         <button
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded((current) => !current)}
           data-subagent-tool-card={done ? (isError ? 'failed' : 'done') : 'running'}
-          className="flex w-full select-none items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+          className="flex min-h-8 w-full select-none items-center gap-2 rounded-full py-1 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
         >
           <ChevronRight
             size={13}
@@ -99,7 +99,7 @@ export function SubagentToolCard({
               aria-label={t('rightSidebar.subagents.tool.running')}
             />
           )}
-          <span className="min-w-0 flex-1 truncate font-mono text-12 leading-4 text-[var(--msg-tool-card-text)]">
+          <span className="min-w-0 flex-1 truncate text-13 leading-5 text-[var(--text-secondary)]">
             {label}
           </span>
           {isError ? (

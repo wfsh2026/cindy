@@ -8,6 +8,8 @@
  * may add opaque `providerRunIds` without changing the product model.
  */
 
+export { subagentDisplayTitle, subagentIdentityVariant, subagentWorkLabel, type SubagentPresentationSource } from './subagentPresentation';
+
 export type SubagentProvider = 'claude-code' | 'codex' | 'pi';
 
 export type SubagentRunStatus = 'running' | 'completed' | 'failed' | 'stopped';
@@ -192,6 +194,8 @@ export interface SubagentTranscriptPageRequest {
 export interface SubagentTranscriptPageResponse {
   supported: boolean;
   entries: SubagentTranscriptEntry[];
+  /** The source is missing, truncated, or only part of the native record is available. */
+  incomplete?: boolean;
   nextCursor?: string;
   /**
    * Cursor pointing at the position the producer stopped reading, returned even
@@ -260,3 +264,5 @@ export const PI_DURABLE_SUBAGENT_CAPABILITIES: Readonly<SubagentCapabilities> =
     stop: true,
     parentContext: 'unknown',
   });
+
+export { buildSubagentConversation, lastAssistantItemId, type SubagentConversation, type SubagentConversationItem, type SubagentMessageItem, type SubagentToolItem } from './subagentConversation';

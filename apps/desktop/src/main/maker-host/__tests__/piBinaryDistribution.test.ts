@@ -50,7 +50,8 @@ describe('Pi binary distribution contract', () => {
     );
 
     expect(binaries).toContain('preserveLocalVersion: true');
-    expect(binaries).toContain('localVersionResolver: cfg.preserveLocalVersion');
+    expect(binaries).toContain('const localVersionResolver = cfg.preserveLocalVersion ? probeBinaryVersion : undefined;');
+    expect(binaries).toContain('localVersionResolver,');
   });
 
   it('does not expose an old Pi cache through the binary-version IPC', () => {

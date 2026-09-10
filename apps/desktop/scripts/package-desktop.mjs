@@ -84,6 +84,7 @@ import {
   debianArch,
 } from './ci/package-lib.mjs';
 import { applyMacSigningConfigToEnv, applyReleaseCdnBaseUrlToEnv } from './ci/release-regions.mjs';
+import { validatePersonalBuildInfo } from './personal-build-info.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -596,6 +597,7 @@ async function main() {
     }
   }
 
+  const personalBuildInfo = platform === 'win32' && region === 'cn' ? validatePersonalBuildInfo(DESKTOP_ROOT) : undefined;
   runDbValidate();
 
   // 版本号临时写入 package.json(asar 内 app.getVersion() 的来源),退出自动恢复。
@@ -686,6 +688,7 @@ async function main() {
         signing,
       });
       buildInfoPath = path.join(artifactDir, 'build-info.json');
+      if (personalBuildInfo) buildInfo.personalBuild = personalBuildInfo;
       fs.writeFileSync(buildInfoPath, JSON.stringify(buildInfo, null, 2) + '\n');
     } catch (err) {
       fs.rmSync(artifactDir, { recursive: true, force: true });

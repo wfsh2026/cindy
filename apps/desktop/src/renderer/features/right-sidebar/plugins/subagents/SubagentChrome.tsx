@@ -12,9 +12,11 @@ import type {
   SubagentActivityEntry,
   SubagentRun,
   SubagentTranscriptEntry,
+  SubagentPresentationSource,
 } from '@cindy/maker-shared/subagent-workspace';
 
 import { Spinner } from '@/components/ui/spinner';
+import { SubagentAvatar } from '@/components/chat/SubagentAvatar';
 import { Tip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import {
@@ -63,11 +65,13 @@ export function HeaderBack({
   title,
   status,
   action,
+  source,
 }: {
   onBack: () => void;
   title: string;
   status?: SubagentRun['status'];
   action?: ReactNode;
+  source?: SubagentPresentationSource;
 }) {
   const { t } = useTranslation();
   return (
@@ -82,6 +86,7 @@ export function HeaderBack({
           <ArrowLeft size={15} aria-hidden="true" />
         </button>
       </Tip>
+      {source && <SubagentAvatar source={source} size={22} />}
       <span className="min-w-0 flex-1 truncate text-13 font-medium text-[var(--text-primary)]">
         {title}
       </span>

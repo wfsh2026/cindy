@@ -152,6 +152,7 @@ import { SheetModal } from '@/session/SheetModal';
 import { SheetGrabber, SheetSurface } from '@/session/SheetSurface';
 import { MobilePermissionPickerList } from '@/session/MobilePermissionPickerList';
 import { PiSessionTreeSheet } from '@/session/PiSessionTreeSheet';
+import { SubagentReader, type MobileSubagentSelection } from '@/session/SubagentReader';
 import { computeContextSheetSnapHeights, type ContextSheetSnap } from '@/session/contextSheetModel';
 import { permissionAccentColor, permissionPresentation } from '@/session/permissionPresentation';
 import {
@@ -1345,6 +1346,7 @@ export default function SessionScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuInitialView, setMenuInitialView] = useState<SessionMenuView>('menu');
   const [sessionTreeOpen, setSessionTreeOpen] = useState(false);
+  const [subagentSelection, setSubagentSelection] = useState<MobileSubagentSelection | null>(null);
   const [sessionTreePendingOpen, setSessionTreePendingOpen] = useState(false);
   // inline 排队区:展开操作行的条目(同时只展开一条;null=全收起)。
   const [queueSelectedClientId, setQueueSelectedClientId] = useState<string | null>(null);
@@ -9267,6 +9269,11 @@ export default function SessionScreen() {
           sessionId={sessionId}
           visible={sessionTreeOpen && currentSession?.agentKind === 'pi'}
         />
+        {subagentSelection && <SubagentReader key={`${deviceId}:${sessionId}:${subagentSelection.provider}:${subagentSelection.runIdOrAlias}`} maker={maker} sessionId={sessionId} selection={subagentSelection} onClose={() => setSubagentSelection(null)} onQuote={(text) => {
+          const next = `${draftRef.current}${draftRef.current ? '\n\n' : ''}${text}`;
+          setComposerDraft(next);
+          setSubagentSelection(null);
+        }} />}
         <SessionSearchSheet
           activeHit={activeSearchHit}
           activeIndex={activeSearchIndex}
@@ -9563,6 +9570,7 @@ export default function SessionScreen() {
                     onForkMessage={collaborationReadOnlyReason ? undefined : forkAtMessage}
                     onLoadEarlier={loadEarlierMessages}
                     onLoadToolInput={loadToolInput}
+                    onOpenSubagent={setSubagentSelection}
                     onOpenForkOrigin={forkOrigin ? openForkOrigin : undefined}
                     onBlockingOverlayChange={handleMessageBlockingOverlayChange}
                     onOpenSessionLink={openSessionLink}

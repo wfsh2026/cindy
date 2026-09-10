@@ -1,29 +1,10 @@
-/**
- * DetailView — a single Subagent run, read as a conversation.
- *
- * Routing: PI durable runs (the only product surface) get the session-style
- * conversation view; anything else falls back to `LegacyDetailView`, the
- * read-only summary kept for Claude Code / Codex records collected by the
- * internal compatibility layer.
- *
- * The PI view's contract:
- *  - The transcript *is* the conversation. Parent lines are user bubbles,
- *    subagent lines are assistant prose, tool frames are folded cards, and
- *    runtime noise (`role: 'system'`) is routed to technical details.
- *  - Nothing is rendered twice: `returnedResult` is the transcript's last
- *    assistant message, so it only renders when the transcript did not supply
- *    one. The test is "no assistant item", not "no items at all" — a run that
- *    hit the 50MB transcript cap, or whose reply sits outside the eagerly paged
- *    window, still shows task and tool items, and gating on those swallowed a
- *    result the durable record had (older records, truncated storage, remote
- *    devices that do not expose the transcript).
- *  - Run meta (harness · model · duration · tokens) is one quiet line at the
- *    top instead of a divider stripe cutting through the conversation.
- */
-
 import { useMemo, useState } from 'react';
+import { useSubagentReadingPosition } from './useSubagentReadingPosition';
+import { subagentDisplayTitle } from '@cindy/maker-shared/subagent-workspace';
+import { SubagentAvatar } from '@/components/chat/SubagentAvatar';
+import { insertPromptIntoComposer } from '@/lib/composerActionsBus';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, ChevronDown, LoaderCircle, SendHorizontal, Square } from 'lucide-react';
+import { AlertCircle, ChevronRight, LoaderCircle, SendHorizontal, Square } from 'lucide-react';
 import type {
   SubagentChildRun,
   SubagentRunDetail,
@@ -44,23 +25,18 @@ import {
 import { cn } from '@/lib/utils';
 import { ConversationStream } from './ConversationStream';
 import {
-  ActivityRow,
   CenteredState,
   HeaderBack,
   SectionTitle,
-  StatusGlyph,
   SubagentErrorNotice,
-  SystemLogRow,
 } from './SubagentChrome';
 import {
   buildSubagentConversation,
   lastAssistantItemId,
 } from './subagentConversation';
 import {
-  childMetadata,
   childStatusLabel,
-  metadata,
-  providerLabel,
+  formatDuration,
   runTitle,
 } from './subagentFormat';
 
@@ -74,6 +50,8 @@ export interface SubagentDetailViewProps {
   stopping: boolean;
   transcript: readonly SubagentTranscriptEntry[];
   transcriptLoading: boolean;
+  transcriptIncomplete?: boolean;
+  readerScope?: string;
   /** Non-null only when the eager paging loop stopped at its page bound. */
   transcriptCursor: string | null;
   onLoadMoreTranscript: () => void;
@@ -113,25 +91,8 @@ function LegacyDetailView({
   const title = runTitle(detail, t('rightSidebar.subagents.untitled'));
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-subagent-detail-mode="legacy">
-      <HeaderBack onBack={onBack} title={title} status={detail.status} />
+      <HeaderBack onBack={onBack} title={title} source={detail} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-3">
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-12">
-          <dt className="text-[var(--text-tertiary)]">{t('rightSidebar.subagents.harness')}</dt>
-          <dd className="truncate text-[var(--text-secondary)]">
-            {providerLabel(detail.provider)}
-          </dd>
-          {detail.model ? (
-            <>
-              <dt className="text-[var(--text-tertiary)]">{t('rightSidebar.subagents.model')}</dt>
-              <dd className="truncate text-[var(--text-secondary)]">{detail.model}</dd>
-            </>
-          ) : null}
-          <dt className="text-[var(--text-tertiary)]">{t('rightSidebar.subagents.context')}</dt>
-          <dd className="text-[var(--text-secondary)]">
-            {t(`rightSidebar.subagents.contextValues.${detail.capabilities.parentContext}`)}
-          </dd>
-        </dl>
-
         {detail.description ? (
           <section className="mt-5">
             <SectionTitle>{t('rightSidebar.subagents.assignment')}</SectionTitle>
@@ -166,23 +127,6 @@ function LegacyDetailView({
           </section>
         ) : null}
 
-        {detail.capabilities.viewActivity ? (
-          <section className="mt-5">
-            <SectionTitle>{t('rightSidebar.subagents.activity')}</SectionTitle>
-            {detail.activity.length > 0 ? (
-              <div className="mt-1">
-                {detail.activity.map((entry) => (
-                  <ActivityRow key={entry.sequence} entry={entry} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-12 text-[var(--text-tertiary)]">
-                {t('rightSidebar.subagents.noActivity')}
-              </p>
-            )}
-          </section>
-        ) : null}
-
         {!detail.capabilities.viewFullTranscript ? (
           <p className="mt-5 rounded-xl bg-[var(--msg-code-block-bg)] px-3 py-2 text-11 leading-4 text-[var(--text-tertiary)]">
             {t('rightSidebar.subagents.transcriptUnavailable')}
@@ -208,12 +152,10 @@ function ChildOverviewCard({
       onClick={onOpen}
       className="flex w-full items-start gap-2.5 rounded-xl border border-[var(--border-default)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
     >
-      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-chip)]">
-        <StatusGlyph status={child.status} label={statusLabel} />
-      </span>
+      <SubagentAvatar source={{ id: child.identityAliases?.at(-1) ?? child.id }} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-13 font-medium leading-5 text-[var(--text-primary)]">
-          {child.title ?? child.role}
+          {subagentDisplayTitle({ id: child.identityAliases?.at(-1) ?? child.id })}
         </span>
         {child.task ? (
           <span className="mt-0.5 block line-clamp-2 text-12 leading-4 text-[var(--text-secondary)]">
@@ -221,7 +163,7 @@ function ChildOverviewCard({
           </span>
         ) : null}
         <span className="mt-1 block truncate text-11 leading-4 text-[var(--text-tertiary)]">
-          {childMetadata(child, t).join(' · ')}
+          {statusLabel}
         </span>
       </span>
     </button>
@@ -254,7 +196,7 @@ function ChildChip({
   );
 }
 
-function PiDurableDetailView({
+function TranscriptDetailView({
   detail,
   loading,
   workdir,
@@ -262,6 +204,8 @@ function PiDurableDetailView({
   stopping,
   transcript,
   transcriptLoading,
+  transcriptIncomplete,
+  readerScope,
   transcriptCursor,
   onLoadMoreTranscript,
   onBack,
@@ -274,9 +218,17 @@ function PiDurableDetailView({
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [controlBusy, setControlBusy] = useState(false);
   const [controlError, setControlError] = useState(false);
-  const [technicalOpen, setTechnicalOpen] = useState(false);
+  const [processExpanded, setProcessExpanded] = useState<boolean | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
   const children = detail?.children ?? [];
   const hasMultipleChildren = children.length > 1;
+  const nativeChildIds = useMemo(() => {
+    if (detail?.children?.length) return [];
+    const ids = transcript.flatMap((entry) => entry.childId ? [entry.childId] : []);
+    const unique = new Set(ids);
+    return [...unique];
+  }, [detail?.children, transcript]);
+  const selectedNativeChildId = selectedChildId && nativeChildIds.includes(selectedChildId) ? selectedChildId : null;
   // The selection survives a resume, which renames the child underneath it: the
   // id held here is the generation the user clicked, and the detail now carries
   // the next one. Resolving on the current id alone returned undefined, which
@@ -301,8 +253,8 @@ function PiDurableDetailView({
   const selectedChildIds = useMemo(
     () => (selectedChild
       ? new Set([selectedChild.id, ...(selectedChild.identityAliases ?? [])])
-      : null),
-    [selectedChild],
+      : selectedNativeChildId ? new Set([selectedNativeChildId]) : null),
+    [selectedChild, selectedNativeChildId],
   );
   const visibleTranscript = useMemo(
     () => (selectedChildIds
@@ -314,6 +266,9 @@ function PiDurableDetailView({
     () => buildSubagentConversation(visibleTranscript),
     [visibleTranscript],
   );
+
+  const readingIdentity = `${readerScope ?? detail?.parentSessionId}:${detail?.id ?? 'loading'}:${selectedChildId ?? 'all'}`;
+  const reading = useSubagentReadingPosition(readingIdentity, transcript);
 
   if (loading && !detail) {
     return (
@@ -328,7 +283,6 @@ function PiDurableDetailView({
     );
   }
 
-  const title = runTitle(detail, t('rightSidebar.subagents.untitled'));
   const rawError = selectedChild?.error
     ?? (detail.status === 'failed' && !detail.returnedResult ? detail.summary : undefined);
   const visibleResult = selectedChild
@@ -378,7 +332,6 @@ function PiDurableDetailView({
   const displayedStatus = selectedChild
     ? childStatusLabel(selectedChild, t)
     : t(`chat.agentTask.status.${detail.status}`);
-  const displayedMetadata = selectedChild ? childMetadata(selectedChild, t) : metadata(detail, t);
   const selectedOutputTruncated = selectedChild?.outputTruncated ?? detail.returnedResultTruncated;
   const showStop = detail.status === 'running'
     && detail.capabilities.stop
@@ -404,17 +357,9 @@ function PiDurableDetailView({
   // disagree. An entry with no `childId` at all — a single-generation record,
   // or an older wire format — counts as current, which is what it always was
   // before aliases existed.
-  const currentGenerationChildIds = useMemo(
-    () => new Set(selectedChild ? [selectedChild.id] : children.map((child) => child.id)),
-    [children, selectedChild],
-  );
-  const hasAssistantItem = useMemo(
-    () => visibleTranscript.some((entry) => (
-      entry.role === 'subagent'
-      && (!entry.childId || currentGenerationChildIds.has(entry.childId))
-    )),
-    [currentGenerationChildIds, visibleTranscript],
-  );
+  const currentIds = selectedChild ? [selectedChild.id] : children.map((child) => child.id);
+  const currentGenerationChildIds = new Set(currentIds);
+  const hasAssistantItem = visibleTranscript.some((entry) => entry.role === 'subagent' && (!entry.childId || currentGenerationChildIds.size === 0 || currentGenerationChildIds.has(entry.childId)));
   // Old or truncated records can start mid-run. The assignment is still the
   // first thing the user needs, so it is prepended when the transcript itself
   // carries no parent line.
@@ -434,14 +379,8 @@ function PiDurableDetailView({
    * renderer pages head-first with a page bound, so a long transcript can stop
    * short with `transcriptCursor` still set.
    */
-  const currentGenerationTruncated = useMemo(
-    () => conversation.system.some((entry) => (
-      entry.systemEvent?.kind === 'transcript-truncated'
-      && (!entry.childId || currentGenerationChildIds.has(entry.childId))
-    )),
-    [conversation.system, currentGenerationChildIds],
-  );
-  const transcriptTailComplete = transcriptCursor === null && !currentGenerationTruncated;
+  const currentGenerationTruncated = conversation.system.some((entry) => entry.systemEvent?.kind === 'transcript-truncated' && (!entry.childId || currentGenerationChildIds.size === 0 || currentGenerationChildIds.has(entry.childId)));
+  const transcriptTailComplete = transcriptCursor === null && !currentGenerationTruncated && !transcriptIncomplete;
   // An assistant item is only proof that *this* generation replied — not that we
   // are looking at its latest reply. A follow-up produces another `message_end`,
   // and the runner overwrites `task.output` each time, so the durable result is
@@ -473,14 +412,25 @@ function PiDurableDetailView({
   const actionBarItemId = detail.status === 'running'
     ? null
     : lastAssistantItemId(conversation.items);
-  const showTechnical = detail.capabilities.viewActivity || detail.capabilities.viewFullTranscript;
+  const settled = displayedRunStatus !== 'running' && displayedRunStatus !== 'queued';
+  const processOpen = processExpanded ?? !settled;
+  const finalId = settled && !showDurableResultFallback ? lastAssistantItemId(conversation.items) : null;
+  const finalItems = conversation.items.filter((item) => item.id === finalId);
+  const processItems = conversation.items.filter((item) => item.id !== finalId);
+  const durationMs = detail.usage?.durationMs ?? ((detail.endedAt ?? detail.updatedAt) - detail.startedAt);
+  const duration = formatDuration(durationMs);
+  const processLabel = settled && duration ? t('rightSidebar.subagents.elapsed', { duration }) : displayedStatus;
+  const titleSource = hasMultipleChildren && selectedChild
+    ? { id: selectedChild.identityAliases?.at(-1) ?? selectedChild.id }
+    : selectedNativeChildId ? { id: selectedNativeChildId } : detail;
+  const selectedTitle = subagentDisplayTitle(titleSource);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col" data-subagent-detail-mode="pi-durable">
+    <div className="flex min-h-0 flex-1 flex-col" data-subagent-detail-mode={detail.provider === 'pi' ? 'pi-durable' : 'native-transcript'}>
       <HeaderBack
         onBack={onBack}
-        title={title}
-        status={detail.status}
+        title={selectedTitle}
+        source={titleSource}
         action={showStop ? (
           <Tip text={t('chat.agentTask.stop')} side="bottom">
             <button
@@ -496,12 +446,8 @@ function PiDurableDetailView({
           </Tip>
         ) : undefined}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-3">
+      <div ref={reading.scrollRef} onScroll={reading.onScroll} className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-6">
         <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5">
-          <p className="select-none truncate text-11 leading-4 text-[var(--text-tertiary)]">
-            {[displayedStatus, ...displayedMetadata].join(' · ')}
-          </p>
-
           {hasMultipleChildren ? (
             <div
               className="flex max-w-full gap-1 overflow-x-auto"
@@ -516,7 +462,7 @@ function PiDurableDetailView({
               {children.map((child) => (
                 <ChildChip
                   key={child.id}
-                  label={child.title ?? child.role}
+                  label={subagentDisplayTitle({ id: child.identityAliases?.at(-1) ?? child.id })}
                   selected={selectedChild?.id === child.id}
                   onSelect={() => setSelectedChildId(child.id)}
                 />
@@ -539,7 +485,17 @@ function PiDurableDetailView({
             </section>
           ) : null}
 
-          {showAssignmentFallback ? (
+          {nativeChildIds.length > 1 && <div className="flex flex-wrap gap-2" aria-label={t('rightSidebar.subagents.children')}>
+            <ChildChip label={t('rightSidebar.subagents.overview')} selected={!selectedNativeChildId} onSelect={() => setSelectedChildId(null)} />
+            {nativeChildIds.map((id) => <ChildChip key={id} label={subagentDisplayTitle({ id })} selected={selectedNativeChildId === id} onSelect={() => setSelectedChildId(id)} />)}
+          </div>}
+          <div>
+            <button type="button" aria-expanded={processOpen} onClick={() => setProcessExpanded(!processOpen)} data-subagent-process-toggle="true"
+              className="flex min-h-8 items-center gap-1 rounded-full text-13 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
+              {processLabel}<ChevronRight size={13} className={processOpen ? 'rotate-90' : undefined} aria-hidden="true" />
+            </button>
+            <div hidden={!processOpen} className="mt-3 space-y-4" data-subagent-process="true">
+          {showAssignmentFallback && !selectedNativeChildId ? (
             <UserMessage
               workingDir={workdir}
               allowPrivilegedLinks={allowPrivilegedLinks}
@@ -550,23 +506,27 @@ function PiDurableDetailView({
 
           {hasConversation ? (
             <ConversationStream
-              items={conversation.items}
+              items={processItems}
+              provider={detail.provider}
               workdir={workdir}
               allowPrivilegedLinks={allowPrivilegedLinks}
               actionBarItemId={actionBarItemId}
             />
           ) : null}
 
+            </div>
+          </div>
+          {finalItems.length > 0 && <ConversationStream items={finalItems} provider={detail.provider} workdir={workdir} allowPrivilegedLinks={allowPrivilegedLinks} actionBarItemId={actionBarItemId} />}
           {/* The durable result, only when the transcript did not already carry
               the reply — a complete transcript ending in that result must not
               render it a second time. */}
-          {showDurableResultFallback ? (
+          {showDurableResultFallback && !selectedNativeChildId ? (
             <AssistantMessage
               workingDir={workdir}
               allowPrivilegedLinks={allowPrivilegedLinks}
               content={visibleResult}
               createdAt={new Date(detail.updatedAt).toISOString()}
-              agentKind="pi"
+              agentKind={detail.provider === 'claude-code' ? 'cc' : detail.provider}
               showActionBar
             />
           ) : null}
@@ -595,74 +555,25 @@ function PiDurableDetailView({
             </p>
           ) : null}
 
-          {showTechnical ? (
-            <div className="border-t border-[var(--border-default)] pt-2">
-              <button
-                type="button"
-                aria-expanded={technicalOpen}
-                onClick={() => setTechnicalOpen((current) => !current)}
-                className="inline-flex h-8 select-none items-center gap-1 rounded-full px-2 text-12 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-              >
-                <ChevronDown
-                  size={13}
-                  className={cn('transition-transform', technicalOpen && 'rotate-180')}
-                  aria-hidden="true"
-                />
-                {t('rightSidebar.subagents.technicalDetails')}
-              </button>
-              {technicalOpen ? (
-                <div className="mt-3 space-y-5">
-                  {detail.capabilities.viewActivity && detail.activity.length > 0 ? (
-                    <section>
-                      <SectionTitle>{t('rightSidebar.subagents.activity')}</SectionTitle>
-                      <div>
-                        {detail.activity.map((entry) => (
-                          <ActivityRow key={entry.sequence} entry={entry} />
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-                  {detail.capabilities.viewFullTranscript ? (
-                    <section>
-                      <SectionTitle>{t('rightSidebar.subagents.systemLog')}</SectionTitle>
-                      {conversation.system.length > 0 ? (
-                        <div className="space-y-1.5">
-                          {conversation.system.map((entry) => (
-                            <SystemLogRow key={entry.id} entry={entry} />
-                          ))}
-                        </div>
-                      ) : transcriptLoading ? (
-                        <div className="flex items-center gap-2 text-12 text-[var(--text-tertiary)]">
-                          <Spinner icon={LoaderCircle} spinning size={13} />
-                          {t('rightSidebar.subagents.loading')}
-                        </div>
-                      ) : (
-                        <p className="text-12 text-[var(--text-tertiary)]">
-                          {t('rightSidebar.subagents.noSystemLog')}
-                        </p>
-                      )}
-                      {transcriptCursor ? (
-                        <button
-                          type="button"
-                          disabled={transcriptLoading}
-                          onClick={onLoadMoreTranscript}
-                          className="mt-3 inline-flex h-8 items-center rounded-full border border-[var(--border-default)] px-3 text-12 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                        >
-                          {t('rightSidebar.subagents.loadMoreTranscript')}
-                        </button>
-                      ) : null}
-                    </section>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+          {settled && visibleResult && !selectedNativeChildId && <div>
+            <button type="button" className="rounded-full px-2 py-1 text-12 text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)]" onClick={() => {
+              const text = `${selectedTitle}\n\n${visibleResult}`;
+              const input = { targetSessionId: detail.parentSessionId, text };
+              const inserted = insertPromptIntoComposer(input);
+              setActionNotice(inserted ? 'quoted' : 'quoteUnavailable');
+            }}>{t('rightSidebar.subagents.quoteResult')}</button>
+            {actionNotice && <p role="status" className="text-12 text-[var(--text-secondary)]">{t(`rightSidebar.subagents.${actionNotice}`)}</p>}
+          </div>}
+          {transcriptIncomplete && <p role="status" className="text-12 text-[var(--text-tertiary)]">{t('rightSidebar.subagents.partialRecord')}</p>}
+          {transcriptCursor && <button type="button" disabled={transcriptLoading} onClick={onLoadMoreTranscript} className="h-8 rounded-full border border-[var(--border-default)] px-3 text-12 hover:bg-[var(--surface-hover)]">{t('rightSidebar.subagents.loadMoreTranscript')}</button>}
         </div>
       </div>
+      {reading.hasNewContent && <button type="button" onClick={reading.jumpToLatest} className="mx-auto my-2 h-8 shrink-0 rounded-full border border-[var(--border-default)] px-3 text-12 text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]">{t('rightSidebar.subagents.newContent')}</button>}
 
       {defaultComposerAction ? (
         <div className="shrink-0 border-t border-[var(--border-default)] p-3">
           <div className="mx-auto flex max-w-[720px] flex-col gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--surface-elevated)] p-2">
+            <p className="px-2 text-11 text-[var(--text-tertiary)]">{t('rightSidebar.subagents.sendTo', { name: selectedTitle })}</p>
             <div className="flex items-end gap-2">
               <textarea
                 value={controlMessage}
@@ -726,9 +637,8 @@ function PiDurableDetailView({
 }
 
 export function DetailView(props: SubagentDetailViewProps) {
-  const isPiDurableDetail = props.detail?.provider === 'pi'
-    && props.detail.capabilities.viewFullTranscript;
-  return isPiDurableDetail
-    ? <PiDurableDetailView key={props.detail?.id} {...props} />
+  const hasTranscript = props.detail?.capabilities.viewFullTranscript;
+  return hasTranscript
+    ? <TranscriptDetailView key={props.detail?.id} {...props} />
     : <LegacyDetailView {...props} />;
 }

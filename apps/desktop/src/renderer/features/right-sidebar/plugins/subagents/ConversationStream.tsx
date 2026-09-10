@@ -17,6 +17,7 @@ import type { SubagentConversationItem } from './subagentConversation';
 import { SubagentToolCard } from './SubagentToolCard';
 
 interface ConversationStreamProps {
+  provider?: 'claude-code' | 'codex' | 'pi';
   items: readonly SubagentConversationItem[];
   workdir: string;
   /**
@@ -38,6 +39,7 @@ function isoTime(occurredAt: number): string | undefined {
 }
 
 export function ConversationStream({
+  provider = 'pi',
   items,
   workdir,
   allowPrivilegedLinks,
@@ -86,7 +88,7 @@ export function ConversationStream({
             allowPrivilegedLinks={allowPrivilegedLinks}
             content={item.content}
             createdAt={isoTime(item.occurredAt)}
-            agentKind="pi"
+            agentKind={provider === 'claude-code' ? 'cc' : provider}
             showActionBar={item.id === actionBarItemId}
           />
         );

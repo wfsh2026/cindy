@@ -376,7 +376,7 @@ describe('AgentTaskCard', () => {
   });
 
   it.each(['cc', 'codex'] as const)(
-    'keeps a historical PI durable card inline after the session switches to %s',
+    'opens historical PI run details after the session switches to %s',
     (sessionAgentKind) => {
       openSubagentsTabMock.mockClear();
       const { container } = render(
@@ -395,8 +395,10 @@ describe('AgentTaskCard', () => {
         ),
       );
       expect(container.querySelector('[data-agent-task-open-subagents="true"]')).toBeNull();
-      expect(container.querySelector('button[aria-expanded]')).not.toBeNull();
-      expect(openSubagentsTabMock).not.toHaveBeenCalled();
+      const entry = container.querySelector<HTMLButtonElement>('[data-subagent-entry="true"]');
+      expect(entry).not.toBeNull();
+      act(() => entry!.click());
+      expect(openSubagentsTabMock).toHaveBeenCalledWith(`session-${sessionAgentKind}`, { focusRunId: 'historical-pi-tool', focusProvider: 'pi' });
     },
   );
 
@@ -461,7 +463,7 @@ describe('AgentTaskCard', () => {
       ),
     );
     const button = container.querySelector<HTMLButtonElement>(
-      '[data-agent-task-open-subagents="true"]',
+      '[data-subagent-entry="true"]',
     );
     expect(button).not.toBeNull();
     act(() => button!.click());
@@ -474,7 +476,7 @@ describe('AgentTaskCard', () => {
   it.each([
     ['claude-code', 'Agent'],
     ['codex', 'collab:spawnAgent'],
-  ] as const)('keeps %s Subagent cards inline without a sidebar jump', (provider, toolName) => {
+  ] as const)('opens %s Subagent details from its single-line entry', (provider, toolName) => {
     openSubagentsTabMock.mockClear();
     const { container } = render(
       withPanelHost(
@@ -497,10 +499,10 @@ describe('AgentTaskCard', () => {
       ),
     );
     expect(container.querySelector('[data-agent-task-open-subagents="true"]')).toBeNull();
-    const inlineToggle = container.querySelector<HTMLButtonElement>('button[aria-expanded]');
-    expect(inlineToggle).not.toBeNull();
-    act(() => inlineToggle!.click());
-    expect(openSubagentsTabMock).not.toHaveBeenCalled();
+    const entry = container.querySelector<HTMLButtonElement>('[data-subagent-entry="true"]');
+    expect(entry).not.toBeNull();
+    act(() => entry!.click());
+    expect(openSubagentsTabMock).toHaveBeenCalledWith(`session-${provider}`, { focusRunId: `${provider}-task`, focusProvider: provider });
   });
 
   // workflow-card:整卡 = 后台任务面板入口 -------------------------------------

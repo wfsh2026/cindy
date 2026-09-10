@@ -1077,6 +1077,8 @@ export async function getSubagentRunDetail(
   }
 
   const run = rowToRun(row, session.remoteHostId === null);
+  // Readability is independent of control availability. Legacy records keep their stored capabilities.
+  if (row.provider !== 'pi') run.capabilities = { ...run.capabilities, viewFullTranscript: true };
   let returnedResult: string | undefined;
   let returnedResultTruncated = false;
   if (

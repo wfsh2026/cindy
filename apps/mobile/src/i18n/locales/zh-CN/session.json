@@ -446,5 +446,51 @@
     "noExtraDirsSummary": "当前没有附加目录",
     "attachmentUploadFailed": "附件上传失败，可重试或删除这条消息。",
     "authGateHint": "{{agent}} 在这台电脑上还没有已连接的模型供应商，发送会失败。请在电脑端 {{appName}} 的「设置 → 模型供应商」完成配置。"
+  },
+  "subagents": {
+    "elapsed": "用时 {{duration}}",
+    "noRunning": "没有正在运行的 Subagent",
+    "running": "进行中",
+    "finished": "已完成",
+    "openDetails": "查看详情",
+    "allRuns": "全部 Subagent",
+    "close": "关闭",
+    "record": "执行记录",
+    "result": "结果",
+    "search": "搜索执行记录",
+    "filters": {
+      "all": "全部",
+      "messages": "消息",
+      "tools": "工具",
+      "errors": "错误"
+    },
+    "status": {
+      "queued": "排队中",
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "stopped": "已停止"
+    },
+    "roles": {
+      "parent": "主任务",
+      "subagent": "Subagent",
+      "tool": "工具",
+      "system": "活动"
+    },
+    "unsupported": "此设备暂不支持读取这些记录。",
+    "notFound": "此 Subagent 已不可用。",
+    "loadFailed": "加载失败，点击重试。",
+    "copied": "已复制",
+    "copyFailed": "复制失败，点击重试。",
+    "noResult": "暂未返回结果。",
+    "copy": "复制结果",
+    "quote": "引用到主任务",
+    "partial": "部分记录缺失或已截断。",
+    "empty": "没有匹配的记录。",
+    "loadMore": "加载更多",
+    "latest": "有新内容 · 查看最新",
+    "toolInput": "输入",
+    "toolOutput": "输出",
+    "toolError": "错误"
   }
 }

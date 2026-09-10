@@ -1,3 +1,4 @@
+import { SubagentStatusStrip } from './SubagentStatusStrip';
 /**
  * CCAgentSessionView
  * ---------------------------------------------------------------------------
@@ -996,7 +997,7 @@ export function CCAgentSessionView({
     remoteDeviceId ?? session?.deviceLinkDeviceId ?? (session ? null : undefined);
 
   /**
-   * Does this task own durable Pi Subagent runs?
+   * Does this task own durable Subagent runs?
    *
    * The entry used to be decided by the parent's *current* harness, which is
    * not what owns the children. Switching a Pi task to Claude Code or Codex
@@ -1005,18 +1006,18 @@ export function CCAgentSessionView({
    * sidebar tab that monitors them and offers the per-child stop disappeared
    * the moment the harness changed.
    */
-  const [sessionOwningDurablePiRuns, setSessionOwningDurablePiRuns] = useState<string | null>(null);
+  const [sessionOwningSubagentRuns, setSessionOwningSubagentRuns] = useState<string | null>(null);
   // Keyed by the session it was observed for, so navigating to another task
   // cannot inherit the previous one's answer while its own read is still out.
-  const durablePiRunsPresent = Boolean(sessionId) && sessionOwningDurablePiRuns === sessionId;
+  const subagentRunsPresent = Boolean(sessionId) && sessionOwningSubagentRuns === sessionId;
 
   // A task that has Subagents owns one durable Subagent tab. Both on history
   // mount and on the first live child we only ensure the tab exists — never
   // stealing OS focus, replacing an already-active tab, or opening the sidebar.
   //
   // Not gated on `agentKind`: discovery decides by what is actually on disk. It
-  // registers nothing for a task with no Pi runs, so widening the gate costs a
-  // non-Pi task one list read (plus a session-filtered change subscription) and
+  // registers nothing for a task with no Subagent runs, so discovery costs a
+  // new task one list read (plus a session-filtered change subscription) and
   // opens no tab.
   //
   // The durable truth lives on the data-owning device, so a device-link task
@@ -1049,7 +1050,7 @@ export function CCAgentSessionView({
         }),
       registerTab: () => openSubagentsTab(sessionId, SUBAGENT_TAB_REGISTER_ONLY),
       isRequestOwnerCurrent: () => isDataOwnerGenerationCurrent(requestOwner),
-      onPresenceChange: (present) => setSessionOwningDurablePiRuns(present ? sessionId : null),
+      onPresenceChange: (present) => setSessionOwningSubagentRuns(present ? sessionId : null),
     });
   }, [ownsWindowRoute, remoteDeviceId, sessionId, viewVisible]);
 
@@ -4424,33 +4425,7 @@ export function CCAgentSessionView({
       {ownsRoute && sessionId && setRightSidebarSessionId && (
         <RightSidebarSessionIdRegistration
           sessionId={sessionId}
-          // A local Pi task always offers the tab, as before. A task that is no
-          // longer on Pi keeps offering it for exactly as long as its durable
-          // runs exist — terminal ones included, matching what a Pi task shows
-          // — and stops once cleanup has removed them. `undefined` while the
-          // session is unresolved stays untouched: the shell reads that as
-          // "not known yet", not as "unavailable".
-          //
-          // `remoteHostId` mirrors the capability gate rather than adding one:
-          // `agents/pi` computes `remote` as `Boolean(opts.remoteHostId)` and
-          // skips installing the durable Subagent extension and runner for such
-          // a session, so an SSH-hosted Pi task can never produce a run. Without
-          // this the harness alone opened a tab that stays empty forever and
-          // whose controls address the *local* filesystem, not the remote host.
-          // This is not SSH-hosted Subagent support — that needs the wire
-          // protocol to own the run files end-to-end and is out of scope here;
-          // this only stops advertising an entry the capability gate disabled.
-          //
-          // `durablePiRunsPresent` is deliberately left ungated: device-link is
-          // a supported path and discovers through `listRemote`, while an SSH
-          // task has no deviceId (`remoteHostId` and `deviceLinkDeviceId` are
-          // separate fields) so its local list is always empty and presence
-          // always false — it cannot leak back in through this branch.
-          subagentsAvailable={
-            session
-              ? (session.agentKind === 'pi' && !session.remoteHostId) || durablePiRunsPresent
-              : undefined
-          }
+          subagentsAvailable={session ? !session.remoteHostId || subagentRunsPresent : undefined}
           initialCollapsed={shouldFirstFrameRevealOrcaWorkers ? false : undefined}
           writeInitialCollapsedRecord={shouldFirstFrameRevealOrcaWorkers}
           declare={setRightSidebarSessionId}
@@ -4640,6 +4615,7 @@ export function CCAgentSessionView({
 
           {/* Solid background zone */}
           <div className="pointer-events-auto flex w-full flex-col items-center bg-[hsl(var(--content-area))] pb-5">
+            {sessionId && ownsRoute && <SubagentStatusStrip sessionId={sessionId} updates={taskUpdates} messages={messages} />}
             {/* 单行 composer 状态层：RunningStatusBar 与中央胶囊组合叠在同一个 grid row。
               展开态由「计划 + 完整被控提示」组成真实 flex 组合共同居中,被控提示会把计划
               向左挤且不会互相覆盖；折叠态计划恢复单独居中,呼吸灯移到 token 统计左侧。 */}

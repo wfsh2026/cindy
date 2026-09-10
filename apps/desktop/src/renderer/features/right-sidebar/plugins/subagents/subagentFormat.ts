@@ -24,6 +24,7 @@ import type {
 } from '@cindy/maker-shared/subagent-workspace';
 
 import { formatCompactTokens } from '@/lib/usageFormat';
+import { subagentDisplayTitle } from '@cindy/maker-shared/subagent-workspace';
 
 /** Run status plus the queued state only children can be in. */
 export type SubagentDisplayStatus = SubagentRun['status'] | 'queued';
@@ -52,7 +53,7 @@ export function providerLabel(provider: SubagentProvider): string {
 }
 
 export function runTitle(run: SubagentRun, fallback: string): string {
-  return run.title?.trim() || run.description?.trim() || fallback;
+  return subagentDisplayTitle(run, fallback);
 }
 
 export function runMatchesSelection(

@@ -2,6 +2,7 @@ import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Flame, Zap, Wrench, Flower, ChevronDown } from 'lucide-react';
 import {
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -25,6 +26,9 @@ import { cn } from '@/lib/utils';
 // ---------------------------------------------------------------------------
 
 interface UpdateNoticeDialogProps {
+  title?: string;
+  headerContent?: ReactNode;
+  footerContent?: ReactNode;
   open: boolean;
   mode: UpdateNoticeMode | null;
   /**
@@ -53,6 +57,7 @@ interface UpdateNoticeDialogProps {
 
 /** Format date: '2026-04-18' -> locale-specific long date. */
 function formatDate(dateStr: string, locale: string): string {
+  if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-').map(Number);
   const date = new Date(year, month - 1, day);
   return date.toLocaleDateString(locale, {
@@ -868,6 +873,9 @@ function ManualBody({
 // ---------------------------------------------------------------------------
 
 export function UpdateNoticeDialog({
+  title,
+  headerContent,
+  footerContent,
   open,
   mode,
   releaseNotes,
@@ -1032,7 +1040,7 @@ export function UpdateNoticeDialog({
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-6 pt-4 pb-3.5">
             <span aria-hidden />
             <AlertDialog.Title className="text-20 leading-[1.4] font-medium text-[var(--msg-assistant-text)] justify-self-center whitespace-nowrap">
-              {t('update.notice.title')}
+              {title ?? t('update.notice.title')}
             </AlertDialog.Title>
             <div className="min-w-0 justify-self-end">
               {isManual && allVersions && allVersions.length > 1 ? (
@@ -1066,6 +1074,7 @@ export function UpdateNoticeDialog({
 
           <div className="h-px bg-[var(--cmd-palette-border)]" />
 
+          {headerContent}
           {/* ---- Content ---- */}
           {/* Auto single-version no longer needs its own branch: VersionBlock
               carries the version, date and thanks itself, so one block and N
@@ -1090,7 +1099,8 @@ export function UpdateNoticeDialog({
           <div className="h-px bg-[var(--cmd-palette-border)]" />
 
           {/* ---- Footer ---- */}
-          <div className="flex justify-center px-7 pt-4 pb-5">
+          <div className="flex flex-wrap justify-center gap-2 px-7 pt-4 pb-5">
+            {footerContent}
             {/* Plain button rather than AlertDialog.Action: since the root's
                 onOpenChange is a deliberate no-op (see comment there), we
                 can't rely on AlertDialog.Action calling context.onOpenChange

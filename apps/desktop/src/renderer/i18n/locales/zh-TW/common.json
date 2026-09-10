@@ -6650,6 +6650,8 @@
       "collapseAllAria": "收起所有檔案"
     },
     "subagents": {
+      "elapsed": "用時 {{duration}}",
+      "noRunning": "沒有正在執行的 Subagent",
       "running": "執行中",
       "finished": "已結束",
       "empty": "本任務還沒有 Subagent",
@@ -6695,7 +6697,7 @@
         "resume": "繼續 Subagent"
       },
       "returnedResult": "回傳結果",
-      "copyResult": "複製",
+      "copyResult": "複製結果",
       "copiedResult": "已複製",
       "resultTruncated": "回傳結果過長，目前僅顯示部分內容。",
       "latestUpdate": "最近更新",
@@ -6758,7 +6760,20 @@
         "completed": "已完成",
         "failed": "失敗",
         "stopped": "已停止"
-      }
+      },
+      "openDetails": "查看詳情",
+      "readerViews": "Subagent 檢視",
+      "partialRecord": "部分執行記錄未儲存、暫時無法讀取或已截斷。",
+      "noReturnedResult": "尚未傳回結果。",
+      "quoteResult": "引用到主任務",
+      "copied": "已複製",
+      "copyFailed": "複製失敗，請重試。",
+      "quoted": "已加入主任務草稿。",
+      "quoteUnavailable": "請先開啟主任務輸入框，再引用此結果。",
+      "newContent": "有新內容 · 前往最新",
+      "sendTo": "傳送給：{{name}}",
+      "readOnly": "目前執行僅支援檢視。",
+      "runningCount": "Subagents · {{count}} 執行中"
     },
     "backgroundTasks": {
       "running": "執行中",
@@ -6820,6 +6835,49 @@
     }
   },
   "update": {
+    "official": {
+      "title": "官方更新",
+      "available": "官方有新版本 · {{version}}",
+      "unsynced": "尚未同步至目前個人版 · 查看更新內容",
+      "personalVersion": "目前個人版：{{version}}",
+      "baseline": "已同步官方：{{version}}",
+      "latest": "官方最新：{{version}}",
+      "checkedAt": "上次成功檢查：{{time}}",
+      "notChecked": "尚未檢查",
+      "checkFailed": "本次檢查失敗，保留上次成功檢查的結果。",
+      "loading": "正在讀取官方更新公告…",
+      "notesPending": "此版本公告暫不可用，可以稍後重試或開啟官方發布頁。",
+      "copy": "複製同步需求",
+      "copied": "同步需求已複製",
+      "copyFailed": "複製失敗，請重試",
+      "website": "開啟官方發布頁",
+      "retry": "重試公告",
+      "snooze": "明天提醒",
+      "ignore": "此版本不再提醒",
+      "actionStale": "官方版本已變更，請重新查看後操作",
+      "saveFailed": "提醒設定未儲存，請重試",
+      "checkAvailable": "發現尚未同步的官方更新",
+      "checkCurrent": "目前頻道沒有更新的官方版本",
+      "syncRequest": "請分析並同步 Cindy 官方更新，保留目前個人版功能。\n目前個人版：{{personal}}\n已同步官方：{{baseline}}\n官方基線提交：{{commit}}\n目標官方版本：{{latest}}\n發布頁：{{url}}\n先比較改動與衝突，合入並驗證後再更新官方同步基線；部分修復不代表完整同步。"
+    },
+    "personal": {
+      "unread": "個人版改動 · 未讀",
+      "title": "個人版改動",
+      "changes": {
+        "subagentReader": {
+          "title": "Subagent 閱讀介面",
+          "text": "中文名稱與彩色圖示，點擊查看詳細執行內容。"
+        },
+        "subagentLinks": {
+          "title": "結論下方的 Subagent 入口",
+          "text": "每條完成結論下保留本輪 Subagent 入口，方便後續查看。"
+        },
+        "officialNotices": {
+          "title": "獨立的官方更新提醒",
+          "text": "個人版版本號獨立遞增，按已同步的官方版本檢查更新。"
+        }
+      }
+    },
     "banner": {
       "title": "已更新到 {{version}}",
       "subtitle": "重啟以應用更新",

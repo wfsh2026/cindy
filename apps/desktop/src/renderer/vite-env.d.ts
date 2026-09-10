@@ -946,6 +946,7 @@ interface RewindFilesResultPayload {
 /* ── App Update status ── */
 
 interface UpdateStatusPayload {
+  official?: import('../shared/personalBuildInfo').OfficialUpdateSnapshot;
   /**
    * `superseding`: 本地已经下好旧版补丁(banner 已弹出)、后台又发现了更新的版本,
    * 正在静默下载新版本。期间 banner 继续可见,但 relaunch 按钮显示 loading 并禁用,
@@ -1163,6 +1164,8 @@ type ElectronLocalDbSessionListUsageOptions = Omit<
 };
 
 interface ElectronAPI {
+  personalBuildInfo?: import('../shared/personalBuildInfo').PersonalBuildInfo;
+  officialUpdateNoticeAction: (request: import('../shared/personalBuildInfo').OfficialNoticeRequest) => Promise<{ accepted: boolean }>;
   platform: string;
   /** 当前 Desktop 构建是否具备 Beta 更新渠道。 */
   supportsBetaUpdateChannel?: boolean;
@@ -3628,7 +3631,7 @@ interface ElectronAPI {
   /** Register an update-status subscriber. Returns an unsubscribe function. */
   onUpdateStatus: (callback: (payload: UpdateStatusPayload) => void) => () => void;
   /** Query current update status (no network, returns in-memory state). */
-  getUpdateStatus: () => Promise<{ status: string; version?: string; errorCode?: string }>;
+  getUpdateStatus: () => Promise<{ status: string; version?: string; errorCode?: string; official?: import('../shared/personalBuildInfo').OfficialUpdateSnapshot }>;
   /** Query and update auto-apply settings for downloaded app updates. */
   getAutoUpdateSettings: () => Promise<AutoUpdateSettingsPayload>;
   setAutoUpdateSettings: (settings: {

@@ -446,5 +446,51 @@
     "noExtraDirsSummary": "No additional directories",
     "attachmentUploadFailed": "Attachment upload failed; retry or delete this message.",
     "authGateHint": "{{agent}} has no connected model provider on this computer, so sending will fail. Set it up in {{appName}} on the computer under Settings → Model Providers."
+  },
+  "subagents": {
+    "elapsed": "Time spent {{duration}}",
+    "noRunning": "No active subagents",
+    "running": "Active",
+    "finished": "Completed",
+    "openDetails": "View details",
+    "allRuns": "All Subagents",
+    "close": "Close",
+    "record": "Execution record",
+    "result": "Result",
+    "search": "Search record",
+    "filters": {
+      "all": "All",
+      "messages": "Messages",
+      "tools": "Tools",
+      "errors": "Errors"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "stopped": "Stopped"
+    },
+    "roles": {
+      "parent": "Parent task",
+      "subagent": "Subagent",
+      "tool": "Tool",
+      "system": "Activity"
+    },
+    "unsupported": "This device does not support these records.",
+    "notFound": "Subagent is no longer available.",
+    "loadFailed": "Could not load. Tap to retry.",
+    "copied": "Copied",
+    "copyFailed": "Copy failed. Tap to retry.",
+    "noResult": "No returned result yet.",
+    "copy": "Copy result",
+    "quote": "Quote in parent task",
+    "partial": "Some records are missing or truncated.",
+    "empty": "No matching records.",
+    "loadMore": "Load more",
+    "latest": "New content · View latest",
+    "toolInput": "Input",
+    "toolOutput": "Output",
+    "toolError": "Error"
   }
 }

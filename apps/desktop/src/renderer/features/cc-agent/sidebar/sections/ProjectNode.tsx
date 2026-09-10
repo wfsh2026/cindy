@@ -76,6 +76,8 @@ export interface ProjectNodeProps {
   /** 父级 Projects 段整体收起时,也要让项目内「显示全部」在动画后复位。 */
   parentSectionCollapsed: boolean;
   activeSessionId?: string;
+  /** Current project identity from the unfiltered catalogue, including pinned and file-view tasks. */
+  currentProjectKey?: string;
   runningSessionIds: ReadonlySet<string>;
   /** /ctr 接管中的 sessionIds — SessionItem 用来切换左侧 icon */
   attachedSessionIds: ReadonlySet<string>;
@@ -130,6 +132,7 @@ export const ProjectNode = memo(function ProjectNode({
   collapsedAttentionTone = null,
   parentSectionCollapsed,
   activeSessionId,
+  currentProjectKey,
   runningSessionIds,
   attachedSessionIds,
   notifications,
@@ -158,6 +161,7 @@ export const ProjectNode = memo(function ProjectNode({
   onArchiveAll,
 }: ProjectNodeProps) {
   const { t } = useTranslation();
+  const isCurrentProject = currentProjectKey === project.projectKey;
   // remote 项目复用本地专属入口（在文件管理器打开 / 复制深链 / 同步 Codex）会按本机
   // 路径误操作或丢失 host 身份，故这些入口对 remote 一律隐藏；host-aware 版本后续单独迭代。
   const isRemote = project.scope === 'remote';
@@ -260,6 +264,8 @@ export const ProjectNode = memo(function ProjectNode({
           需要据此 querySelector 定位该 project 节点。 */}
       <div
         data-project-header="true"
+        data-current-project={isCurrentProject || undefined}
+        style={{ fontWeight: 'var(--sidebar-project-font-weight)' }}
         role="button"
         tabIndex={0}
         aria-expanded={!isCollapsed}
@@ -293,13 +299,12 @@ export const ProjectNode = memo(function ProjectNode({
           // pl-3:树容器 pl-3(12) + 本行 pl-3(12) = 图标左缘 24px,与顶部四行图标
           // (容器 pl-3 + 行 px-3)、段标题(pl-6)同一左对齐线(2026-07 用户定稿)。
           // gap-2.5(10px)与顶部导航行同款 → 项目名与「新建/自动化」同一文字列;
-          // font-normal:与顶部导航行同粗细(2026-07 用户定稿,原 font-medium 偏重)。
-          // 文字色与文件夹图标同款 meta 灰(比会话标题的 foreground 淡一档,
-          // 2026-07 用户定稿:项目行作分组容器退后半步,让会话行更突出)。
+          // Project-specific theme slots default to the original muted grouping style.
           // h-8 + rounded-full:hover 底与顶部导航行 / 会话行同款药丸形,三处
           // 高度、圆角、左右边界(同容器 w-full)完全一致(2026-07 用户定稿)。
           'group flex h-8 w-full items-center gap-2.5 rounded-full pl-3 pr-2',
-          'text-sm font-normal text-[var(--sidebar-list-muted)]',
+          'text-sm text-[var(--sidebar-project-name)]',
+          isCurrentProject && 'bg-[var(--sidebar-project-current-bg)]',
           // 整行点击 = toggle 折叠，常态用 pointer。即便支持手动拖拽排序也不显示
           // grab 光标——只有真正进入拖拽时（SortableList onStart 给 body 挂
           // .xdt-sorting → 全局 grabbing）才切到拖动光标，避免"hover 上去就像在拖动"。
@@ -311,7 +316,8 @@ export const ProjectNode = memo(function ProjectNode({
         <FolderIcon
           size={15}
           strokeWidth={1.8}
-          className="shrink-0 text-[var(--sidebar-list-muted)]"
+          className="shrink-0 text-[var(--sidebar-project-icon)]"
+          style={{ width: 'var(--sidebar-project-icon-size)', height: 'var(--sidebar-project-icon-size)' }}
         />
         {/* 名字 + remote identity 同组占据 flex-1。远程项目常态展示机器身份,
             避免相同 workingDir 的项目只能靠 hover 才能区分。 */}

@@ -51,9 +51,10 @@ describe('DS-2b · Desktop Color ID 冻结', () => {
   });
 
   it('自证伪：模拟改名任一旧 ID 后必然与快照不匹配', () => {
-    expect(live[0]?.id).toBe('surface');
-    const renamed = live.map((entry, index) =>
-      index === 0 ? { ...entry, id: 'surface-renamed-for-ds2b-falsification' } : entry,
+    const surface = live.find((entry) => entry.id === 'surface');
+    expect(surface).toBeDefined();
+    const renamed = live.map((entry) =>
+      entry.id === 'surface' ? { ...entry, id: 'surface-renamed-for-ds2b-falsification' } : entry,
     );
     expect(renamed).not.toEqual(snapshot.colors);
     expect(renamed.map((entry) => entry.id)).not.toEqual(snapshot.colors.map((entry) => entry.id));

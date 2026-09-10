@@ -68,6 +68,8 @@ import { useMacFullscreen } from '@/hooks/useMacFullscreen';
 import { useRightSidebarResize } from '@/hooks/useRightSidebarResize';
 import { isSecondaryWindow } from '@/lib/secondaryWindow';
 import { useUpdateNotice } from '@/hooks/useUpdateNotice';
+import { useOfficialUpdateNotice } from '@/hooks/useOfficialUpdateNotice';
+import { OfficialUpdateNotice } from '@/components/OfficialUpdateNotice';
 import { syncNotificationsEnabledToMain } from '@/hooks/useNotificationSettings';
 import {
   isAgentIslandSupported,
@@ -381,9 +383,13 @@ export function MainLayout() {
     allVersions: noticeAllVersions,
     loadVersion: noticeLoadVersion,
     dismiss: dismissNotice,
-    onOpen: openNotice,
-    onOpenVersion: openVersionNotice,
+    onOpen: openLegacyNotice,
+    onOpenVersion: openLegacyVersionNotice,
   } = useUpdateNotice();
+  const officialNotice = useOfficialUpdateNotice();
+  const personalBuild = window.electronAPI.personalBuildInfo;
+  const openNotice = personalBuild ? officialNotice.onOpen : openLegacyNotice;
+  const openVersionNotice = personalBuild ? officialNotice.onOpen : openLegacyVersionNotice;
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
@@ -1597,6 +1603,7 @@ export function MainLayout() {
           )}
       </div>
       {/* Update notice dialog -- mounted inside FeatureSidebarSlotProvider (ThemeProvider scope) */}
+      {personalBuild && <OfficialUpdateNotice open={officialNotice.open} official={officialNotice.official} onDismiss={officialNotice.dismiss} act={officialNotice.act} />}
       {releaseNotes && (
         <UpdateNoticeDialog
           open={noticeOpen}

@@ -1,3 +1,4 @@
+import { subagentDisplayTitle } from '@cindy/maker-shared/subagent-workspace';
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -56,6 +57,7 @@ vi.mock('@/components/chat/AssistantMessage', () => ({
 }));
 
 import { SubagentsBody } from '../SubagentsBody';
+import { subscribePromptInsert } from '@/lib/composerActionsBus';
 
 const OWNER_STAMP = { dataOwnerId: 'owner-1', ownerGeneration: 1 };
 
@@ -104,6 +106,10 @@ describe('SubagentsBody', () => {
   let onChanged: (payload: SubagentRunsChangedPayload, ownerStamp?: unknown) => void = () =>
     undefined;
   let currentDetail: SubagentRunDetail | null = detail('initial progress');
+  const childLabel = (title: string): string => {
+    const child = currentDetail?.children?.find((item) => item.title === title);
+    return subagentDisplayTitle({ id: child?.identityAliases?.at(-1) ?? child?.id });
+  };
   const list = vi.fn(async () => ({
     supported: true,
     runs: currentDetail ? [currentDetail] : [],
@@ -432,7 +438,7 @@ describe('SubagentsBody', () => {
         }}
       />,
     );
-    expect(await screen.findByText('Research task')).toBeTruthy();
+    expect(await screen.findByText(subagentDisplayTitle(detail('')))).toBeTruthy();
     expect(deviceInvoke).toHaveBeenCalledWith(
       'device-1',
       'local-db:subagent-runs:list',
@@ -509,7 +515,7 @@ describe('SubagentsBody', () => {
     expect(listCalls).toBe(afterUnmount);
   }, 15_000);
 
-  it('does not expose Claude or Codex runs through the new remote PI path', async () => {
+  it('exposes Codex runs through the shared remote reader', async () => {
     currentDetail = { ...detail('remote codex'), provider: 'codex', title: 'Remote Codex run' };
     render(
       <SubagentsBody
@@ -522,7 +528,7 @@ describe('SubagentsBody', () => {
       />,
     );
     await waitFor(() => expect(deviceInvoke).toHaveBeenCalled());
-    expect(screen.queryByText('Remote Codex run')).toBeNull();
+    expect(await screen.findByText(subagentDisplayTitle(detail('')))).toBeTruthy();
   });
 
   it('renders the detail with the normal Session message components', async () => {
@@ -632,14 +638,14 @@ describe('SubagentsBody', () => {
   });
 
   it.each(['claude-code', 'codex'] as const)(
-    'does not expose a persisted %s selection through the Pi-only sidebar',
+    'reads a persisted %s selection in the shared sidebar',
     async (provider) => {
       currentDetail = {
         ...detail('legacy summary'),
         provider,
         description: 'legacy assignment',
         status: 'completed',
-        capabilities: { ...detail('unused').capabilities, viewReturnedResult: true },
+        capabilities: { ...detail('unused').capabilities, viewReturnedResult: true, viewFullTranscript: true, steer: false, resume: false, stop: false },
         returnedResult: 'legacy result',
         usage: { costUsd: 9.99 },
       };
@@ -653,14 +659,16 @@ describe('SubagentsBody', () => {
           }}
         />,
       );
-      await screen.findByText('rightSidebar.subagents.empty');
-      expect(container.querySelector('[data-subagent-detail-mode="legacy"]')).toBeNull();
-      expect(screen.queryByText('legacy assignment')).toBeNull();
-      expect(screen.queryByText('legacy result')).toBeNull();
-      expect(screen.queryByTestId('session-user-message')).toBeNull();
-      expect(screen.queryByTestId('session-assistant-message')).toBeNull();
+      await screen.findByText('legacy assignment');
+      expect(screen.getByText('legacy result')).toBeTruthy();
+      expect(screen.queryByRole('tablist')).toBeNull();
+      expect(screen.queryByRole('searchbox')).toBeNull();
+      expect(container.querySelector('[data-subagent-process-toggle]')?.getAttribute('aria-expanded')).toBe('false');
+      expect(container.querySelector('[data-subagent-process]')?.hasAttribute('hidden')).toBe(true);
       expect(screen.queryByLabelText('rightSidebar.subagents.sendDirection')).toBeNull();
-      expect(container.textContent).not.toContain('$9.99');
+      fireEvent.click(screen.getByRole('button', { name: 'rightSidebar.subagents.elapsed' }));
+      expect(container.querySelector('[data-subagent-process]')?.hasAttribute('hidden')).toBe(false);
+      expect(screen.getByText('legacy assignment')).toBeTruthy();
     },
   );
 
@@ -697,12 +705,36 @@ describe('SubagentsBody', () => {
     ).toBe('true');
     expect(screen.getByText('Inspect the runner')).toBeTruthy();
     expect(screen.getByText('Review the Session UI')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Inspect runtime' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Inspect runtime') }));
     expect(screen.getByText('Runtime findings')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Review UI' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Review UI') }));
     expect(await screen.findByText('Review the Session UI')).toBeTruthy();
     expect(screen.getByText('UI findings')).toBeTruthy();
     expect(screen.queryByText('Runtime findings')).toBeNull();
+  });
+
+  it('filters native child records independently and quotes the result only into the parent draft', async () => {
+    currentDetail = { ...detail('returned answer'), provider: 'codex', status: 'completed', returnedResult: 'returned answer', capabilities: { ...detail('unused').capabilities, viewFullTranscript: true } };
+    const a = entry({ id: 'child-a-message', childId: 'child-a', content: 'Inspect permissions' });
+    const b = entry({ id: 'child-b-message', childId: 'child-b', content: 'Inspect rendering' });
+    const tool = entry({ id: 'child-a-tool', childId: 'child-a', role: 'tool', toolPhase: 'end', toolName: 'Read', content: 'file missing', isError: true });
+    loadTranscript.mockResolvedValue({ supported: true, entries: [a, b, tool], tailCursor: 'tail' });
+    const insert = vi.fn(() => true);
+    const unsubscribe = subscribePromptInsert('session-1', insert);
+    try {
+      render(<SubagentsBody state={{ selectedRunId: 'run-1', selectedProvider: 'codex' }} ctx={{ tabId: 'tab-1', sessionId: 'session-1', workdir: '/workspace', remoteHostId: null, deviceLinkDeviceId: null, patchState: vi.fn(), onVisibilityChange: vi.fn(), setCloseInterceptor: vi.fn(() => () => undefined) }} />);
+      await screen.findByText('Inspect rendering');
+      fireEvent.click(screen.getByRole('button', { name: subagentDisplayTitle({ id: 'child-a' }) }));
+      expect(screen.queryByText('Inspect rendering')).toBeNull();
+      expect(screen.getByText('Inspect permissions')).toBeTruthy();
+      expect(screen.queryByRole('searchbox')).toBeNull();
+      expect(screen.queryByLabelText('rightSidebar.subagents.filterRecord')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'rightSidebar.subagents.overview' }));
+      fireEvent.click(screen.getByRole('button', { name: 'rightSidebar.subagents.quoteResult' }));
+      expect(insert).toHaveBeenCalledWith({ targetSessionId: 'session-1', text: expect.stringContaining('returned answer') });
+      expect(screen.getByText('rightSidebar.subagents.quoted')).toBeTruthy();
+      expect(controlPiSubagent).not.toHaveBeenCalled();
+    } finally { unsubscribe(); }
   });
 
   it('keeps a resumed child\'s earlier generations in its conversation', async () => {
@@ -780,13 +812,13 @@ describe('SubagentsBody', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Scout' }));
+    fireEvent.click(await screen.findByRole('button', { name: childLabel('Scout') }));
     expect(await screen.findByText('scout first generation')).toBeTruthy();
     expect(screen.getByText('scout resumed')).toBeTruthy();
     expect(screen.queryByText('reviewer first generation')).toBeNull();
     expect(screen.queryByText('reviewer resumed')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reviewer' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Reviewer') }));
     expect(await screen.findByText('reviewer first generation')).toBeTruthy();
     expect(screen.getByText('reviewer resumed')).toBeTruthy();
     expect(screen.queryByText('scout first generation')).toBeNull();
@@ -829,7 +861,7 @@ describe('SubagentsBody', () => {
     );
 
     // The user narrows to one child while it is still on its first generation.
-    fireEvent.click(await screen.findByRole('button', { name: 'Scout' }));
+    fireEvent.click(await screen.findByRole('button', { name: childLabel('Scout') }));
     expect(await screen.findByText('scout first generation')).toBeTruthy();
     expect(screen.queryByText('reviewer first generation')).toBeNull();
 
@@ -854,8 +886,8 @@ describe('SubagentsBody', () => {
     expect(screen.queryByText('reviewer first generation')).toBeNull();
     // And the chip the user picked is still the lit one, so the narrowed view
     // and the control it came from do not disagree.
-    expect(screen.getByRole('button', { name: 'Scout' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Reviewer' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: childLabel('Scout') }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: childLabel('Reviewer') }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('falls back to the sole child when the selected one is no longer listed', async () => {
@@ -893,7 +925,7 @@ describe('SubagentsBody', () => {
         }}
       />,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Reviewer' }));
+    fireEvent.click(await screen.findByRole('button', { name: childLabel('Reviewer') }));
     expect(await screen.findByText('reviewer first generation')).toBeTruthy();
 
     // Only the scout is resumed; the reviewer the user had selected is gone.
@@ -943,14 +975,14 @@ describe('SubagentsBody', () => {
     // Overview: the run really is still running, so the notice stays.
     expect(await screen.findByText('rightSidebar.subagents.waitingForReply')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Scout' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Scout') }));
     expect(screen.queryByText('rightSidebar.subagents.waitingForReply')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reviewer' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Reviewer') }));
     expect(screen.queryByText('rightSidebar.subagents.waitingForReply')).toBeNull();
 
     // The child that is genuinely still working keeps it.
-    fireEvent.click(screen.getByRole('button', { name: 'Worker' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Worker') }));
     expect(screen.getByText('rightSidebar.subagents.waitingForReply')).toBeTruthy();
   });
 
@@ -974,16 +1006,16 @@ describe('SubagentsBody', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Scout' }));
+    fireEvent.click(await screen.findByRole('button', { name: childLabel('Scout') }));
     const scoutInput = screen.getByPlaceholderText('rightSidebar.subagents.composerPlaceholders.runningWithSteer');
     fireEvent.change(scoutInput, { target: { value: 'scout draft' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Reviewer' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Reviewer') }));
     const reviewerInput = screen.getByPlaceholderText('rightSidebar.subagents.composerPlaceholders.runningWithSteer');
     expect((reviewerInput as HTMLTextAreaElement).value).toBe('');
     fireEvent.change(reviewerInput, { target: { value: 'reviewer draft' } });
     fireEvent.keyDown(reviewerInput, { key: 'Enter', shiftKey: true });
     expect(controlPiSubagent).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Scout' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Scout') }));
     const restoredScoutInput = screen.getByPlaceholderText('rightSidebar.subagents.composerPlaceholders.runningWithSteer');
     expect((restoredScoutInput as HTMLTextAreaElement).value).toBe('scout draft');
     // Plain Enter is the session's queue keystroke — it must follow up, not steer.
@@ -1021,12 +1053,12 @@ describe('SubagentsBody', () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Finished Scout' }));
+    fireEvent.click(await screen.findByRole('button', { name: childLabel('Finished Scout') }));
     expect(screen.queryByPlaceholderText('rightSidebar.subagents.composerPlaceholders.runningWithSteer')).toBeNull();
     expect(screen.getByText('rightSidebar.subagents.childEndedControlHint')).toBeTruthy();
     expect(screen.queryByLabelText('chat.agentTask.stop')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Running Reviewer' }));
+    fireEvent.click(screen.getByRole('button', { name: childLabel('Running Reviewer') }));
     expect(screen.getByPlaceholderText('rightSidebar.subagents.composerPlaceholders.runningWithSteer')).toBeTruthy();
     expect(screen.getByLabelText('chat.agentTask.stop')).toBeTruthy();
   });
@@ -1646,11 +1678,9 @@ describe('SubagentsBody', () => {
     fireEvent.click(screen.getByText('read(/tmp/a.ts)'));
     expect(await screen.findByText('file body')).toBeTruthy();
 
-    // Runtime noise stays out of the conversation and lands under technical
-    // details instead.
+    // Runtime noise and the removed technical toolbar stay out of the reader.
     expect(screen.queryByText('raw runner noise')).toBeNull();
-    fireEvent.click(screen.getByText('rightSidebar.subagents.technicalDetails'));
-    expect(screen.getByText('raw runner noise')).toBeTruthy();
+    expect(screen.queryByText('rightSidebar.subagents.technicalDetails')).toBeNull();
   });
 
   it('keeps an unfinished tool call in its running state', async () => {
@@ -1733,7 +1763,7 @@ describe('SubagentsBody', () => {
     const view = render(
       <SubagentsBody state={{ selectedRunId: 'run-1', selectedProvider: 'pi' }} ctx={ctx} />,
     );
-    await screen.findByText('rightSidebar.subagents.technicalDetails');
+    await screen.findByText(subagentDisplayTitle(detail('')));
     await waitFor(() => expect(loadTranscript).toHaveBeenCalledTimes(1));
 
     currentDetail = {

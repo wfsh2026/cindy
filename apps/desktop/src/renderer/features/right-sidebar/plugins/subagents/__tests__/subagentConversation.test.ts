@@ -19,6 +19,18 @@ function entry(overrides: Partial<SubagentTranscriptEntry> & { id: string }): Su
 }
 
 describe('buildSubagentConversation', () => {
+  it.each([undefined, 'same-call-id'])('pairs parallel child tools independently with id %s', (toolCallId) => {
+    const a = entry({ id: 'a', childId: 'child-a', role: 'tool', toolPhase: 'start', toolCallId });
+    const b = entry({ id: 'b', childId: 'child-b', role: 'tool', toolPhase: 'start', toolCallId });
+    const aEnd = entry({ id: 'a-end', childId: 'child-a', role: 'tool', toolPhase: 'end', toolCallId, content: 'a result' });
+    const bEnd = entry({ id: 'b-end', childId: 'child-b', role: 'tool', toolPhase: 'end', toolCallId, content: 'b result' });
+    const entries = [a, b, aEnd, bEnd];
+    const conversation = buildSubagentConversation(entries);
+    expect(conversation.items).toEqual([
+      expect.objectContaining({ id: 'a', result: 'a result', done: true }),
+      expect.objectContaining({ id: 'b', result: 'b result', done: true }),
+    ]);
+  });
   it('keeps transcript order and routes system rows out of the reading flow', () => {
     const conversation = buildSubagentConversation([
       entry({ id: 'a', role: 'parent', content: 'assignment' }),

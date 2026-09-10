@@ -93,7 +93,7 @@ export function UserInfoSection({ isCollapsed, onOpenUpdateNotice }: UserInfoSec
   const { dismissed, restore } = useUpdateBannerDismiss();
   const { state: betaChannelState } = useBetaChannelSettings();
   const hasPendingUpdate = status === 'available' || status === 'ready' || status === 'superseding';
-  const isFlameReopen = hasPendingUpdate && dismissed;
+  const isFlameReopen = !window.electronAPI.personalBuildInfo && hasPendingUpdate && dismissed;
   const showBetaLabel = !betaChannelState.loading && betaChannelState.enableBeta;
 
   // 头像地址变化(设置页改头像 / 服务端资料更新)时重置加载失败标记,

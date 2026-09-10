@@ -115,3 +115,4 @@ export {
   type MakerContactsManagerDeps,
   type ContactsSqliteFactory,
 } from './contacts/manager.js';
+export { NativeSubagentTranscriptReader } from './agents/shared/native-subagent-transcript.js';

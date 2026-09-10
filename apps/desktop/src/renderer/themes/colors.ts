@@ -1,6 +1,12 @@
 import { registerColor } from './color-registry';
 import { EFFORT_TIER_COLORS, PRICE_TIER_COLORS } from './effortTierColors';
 
+// Subagent identity colors distinguish workers, independently of their status.
+registerColor('subagent-identity-1', { light: '#9b72cf', dark: '#c4a1ef' }, 'Subagent identity 1');
+registerColor('subagent-identity-2', { light: '#619d4b', dark: '#9aca85' }, 'Subagent identity 2');
+registerColor('subagent-identity-3', { light: '#558dc0', dark: '#91bdea' }, 'Subagent identity 3');
+registerColor('subagent-identity-4', { light: '#b48c42', dark: '#dfbc77' }, 'Subagent identity 4');
+
 /* === P3.2: Semantic slot tokens === */
 registerColor('surface', {
   light: '#f8f8f6',
@@ -2283,6 +2289,13 @@ registerColor('sidebar-list-muted', {
   light: '#9A9DA3',
   dark: '#6F6F6F',
 }, 'CINDY sidebar section and project list muted text');
+// Project overrides remain opt-in; existing Light/Dark themes retain their grouping hierarchy.
+registerColor('sidebar-project-name', { light: 'var(--sidebar-list-muted)', dark: 'var(--sidebar-list-muted)' }, 'Sidebar project name');
+registerColor('sidebar-project-icon', { light: 'var(--sidebar-list-muted)', dark: 'var(--sidebar-list-muted)' }, 'Sidebar project folder icon');
+registerColor('sidebar-project-current-bg', { light: 'transparent', dark: 'transparent' }, 'Sidebar project containing the currently viewed task');
+// Like radius and splash timing, these CSS values travel through the local theme export pipeline.
+registerColor('sidebar-project-font-weight', { light: '400', dark: '400' }, 'Sidebar project name font weight (CSS font-weight)');
+registerColor('sidebar-project-icon-size', { light: '15px', dark: '15px' }, 'Sidebar project folder size (CSS length)');
 registerColor('sidebar-user-card-bg', {
   light: 'rgba(255, 255, 255, 0.20)',
   dark: 'rgba(255, 255, 255, 0.05)',

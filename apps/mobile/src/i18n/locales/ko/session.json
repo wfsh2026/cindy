@@ -446,5 +446,51 @@
     "noExtraDirsSummary": "추가 디렉터리 없음",
     "attachmentUploadFailed": "첨부 업로드에 실패했습니다. 다시 시도하거나 이 메시지를 삭제하세요.",
     "authGateHint": "이 컴퓨터에 {{agent}}에 연결된 모델 제공자가 없어 전송이 실패합니다. 컴퓨터의 {{appName}}에서 '설정 → 모델 제공자'를 설정하세요."
+  },
+  "subagents": {
+    "elapsed": "소요 시간 {{duration}}",
+    "noRunning": "실행 중인 Subagent가 없습니다",
+    "running": "실행 중",
+    "finished": "완료",
+    "openDetails": "상세 보기",
+    "allRuns": "모든 Subagent",
+    "close": "닫기",
+    "record": "실행 기록",
+    "result": "결과",
+    "search": "실행 기록 검색",
+    "filters": {
+      "all": "전체",
+      "messages": "메시지",
+      "tools": "도구",
+      "errors": "오류"
+    },
+    "status": {
+      "queued": "대기 중",
+      "running": "실행 중",
+      "completed": "완료",
+      "failed": "실패",
+      "stopped": "중지됨"
+    },
+    "roles": {
+      "parent": "상위 작업",
+      "subagent": "Subagent",
+      "tool": "도구",
+      "system": "활동"
+    },
+    "unsupported": "이 기기는 이 기록 읽기를 지원하지 않습니다.",
+    "notFound": "이 Subagent를 사용할 수 없습니다.",
+    "loadFailed": "불러오지 못했습니다. 눌러서 다시 시도하세요.",
+    "copied": "복사됨",
+    "copyFailed": "복사하지 못했습니다. 눌러서 다시 시도하세요.",
+    "noResult": "아직 반환된 결과가 없습니다.",
+    "copy": "결과 복사",
+    "quote": "상위 작업에 인용",
+    "partial": "일부 기록이 없거나 잘렸습니다.",
+    "empty": "일치하는 기록이 없습니다.",
+    "loadMore": "더 불러오기",
+    "latest": "새 내용 · 최신 보기",
+    "toolInput": "입력",
+    "toolOutput": "출력",
+    "toolError": "오류"
   }
 }

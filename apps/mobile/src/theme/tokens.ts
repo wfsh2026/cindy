@@ -16,6 +16,10 @@ export type ThemeMode = 'light' | 'dark';
 
 /** 随主题切换的颜色 token。light / dark 必须有完全一致的 key 集合。 */
 export interface ThemeColors {
+  subagentIdentity1: string;
+  subagentIdentity2: string;
+  subagentIdentity3: string;
+  subagentIdentity4: string;
   /** 页面 Surface 背景 */
   surface: string;
   /** 抬一层的 Card / 弹窗 / 输入框 */
@@ -369,6 +373,7 @@ export const loginPalettes: Record<ThemeMode, LoginSkinColors> = {
  * file-remove-bg 同源,非表内直落 id;lead 2026-07-17 确认采纳,errorBorder 跟随)。
  */
 export const lightColors: ThemeColors = {
+  subagentIdentity1: '#9b72cf', subagentIdentity2: '#619d4b', subagentIdentity3: '#558dc0', subagentIdentity4: '#b48c42',
   surface: '#EDEDED',
   surfaceElevated: '#F8F8F8',
   surfaceTranslucent: 'rgba(237, 237, 237, 0.78)',
@@ -442,6 +447,7 @@ export const lightColors: ThemeColors = {
  * 同源,非表内直落 id;lead 2026-07-17 确认采纳,errorBorder 跟随)。
  */
 export const darkColors: ThemeColors = {
+  subagentIdentity1: '#c4a1ef', subagentIdentity2: '#9aca85', subagentIdentity3: '#91bdea', subagentIdentity4: '#dfbc77',
   surface: '#2A2828',
   surfaceElevated: '#312F2F',
   surfaceTranslucent: 'rgba(42, 40, 40, 0.78)',

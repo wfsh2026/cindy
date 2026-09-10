@@ -56,6 +56,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tip } from '@/components/ui/tooltip';
 import { fetchReleaseNotes } from '@/release-notes';
+import { OfficialUpdateBanner } from './OfficialUpdateBanner';
 
 // 运行期端点清单(dev/packaged 都在启动阻断后有真值,烘焙兜底已退役)
 const websiteUrl = () => window.electronAPI.clientEndpoints.websiteUrl;
@@ -71,6 +72,11 @@ interface UpdateBannerProps {
 }
 
 export function UpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerProps) {
+  if (window.electronAPI.personalBuildInfo) return <OfficialUpdateBanner isCollapsed={isCollapsed} onOpen={onOpenVersionNotice} />;
+  return <StandardUpdateBanner isCollapsed={isCollapsed} onOpenVersionNotice={onOpenVersionNotice} />;
+}
+
+function StandardUpdateBanner({ isCollapsed, onOpenVersionNotice }: UpdateBannerProps) {
   const { status, version, errorCode } = useUpdateStatus();
   const { effectiveLocale } = useLocale();
   // 用户主动关闭态(仅本次进程内存,由 UserInfoSection 的火焰按钮唤回)。

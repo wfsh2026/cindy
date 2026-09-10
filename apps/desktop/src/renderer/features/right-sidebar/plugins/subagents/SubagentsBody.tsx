@@ -71,7 +71,7 @@ const TRANSCRIPT_PAGE_SIZE = 200;
  * Bound on the eager paging loop. A record long enough to exceed this keeps its
  * `nextCursor`, so the technical-details "load more" button stays available.
  */
-const MAX_TRANSCRIPT_PAGES = 100;
+const MAX_TRANSCRIPT_PAGES = 8;
 
 interface SubagentsBodyProps {
   state: SubagentsState;
@@ -111,6 +111,7 @@ function ScopedSubagentsBody({
   const [detailRefreshVersion, setDetailRefreshVersion] = useState(0);
   const [stoppingRunId, setStoppingRunId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<SubagentTranscriptEntry[]>([]);
+  const [transcriptIncomplete, setTranscriptIncomplete] = useState(false);
   const [transcriptCursor, setTranscriptCursor] = useState<string | null>(null);
   const [transcriptLoading, setTranscriptLoading] = useState(false);
   const [transcriptForRunId, setTranscriptForRunId] = useState<string | null>(null);
@@ -132,15 +133,10 @@ function ScopedSubagentsBody({
    */
   const detailReadsInFlightRef = useRef(0);
   const transcriptReadsInFlightRef = useRef(0);
-  const selectedProviderHint = state.selectedProvider === 'pi' ? 'pi' : null;
-  const selectedRunAlias = state.selectedProvider && state.selectedProvider !== 'pi'
-    ? null
-    : (state.selectedRunId ?? null);
+  const selectedProviderHint = state.selectedProvider ?? null;
+  const selectedRunAlias = state.selectedRunId ?? null;
   const remoteDevice = ctx.deviceLinkDeviceId !== null;
-
-  // Product surface is Pi-only. Claude Code/Codex collection remains an
-  // internal compatibility layer and never participates in UI selection.
-  const selectedProvider: SubagentProvider | null = selectedRunAlias ? 'pi' : null;
+  const selectedProvider: SubagentProvider | null = selectedProviderHint;
   const selectedDetail = detail && runMatchesSelection(detail, selectedProvider, selectedRunAlias)
     ? detail
     : null;
@@ -167,7 +163,7 @@ function ScopedSubagentsBody({
           setLoadState('unsupported');
           return;
         }
-        const visibleRuns = response.runs.filter((run) => run.provider === 'pi');
+        const visibleRuns = response.runs;
         setRuns((current) => {
           if (!append) return visibleRuns;
           const byId = new Map(current.map((run) => [run.id, run]));
@@ -391,6 +387,8 @@ function ScopedSubagentsBody({
         let cursor = fromCursor;
         let tail: string | null = append ? fromCursor ?? null : null;
         const collected: SubagentTranscriptEntry[] = [];
+        const visitedCursors = new Set<string>();
+        let incomplete = false;
         for (let page = 0; page < MAX_TRANSCRIPT_PAGES; page += 1) {
           const response = await fetchTranscriptPage(run, cursor);
           if (
@@ -398,6 +396,7 @@ function ScopedSubagentsBody({
             || transcriptTargetRef.current !== targetRunId
           ) return;
           if (!response.supported) {
+            setTranscriptIncomplete(true);
             if (!append) {
               setTranscript([]);
               setTranscriptCursor(null);
@@ -405,19 +404,32 @@ function ScopedSubagentsBody({
             }
             return;
           }
+          incomplete ||= response.incomplete === true;
           collected.push(...response.entries);
           tail = response.tailCursor ?? response.nextCursor ?? tail;
           cursor = response.nextCursor;
           if (!cursor) break;
+          if (visitedCursors.has(cursor)) { incomplete = true; break; }
+          visitedCursors.add(cursor);
         }
+        setTranscriptIncomplete((current) => append ? current || incomplete : incomplete);
         transcriptTailRef.current = tail;
         setTranscriptCursor(cursor ?? null);
         setTranscript((current) => {
-          if (!append) return collected;
           if (collected.length === 0) return current;
-          const seen = new Set(current.map((entry) => entry.id));
-          const added = collected.filter((entry) => !seen.has(entry.id));
-          return added.length > 0 ? [...current, ...added] : current;
+          const initial = append ? current : [];
+          const pairs = initial.map((entry) => [entry.id, entry] as const);
+          const byId = new Map(pairs);
+          let changed = !append;
+          for (const entry of collected) {
+            const previous = byId.get(entry.id);
+            const previousJson = JSON.stringify(previous);
+            const entryJson = JSON.stringify(entry);
+            if (previousJson === entryJson) continue;
+            byId.set(entry.id, entry);
+            changed = true;
+          }
+          return changed ? [...byId.values()] : current;
         });
       } catch {
         if (
@@ -430,6 +442,7 @@ function ScopedSubagentsBody({
         // same bad cursor on every later change would silently freeze the
         // conversation. Clearing it makes the next change do a full read.
         transcriptTailRef.current = null;
+        setTranscriptIncomplete(true);
         if (!append) {
           setTranscript([]);
           setTranscriptCursor(null);
@@ -458,6 +471,7 @@ function ScopedSubagentsBody({
     if (transcriptForRunId !== detail.id) {
       // Entering a detail (or re-reading after a control landed): full page-in.
       transcriptTailRef.current = null;
+      setTranscriptIncomplete(false);
       transcriptSyncedVersionRef.current = transcriptRefreshVersion;
       setTranscript([]);
       setTranscriptCursor(null);
@@ -471,6 +485,19 @@ function ScopedSubagentsBody({
     // reported one; older hosts omit `tailCursor`, so fall back to a full read.
     void loadTranscript(detail, transcriptTailRef.current ?? undefined);
   }, [detail, loadTranscript, transcriptForRunId, transcriptRefreshVersion, visible]);
+
+  useEffect(() => {
+    if (!visible || remoteDevice || !selectedDetail) return;
+    let terminalReads = 0;
+    const timer = setInterval(() => {
+      if (transcriptReadsInFlightRef.current || detailReadsInFlightRef.current) return;
+      setTranscriptRefreshVersion((version) => version + 1);
+      setDetailRefreshVersion((version) => version + 1);
+      // Completion may arrive before the native transcript's final flush.
+      if (selectedDetail.status !== 'running' && ++terminalReads >= 3) clearInterval(timer);
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [visible, remoteDevice, selectedDetail?.id, selectedDetail?.status]);
 
   const openRun = useCallback(
     (run: SubagentRun) => ctx.patchState({
@@ -568,7 +595,7 @@ function ScopedSubagentsBody({
 
   const detailKey = useMemo(
     () => `${selectedDetail?.provider ?? selectedProvider ?? 'unknown'}:${selectedDetail?.id ?? selectedRunAlias}`,
-    [selectedDetail, selectedProvider, selectedRunAlias],
+    [selectedDetail?.provider, selectedDetail?.id, selectedProvider, selectedRunAlias],
   );
 
   if (loadState === 'idle' || loadState === 'loading') {
@@ -590,12 +617,14 @@ function ScopedSubagentsBody({
       <DetailView
         key={detailKey}
         detail={selectedDetail}
-        loading={detailLoading || selectedDetail === null}
+        loading={detailLoading}
         workdir={ctx.workdir}
         allowPrivilegedLinks={ctx.deviceLinkDeviceId === null && !ctx.remoteHostId}
         stopping={selectedDetail !== null && stoppingRunId === selectedDetail.id}
         transcript={transcript}
         transcriptLoading={transcriptLoading}
+        transcriptIncomplete={transcriptIncomplete}
+        readerScope={`${ctx.deviceLinkDeviceId ?? 'local'}:${ctx.remoteHostId ?? 'local'}:${ctx.sessionId}`}
         transcriptCursor={transcriptCursor}
         onLoadMoreTranscript={loadMoreTranscript}
         onBack={back}

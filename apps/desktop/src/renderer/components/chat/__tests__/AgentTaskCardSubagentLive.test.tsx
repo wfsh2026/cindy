@@ -6,9 +6,13 @@
 // Codex 此前没有数据源、只能渲染一句「已启动」就地收口。补上子线程实时事件后,两者必须
 // 长得一样 —— 同样的 provider·状态·tokens·工具调用数·耗时,且 codex 不多出冗余文案。
 
-import { render } from '@testing-library/react';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const harness = vi.hoisted(() => ({ reachable: false, open: vi.fn(async () => undefined) }));
+vi.mock('@/features/right-sidebar/lib/openSubagentsTab', () => ({ openSubagentsTab: harness.open }));
+afterEach(() => { cleanup(); harness.reachable = false; harness.open.mockClear(); });
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -39,7 +43,7 @@ vi.mock('@/features/right-sidebar/plugins/background-tasks/WorkflowAgentStrip', 
 }));
 
 vi.mock('@/features/cc-agent/embeddedSessionNavigation', () => ({
-  useSidebarPanelReachable: () => false,
+  useSidebarPanelReachable: () => harness.reachable,
 }));
 
 vi.mock('@/components/ui/collapse', () => ({
@@ -50,6 +54,7 @@ vi.mock('@/lib/modelShortLabel', () => ({
   formatModelShortLabel: (model?: string | null) => model ?? undefined,
 }));
 
+import { subagentDisplayTitle } from '@cindy/maker-shared/subagent-workspace';
 import { AgentTaskCard } from '../AgentTaskCard';
 import type { AgentTaskUpdate, ChatMessage } from '@/hooks/useCCAgentChat';
 
@@ -117,5 +122,29 @@ describe('AgentTaskCard codex subagent live state', () => {
     const text = container.textContent ?? '';
     expect(text).toContain('chat.agentTask.status.completed');
     expect(text).not.toContain('chat.agentTask.status.running');
+  });
+});
+
+describe('Subagent single-line entrance', () => {
+  it.each(['claude-code', 'codex', 'pi'] as const)('opens the correct %s run from its Chinese name and work row', (provider) => {
+    harness.reachable = true;
+    const toolName = provider === 'codex' ? 'collab:spawn' : provider === 'pi' ? 'subagent' : 'Agent';
+    const toolCall = { ...spawnToolCall(), toolName };
+    const update = { ...liveCodexUpdate, provider, description: '检查文件权限', taskType: provider === 'pi' ? 'pi_subagent' : undefined };
+    const name = subagentDisplayTitle({ parentToolUseId: 'spawn-1' });
+    const view = render(<AgentTaskCard toolCall={toolCall} update={update} sessionId="parent-1" />);
+    const row = view.container.querySelector<HTMLButtonElement>('[data-subagent-entry]')!;
+    expect(row.textContent).toContain(name);
+    expect(name).toMatch(/^[\u4e00-\u9fff]+$/);
+    expect(row.textContent).toContain('检查文件权限');
+    expect(row.textContent).toContain('chat.agentTask.status.running');
+    expect(view.container.textContent).not.toContain('/root/');
+    expect(view.container.textContent).not.toContain('chat.agentTask.tokens');
+    expect(view.container.querySelector('[data-subagent-avatar]')).toBeTruthy();
+    fireEvent.click(row);
+    expect(harness.open).toHaveBeenCalledWith('parent-1', { focusRunId: 'spawn-1', focusProvider: provider });
+    view.rerender(<AgentTaskCard toolCall={toolCall} update={{ ...update, status: 'completed' }} sessionId="parent-1" />);
+    expect(row.textContent).toContain(name);
+    expect(row.textContent).toContain('chat.agentTask.status.completed');
   });
 });

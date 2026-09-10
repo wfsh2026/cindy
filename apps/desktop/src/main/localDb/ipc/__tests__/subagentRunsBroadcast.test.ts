@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => {
@@ -21,6 +22,7 @@ const h = vi.hoisted(() => {
     getSubagentRunDetail: vi.fn(),
     listSubagentRuns: vi.fn(),
     readPiSubagentTranscriptPage: vi.fn(),
+    readNativeSubagentTranscript: vi.fn(),
     listPiSubagentRunDiagnostics: vi.fn(),
     listPiSubagentRuns: vi.fn(),
     persistSubagentTaskUpdate: vi.fn(),
@@ -71,6 +73,7 @@ vi.mock('../../subagentRuns.js', () => ({
   listSubagentRuns: h.listSubagentRuns,
   persistSubagentTaskUpdate: h.persistSubagentTaskUpdate,
 }));
+vi.mock('../../nativeSubagentTranscript.js', () => ({ readNativeSubagentTranscript: h.readNativeSubagentTranscript }));
 
 import { SUBAGENT_RUNS_CHANGED_CHANNEL } from '@cindy/maker-shared/subagent-workspace';
 import {
@@ -87,6 +90,8 @@ describe('Subagent runs broadcast boundary', () => {
     h.getSubagentRunDetail.mockResolvedValue(null);
     h.listSubagentRuns.mockResolvedValue({ runs: [] });
     h.readPiSubagentTranscriptPage.mockResolvedValue({ supported: true, entries: [] });
+    h.readNativeSubagentTranscript.mockReset();
+    h.readNativeSubagentTranscript.mockResolvedValue({ supported: true, entries: [] });
     h.listPiSubagentRunDiagnostics.mockResolvedValue([]);
     h.listPiSubagentRuns.mockResolvedValue([]);
     h.persistSubagentTaskUpdate.mockResolvedValue(null);
@@ -918,7 +923,7 @@ describe('Subagent runs broadcast boundary', () => {
       limit: 25,
     })).resolves.toEqual({ supported: true, entries: [] });
     expect(h.readPiSubagentTranscriptPage).toHaveBeenCalledWith(
-      '/user-data/pi-agent-home/runtime/pi-subagent-runs/session-1',
+      `${path.join('/user-data', 'pi-agent-home')}/runtime/pi-subagent-runs/session-1`,
       [
         '123e4567-e89b-42d3-a456-426614174000',
         '123e4567-e89b-42d3-a456-426614174001',
@@ -927,7 +932,7 @@ describe('Subagent runs broadcast boundary', () => {
     );
   });
 
-  it('limits device-link reads to PI before querying durable records', async () => {
+  it('keeps device-link lookups scoped by session and provider for every harness', async () => {
     h.deviceLinkInvoke = true;
     registerSubagentRunsIpc();
     const list = h.ipcHandlers.get('local-db:subagent-runs:list');
@@ -939,15 +944,15 @@ describe('Subagent runs broadcast boundary', () => {
     expect(h.listSubagentRuns).toHaveBeenCalledWith('session-1', {
       cursor: undefined,
       limit: undefined,
-      provider: 'pi',
     });
     await expect(detail({}, {
       sessionId: 'session-1', provider: 'codex', runIdOrAlias: 'native-id',
-    })).resolves.toEqual({ supported: false, run: null });
+    })).resolves.toEqual({ supported: true, run: null });
     await expect(transcript({}, {
       sessionId: 'session-1', provider: 'claude-code', runIdOrAlias: 'native-id',
     })).resolves.toEqual({ supported: false, entries: [] });
-    expect(h.getSubagentRunDetail).not.toHaveBeenCalled();
+    expect(h.getSubagentRunDetail).toHaveBeenCalledWith('session-1', 'codex', 'native-id');
+    expect(h.getSubagentRunDetail).toHaveBeenCalledWith('session-1', 'claude-code', 'native-id');
   });
 
   it('validates and forwards provider-scoped detail lookups', async () => {
@@ -975,5 +980,33 @@ describe('Subagent runs broadcast boundary', () => {
         runIdOrAlias: 'shared-native-id',
       }),
     ).rejects.toThrow(/provider/);
+  });
+
+  it.each(['claude-code', 'codex'])('reads %s transcripts through the owning host and caps remote pages', async (provider) => {
+    h.deviceLinkInvoke = true;
+    const run = { id: 'run-1', provider, parentSessionId: 'session-1' };
+    h.getSubagentRunDetail.mockResolvedValue(run);
+    registerSubagentRunsIpc();
+    const transcript = h.ipcHandlers.get('local-db:subagent-runs:transcript')!;
+    const input = { sessionId: 'session-1', provider, runIdOrAlias: 'native-id', limit: 200, cursor: 'cursor' };
+    const response = await transcript({}, input);
+    expect(response).toEqual({ supported: true, entries: [] });
+    expect(h.readNativeSubagentTranscript).toHaveBeenCalledWith(run, { cursor: 'cursor', limit: 25 });
+    expect(h.getSubagentRunDetail).toHaveBeenLastCalledWith('session-1', provider, 'run-1');
+  });
+
+  it.each(['owner-change', 'cleared-run'])('discards native transcript data after %s during IO', async (boundary) => {
+    const run = { id: 'run-1', provider: 'codex', parentSessionId: 'session-1' };
+    h.getSubagentRunDetail.mockResolvedValue(run);
+    h.readNativeSubagentTranscript.mockImplementation(async () => {
+      if (boundary === 'owner-change') h.ownerScopeKey = 'owner-b:2';
+      else h.getSubagentRunDetail.mockResolvedValue(null);
+      return { supported: true, entries: [{ id: 'private-old-owner', content: 'must not escape' }] };
+    });
+    registerSubagentRunsIpc();
+    const transcript = h.ipcHandlers.get('local-db:subagent-runs:transcript')!;
+    const input = { sessionId: 'session-1', provider: 'codex', runIdOrAlias: 'native-id' };
+    const response = await transcript({}, input);
+    expect(response).toEqual({ supported: false, entries: [] });
   });
 });

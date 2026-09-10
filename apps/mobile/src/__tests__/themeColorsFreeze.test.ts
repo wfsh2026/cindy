@@ -67,10 +67,10 @@ describe('DS-2b · Mobile ThemeColors 冻结', () => {
   });
 
   it('自证伪：模拟改名任一旧 key 后必然与快照不匹配', () => {
-    expect(topLevelKeys(lightColors)[0]).toBe('surface');
+    expect(topLevelKeys(lightColors)).toContain('surface');
     const renamed = Object.fromEntries(
-      Object.entries(lightColors).map(([key, value], index) =>
-        index === 0 ? ['surfaceRenamedForDs2bFalsification', value] : [key, value],
+      Object.entries(lightColors).map(([key, value]) =>
+        key === 'surface' ? ['surfaceRenamedForDs2bFalsification', value] : [key, value],
       ),
     );
     expect(renamed).not.toEqual(snapshot.light);

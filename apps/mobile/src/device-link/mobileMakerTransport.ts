@@ -1,3 +1,4 @@
+import type { SubagentRunDetailRequest, SubagentRunDetailResponse, SubagentRunsListRequest, SubagentRunsListResponse, SubagentTranscriptPageRequest, SubagentTranscriptPageResponse } from '@cindy/maker-shared/subagent-workspace';
 import type {
   ConversationSearchRequest,
   ConversationSearchResponse,
@@ -382,6 +383,9 @@ export interface MobileMakerTransport {
    */
   listAvailableAgents(): Promise<MobileAgentKind[]>;
   getSessionTree(sessionId: string): Promise<unknown | null>;
+  listSubagentRuns(input: SubagentRunsListRequest): Promise<SubagentRunsListResponse>;
+  getSubagentRunDetail(input: SubagentRunDetailRequest): Promise<SubagentRunDetailResponse>;
+  getSubagentTranscript(input: SubagentTranscriptPageRequest): Promise<SubagentTranscriptPageResponse>;
   navigateSessionTree(
     sessionId: string,
     entryId: string,
@@ -667,6 +671,9 @@ export function createMobileMakerTransport({
     // Pi 原生分支树通过 device-link 复用桌面端 runtime；移动会话页只在当前会话
     // 确认为 Pi 时展示入口，并在渲染前校验返回的树形状。
     getSessionTree: (sessionId) => call('maker:get-session-tree', [sessionId]),
+    listSubagentRuns: (input) => call('local-db:subagent-runs:list', [input]),
+    getSubagentRunDetail: (input) => call('local-db:subagent-runs:detail', [input]),
+    getSubagentTranscript: (input) => call('local-db:subagent-runs:transcript', [input]),
     navigateSessionTree: (sessionId, entryId, options) =>
       call('maker:navigate-session-tree', [sessionId, entryId, options]),
     listProviders: () => call('maker:provider:list', [{

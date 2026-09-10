@@ -1,5 +1,5 @@
 /**
- * Subagent tab discovery — "does this Pi task own a durable Subagent tab?".
+ * Subagent tab discovery — "does this task own a durable Subagent tab?".
  *
  * Registration is a one-shot goal, not a subscription: once the tab exists the
  * panel itself owns every later read (local change pushes / its own 1s remote
@@ -55,7 +55,7 @@ export interface SubagentTabDiscoveryOptions {
   /** Idempotent tab registration. */
   readonly registerTab: () => Promise<void>;
   /**
-   * Called after every completed read with "this task has durable Pi runs".
+   * Called after every completed read with "this task has durable Subagent runs".
    *
    * Supplying it keeps the local subscription running past registration, so the
    * caller sees the falling edge too. Omit it and this behaves exactly as it
@@ -108,12 +108,7 @@ export function startSubagentTabDiscovery(options: SubagentTabDiscoveryOptions):
     // `unsupported` is the honest answer from a device that has no durable
     // Subagent store; an empty list means this task simply has no children yet.
     //
-    // The tab itself is Pi-only, and `SubagentsBody` drops every non-Pi row, so
-    // registering on "any run" opens a permanently empty tab for a task that
-    // switched to Pi but only has Claude Code / Codex history in the store. The
-    // remote read is already narrowed to Pi on the Main side; this is the local
-    // path catching up, filtered here so the IPC contract stays unchanged.
-    const present = response.supported && response.runs.some((run) => run.provider === 'pi');
+    const present = response.supported && response.runs.length > 0;
     onPresenceChange?.(present);
     if (!present || registered) return;
     await registerTab();

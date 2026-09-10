@@ -6650,6 +6650,8 @@
       "collapseAllAria": "모든 파일 접기"
     },
     "subagents": {
+      "elapsed": "소요 시간 {{duration}}",
+      "noRunning": "실행 중인 Subagent가 없습니다",
       "running": "실행 중",
       "finished": "종료됨",
       "empty": "이 작업에는 아직 하위 에이전트가 없습니다",
@@ -6695,7 +6697,7 @@
         "resume": "하위 에이전트 재개"
       },
       "returnedResult": "반환된 결과",
-      "copyResult": "복사",
+      "copyResult": "결과 복사",
       "copiedResult": "복사됨",
       "resultTruncated": "반환된 결과가 표시를 위해 일부 생략되었습니다.",
       "latestUpdate": "최근 업데이트",
@@ -6758,7 +6760,20 @@
         "completed": "완료됨",
         "failed": "실패",
         "stopped": "중지됨"
-      }
+      },
+      "openDetails": "상세 보기",
+      "readerViews": "하위 에이전트 보기",
+      "partialRecord": "일부 실행 기록이 저장되지 않았거나 읽을 수 없거나 잘렸습니다.",
+      "noReturnedResult": "아직 반환된 결과가 없습니다.",
+      "quoteResult": "상위 작업에 인용",
+      "copied": "복사됨",
+      "copyFailed": "복사하지 못했습니다. 다시 시도하세요.",
+      "quoted": "상위 작업 초안에 추가했습니다.",
+      "quoteUnavailable": "상위 작업 입력란을 연 다음 인용하세요.",
+      "newContent": "새 내용 · 최신으로",
+      "sendTo": "받는 대상: {{name}}",
+      "readOnly": "이 실행은 읽기 전용입니다.",
+      "runningCount": "하위 에이전트 · {{count}}개 실행 중"
     },
     "backgroundTasks": {
       "running": "실행 중",
@@ -6820,6 +6835,49 @@
     }
   },
   "update": {
+    "official": {
+      "title": "공식 업데이트",
+      "available": "공식 새 버전 · {{version}}",
+      "unsynced": "개인 버전에 아직 반영되지 않음 · 변경 내용 보기",
+      "personalVersion": "개인 버전: {{version}}",
+      "baseline": "반영된 공식 버전: {{version}}",
+      "latest": "최신 공식 버전: {{version}}",
+      "checkedAt": "마지막 확인 성공: {{time}}",
+      "notChecked": "아직 확인하지 않음",
+      "checkFailed": "확인에 실패했습니다. 마지막 성공 결과를 표시합니다.",
+      "loading": "공식 업데이트 내용을 불러오는 중…",
+      "notesPending": "이 버전의 업데이트 내용을 아직 불러올 수 없습니다. 다시 시도하거나 공식 릴리스 페이지를 여세요.",
+      "copy": "동기화 요청 복사",
+      "copied": "동기화 요청을 복사했습니다",
+      "copyFailed": "복사하지 못했습니다. 다시 시도하세요.",
+      "website": "공식 릴리스 열기",
+      "retry": "업데이트 내용 재시도",
+      "snooze": "내일 알림",
+      "ignore": "이 버전은 다시 알리지 않음",
+      "actionStale": "공식 버전이 변경되었습니다. 다시 확인하세요.",
+      "saveFailed": "알림 설정을 저장하지 못했습니다. 다시 시도하세요.",
+      "checkAvailable": "아직 반영되지 않은 공식 업데이트가 있습니다",
+      "checkCurrent": "이 채널에 더 새로운 공식 버전이 없습니다",
+      "syncRequest": "개인 기능을 유지하면서 Cindy 공식 업데이트를 분석하고 동기화해 주세요.\n개인 버전: {{personal}}\n공식 기준 버전: {{baseline}}\n기준 커밋: {{commit}}\n목표 공식 버전: {{latest}}\n릴리스: {{url}}\n변경과 충돌을 비교하고 통합 및 검증 후에만 기준을 갱신하세요. 일부 수정만 적용한 것은 전체 동기화가 아닙니다."
+    },
+    "personal": {
+      "unread": "개인 버전 변경 · 읽지 않음",
+      "title": "개인 버전 변경",
+      "changes": {
+        "subagentReader": {
+          "title": "하위 에이전트 읽기",
+          "text": "중국어 이름과 색상 아이콘을 눌러 자세한 실행 내용을 확인합니다."
+        },
+        "subagentLinks": {
+          "title": "답변 아래 하위 에이전트",
+          "text": "완료된 답변 아래에 해당 하위 에이전트의 바로 가기를 유지합니다."
+        },
+        "officialNotices": {
+          "title": "독립적인 공식 업데이트 알림",
+          "text": "개인 버전 번호와 별도로 반영된 공식 버전을 기준으로 업데이트를 확인합니다."
+        }
+      }
+    },
     "banner": {
       "title": "{{version}}로 업데이트됨",
       "subtitle": "재시작해 적용",

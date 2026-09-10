@@ -23,6 +23,20 @@ function harness() {
 }
 
 describe('mobile maker transport', () => {
+  it('reads Subagents through the owning device with provider-scoped identity and cursor', async () => {
+    const { calls, maker } = harness();
+    const list = { sessionId: 'parent-1' };
+    const detail = { sessionId: 'parent-1', provider: 'codex' as const, runIdOrAlias: 'child-1' };
+    const transcript = { ...detail, cursor: 'opaque-cursor', limit: 25 };
+    await maker.listSubagentRuns(list);
+    await maker.getSubagentRunDetail(detail);
+    await maker.getSubagentTranscript(transcript);
+    expect(calls).toEqual([
+      { deviceId: 'dev-1', channel: 'local-db:subagent-runs:list', args: [list] },
+      { deviceId: 'dev-1', channel: 'local-db:subagent-runs:detail', args: [detail] },
+      { deviceId: 'dev-1', channel: 'local-db:subagent-runs:transcript', args: [transcript] },
+    ]);
+  });
   it('documents the remote channels used by the mobile transport', () => {
     expect(MOBILE_MAKER_CHANNELS).toEqual([
       'maker:create-session',
@@ -30,6 +44,9 @@ describe('mobile maker transport', () => {
       'maker:provider:list',
       'local-db:sessions:get',
       'local-db:conversations:search',
+      'local-db:subagent-runs:list',
+      'local-db:subagent-runs:detail',
+      'local-db:subagent-runs:transcript',
       'local-db:sessions:patch-meta',
       'local-db:messages:dismiss-error',
       'local-db:sessions:ack-interrupted',

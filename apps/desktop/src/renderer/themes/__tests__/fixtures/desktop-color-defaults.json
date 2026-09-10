@@ -1,7 +1,27 @@
 {
   "source": "apps/desktop/src/renderer/themes/colors.ts",
-  "count": 523,
+  "count": 532,
   "colors": [
+    {
+      "id": "subagent-identity-1",
+      "light": "#9b72cf",
+      "dark": "#c4a1ef"
+    },
+    {
+      "id": "subagent-identity-2",
+      "light": "#619d4b",
+      "dark": "#9aca85"
+    },
+    {
+      "id": "subagent-identity-3",
+      "light": "#558dc0",
+      "dark": "#91bdea"
+    },
+    {
+      "id": "subagent-identity-4",
+      "light": "#b48c42",
+      "dark": "#dfbc77"
+    },
     {
       "id": "surface",
       "light": "#f8f8f6",
@@ -2561,6 +2581,31 @@
       "id": "sidebar-list-muted",
       "light": "#9A9DA3",
       "dark": "#6F6F6F"
+    },
+    {
+      "id": "sidebar-project-name",
+      "light": "var(--sidebar-list-muted)",
+      "dark": "var(--sidebar-list-muted)"
+    },
+    {
+      "id": "sidebar-project-icon",
+      "light": "var(--sidebar-list-muted)",
+      "dark": "var(--sidebar-list-muted)"
+    },
+    {
+      "id": "sidebar-project-current-bg",
+      "light": "transparent",
+      "dark": "transparent"
+    },
+    {
+      "id": "sidebar-project-font-weight",
+      "light": "400",
+      "dark": "400"
+    },
+    {
+      "id": "sidebar-project-icon-size",
+      "light": "15px",
+      "dark": "15px"
     },
     {
       "id": "sidebar-user-card-bg",
