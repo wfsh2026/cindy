@@ -1513,8 +1513,8 @@ describe('Shared create project picker', () => {
     );
     // 统一建议面板的契约:没有 onExtraDirsChange 就不装配添加/移除引用目录能力。
     expect(chatInputSource).toContain('if (onExtraDirsChange) {');
-    expect(chatInputSource).toContain(
-      'hasReferenceDirs={!settingsLocked && (onExtraDirsChange !== undefined || onWritableDirsChange !== undefined)}',
+    expect(chatInputSource).toMatch(
+      /hasReferenceDirs=\{\s*!settingsLocked\s*&&\s*\(onExtraDirsChange !== undefined \|\| onWritableDirsChange !== undefined\)\s*\}/,
     );
   });
 
@@ -1539,9 +1539,9 @@ describe('Shared create project picker', () => {
     expect(ccAgentSessionViewSource).toContain(
       'session?.remoteHostId != null && sessionCaps?.writableDirs?.supported === true',
     );
-    expect(chatInputSource).toContain('&& writableGrantScope');
-    expect(chatInputSource).toContain('&& !remoteHostId');
-    expect(chatInputSource).toContain('&& deviceLinkDeviceId === null');
+    expect(chatInputSource).toMatch(/&&\s*writableGrantScope/);
+    expect(chatInputSource).toMatch(/&&\s*!remoteHostId/);
+    expect(chatInputSource).toMatch(/&&\s*deviceLinkDeviceId === null/);
     expect(chatInputSource).toContain('!settingsLocked && onWritableDirsChange');
     expect(chatInputSource).toContain('void onWritableDirRemove(path);');
     expect(chatInputSource).toContain('(writableDirs ?? []).filter((item) => item !== path)');
@@ -1731,11 +1731,7 @@ describe('Shared create project picker', () => {
     );
   });
 
-  // #807 review 第二十八轮:本机分支早就用 effectiveSourceIdForModel 校准过来源,device-link 分支
-  // 却原样透传 dlSel.providerId。普通发送不受影响(ChatInput 内部会重算),但「新建目标」是直接拿
-  // 这个值提交给 maker:create-session 的 —— 被控端把该来源断开后,会把未认证来源写进
-  // sessions.provider_id,新目标起不来。校准放在**派生处**,一次覆盖所有消费点。
-  it('clamps the device-link provider through the shared resolver, not just the local branch', () => {
+  it('preserves an explicit device-link connection and resolves only implicit defaults', () => {
     const derive = newMakerDraftRouteSource.slice(
       newMakerDraftRouteSource.indexOf('const chatInitialProviderId = useMemo<string | null>('),
     );
@@ -1746,10 +1742,7 @@ describe('Shared create project picker', () => {
     expect(body).toContain('effectiveSourceIdForModel(');
     expect(body).toContain('deviceProviders,');
     expect(body).toContain('draftInitialModel,');
-    // 反向防回退:不能再出现原样透传。
-    expect(newMakerDraftRouteSource).not.toContain(
-      'isDeviceLinkDraft\n    ? (deviceLinkInitial?.providerId ?? null)',
-    );
+    expect(body).toContain('return deviceLinkInitial?.providerId || effectiveSourceIdForModel(');
   });
 
   it('keeps recent-folder storage out of project-option selection', () => {

@@ -4,6 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { TEST_CDN_BASE_URL as CDN_EXTERNAL_BASE_URL } from '../../test/vitest/clientEndpointsFixture';
 
+vi.mock('../../../personal-build.json', () => ({ default: {
+  edition: 'personal', upstreamVersion: '0.1.72', upstreamCommit: 'a'.repeat(40), changeKeys: ['officialNotices'],
+} }));
+
 const originalPlatform = process.platform;
 const originalArch = process.arch;
 let TEST_ROOT: string;
@@ -182,10 +186,19 @@ async function freshUpdateService(platform: NodeJS.Platform, arch: string = orig
   return import('../updateService');
 }
 
-beforeAll(() => {
+function resetUpdateServiceFixture() {
+  if (TEST_ROOT) {
+    fs.rmSync(TEST_ROOT, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+  }
   TEST_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'xdt-maker-update-service-test-'));
   TEST_USER_DATA = path.join(TEST_ROOT, 'user-data');
   TEST_EXE = path.join(TEST_ROOT, 'app', 'xdt-maker.exe');
+  fs.mkdirSync(TEST_USER_DATA, { recursive: true });
+  fs.mkdirSync(path.dirname(TEST_EXE), { recursive: true });
+}
+
+beforeAll(() => {
+  resetUpdateServiceFixture();
 });
 afterAll(() => {
   if (!TEST_ROOT) return;
@@ -251,13 +264,125 @@ beforeEach(() => {
   logWarn.mockReset();
   logError.mockReset();
   logDebug.mockReset();
-  fs.rmSync(TEST_ROOT, { recursive: true, force: true });
+  resetUpdateServiceFixture();
 });
 afterEach(() => {
   vi.clearAllTimers();
   vi.useRealTimers();
   setPlatform(originalPlatform);
   setArch(originalArch);
+});
+
+describe.sequential('updateService', () => {
+describe('binary version checks after a user-requested update', () => {
+  beforeEach(() => {
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+  });
+
+  it('writes the target-version marker only when the user actually applies the update', async () => {
+    const service = await freshUpdateService('darwin');
+    const { consumeStartupBinaryUpdateMarker } = await import('../agent-binaries/startup-update');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(updateManifest())).resolves.toBe('ready');
+      const markerPath = path.join(TEST_USER_DATA, 'agent-binary-update-once.json');
+      expect(fs.existsSync(markerPath)).toBe(false);
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      await vi.waitFor(() => { expect(spawnProcess).toHaveBeenCalledOnce(); });
+      expect(JSON.parse(fs.readFileSync(markerPath, 'utf8'))).toMatchObject({ version: '0.0.65' });
+      expect(consumeStartupBinaryUpdateMarker(TEST_USER_DATA, '0.0.65')).toBe(true);
+      expect(fs.existsSync(markerPath)).toBe(false);
+      expect(consumeStartupBinaryUpdateMarker(TEST_USER_DATA, '0.0.65')).toBe(false);
+    } finally {
+      service.stopUpdateService();
+      exitSpy.mockRestore();
+    }
+  });
+
+  it('does not write the marker for an automatic update relaunch', async () => {
+    const service = await freshUpdateService('darwin');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    service.initUpdateService();
+    try {
+      await service.checkForUpdate(updateManifest());
+      await expect(ipcHandlers.get('update-relaunch-auto')?.({}, 'dark')).resolves.toMatchObject({ accepted: true });
+      await vi.waitFor(() => { expect(spawnProcess).toHaveBeenCalledOnce(); });
+      expect(fs.existsSync(path.join(TEST_USER_DATA, 'agent-binary-update-once.json'))).toBe(false);
+    } finally {
+      service.stopUpdateService();
+      exitSpy.mockRestore();
+    }
+  });
+
+  it('does not write the marker when Windows updater prerequisites block applying', async () => {
+    const service = await freshUpdateService('win32');
+    checkWindowsUpdaterPrerequisites.mockReturnValue({ satisfied: false, missingFiles: ['vcruntime140.dll'] });
+    service.initUpdateService();
+    try {
+      await service.checkForUpdate(updateManifest());
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(fs.existsSync(path.join(TEST_USER_DATA, 'agent-binary-update-once.json'))).toBe(false);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('never starts the Windows updater or schedules binary upgrades in notify-only mode', async () => {
+    const service = await freshUpdateService('win32');
+    const resourcesPath = path.join(TEST_ROOT, 'resources');
+    fs.mkdirSync(resourcesPath, { recursive: true });
+    fs.writeFileSync(path.join(resourcesPath, 'cindy-updater.exe'), 'updater');
+    const resourcesDescriptor = Object.getOwnPropertyDescriptor(process, 'resourcesPath');
+    Object.defineProperty(process, 'resourcesPath', { value: resourcesPath, configurable: true });
+    const tmpdirSpy = vi.spyOn(os, 'tmpdir').mockReturnValue(TEST_ROOT);
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    const childListeners = new Map<string, (...args: unknown[]) => void>();
+    spawnProcess.mockImplementationOnce(() => ({
+      unref: vi.fn(),
+      on: vi.fn((event: string, listener: (...args: unknown[]) => void) => { childListeners.set(event, listener); }),
+    }));
+    service.initUpdateService();
+    try {
+      await service.checkForUpdate(updateManifest());
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(childListeners.has('error')).toBe(false);
+      const markerPath = path.join(TEST_USER_DATA, 'agent-binary-update-once.json');
+      expect(fs.existsSync(markerPath)).toBe(false);
+      expect(service.getUpdateStatus()).toBe('available');
+      expect(exitSpy).not.toHaveBeenCalled();
+    } finally {
+      service.stopUpdateService();
+      tmpdirSpy.mockRestore();
+      exitSpy.mockRestore();
+      if (resourcesDescriptor) Object.defineProperty(process, 'resourcesPath', resourcesDescriptor);
+      else Reflect.deleteProperty(process, 'resourcesPath');
+    }
+  });
+
+  it('removes the marker when spawning the updater fails', async () => {
+    const service = await freshUpdateService('darwin');
+    service.initUpdateService();
+    try {
+      await service.checkForUpdate(updateManifest());
+      spawnProcess.mockImplementationOnce(() => {
+        expect(fs.existsSync(path.join(TEST_USER_DATA, 'agent-binary-update-once.json'))).toBe(true);
+        throw new Error('updater spawn failed');
+      });
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      await vi.waitFor(() => { expect(service.getUpdateStatus()).toBe('error'); });
+      expect(fs.existsSync(path.join(TEST_USER_DATA, 'agent-binary-update-once.json'))).toBe(false);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
 });
 
 function updateManifest(version = '0.0.65', hotfixFile?: string) {
@@ -1041,6 +1166,8 @@ describe('startup update relaunch safety', () => {
       enabled: true,
       manifest: updateManifest('0.0.65', sharedHotfix),
     });
+    service.stopUpdateService();
+    vi.useRealTimers();
     let releaseProbe: ((busy: boolean) => void) | undefined;
     const probeStarted = new Promise<void>((resolveStarted) => {
       service.setUpdateAutoRelaunchBusyProbe(
@@ -1067,7 +1194,10 @@ describe('startup update relaunch safety', () => {
       expect(service.getUpdateStatus()).toBe('ready');
 
       const destPath = path.join(TEST_USER_DATA, 'updates', path.basename(sharedHotfix));
+      const patchInfoPath = path.join(TEST_USER_DATA, 'updates', 'patch-info.json');
       expect(fs.existsSync(destPath)).toBe(true);
+      expect(fs.existsSync(patchInfoPath)).toBe(true);
+      expect(fs.readFileSync(patchInfoPath, 'utf-8')).toContain('0.0.66');
 
       releaseProbe?.(true);
       await vi.waitFor(() => {
@@ -1079,8 +1209,8 @@ describe('startup update relaunch safety', () => {
       });
       expect(service.getUpdateStatus()).toBe('ready');
       expect(fs.existsSync(destPath)).toBe(true);
-      expect(fs.readFileSync(path.join(TEST_USER_DATA, 'updates', 'patch-info.json'), 'utf-8')).toContain('0.0.66');
     } finally {
+      releaseProbe?.(true);
       service.stopUpdateService();
     }
   });
@@ -1121,6 +1251,8 @@ describe('startup update relaunch safety', () => {
       enabled: true,
       manifest: updateManifest('0.0.65', sharedHotfix),
     });
+    service.stopUpdateService();
+    vi.useRealTimers();
     let releaseProbe: ((busy: boolean) => void) | undefined;
     const probeStarted = new Promise<void>((resolveStarted) => {
       service.setUpdateAutoRelaunchBusyProbe(
@@ -1132,7 +1264,12 @@ describe('startup update relaunch safety', () => {
       );
     });
     let finishDownload: (() => void) | undefined;
+    let downloadEntered: (() => void) | undefined;
+    const downloadStarted = new Promise<void>((resolve) => {
+      downloadEntered = resolve;
+    });
     download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      downloadEntered?.();
       await new Promise<void>((resolve) => {
         finishDownload = resolve;
       });
@@ -1150,13 +1287,9 @@ describe('startup update relaunch safety', () => {
       });
       fetchManifest.mockResolvedValue(updateManifest('0.0.66', sharedHotfix));
       const checkPromise = service.checkForUpdate();
-      await vi.waitFor(() => {
-        expect(finishDownload).toBeTypeOf('function');
-      });
+      await downloadStarted;
+      expect(service.getUpdateStatus()).toBe('superseding');
       releaseProbe?.(true);
-      await vi.waitFor(() => {
-        expect(service.getUpdateStatus()).toBe('superseding');
-      });
       finishDownload?.();
       await expect(checkPromise).resolves.toBe('ready');
       expect(service.getUpdateStatus()).toBe('ready');
@@ -1164,6 +1297,8 @@ describe('startup update relaunch safety', () => {
         fs.readFileSync(path.join(TEST_USER_DATA, 'updates', 'patch-info.json'), 'utf-8'),
       ).toContain('0.0.66');
     } finally {
+      finishDownload?.();
+      releaseProbe?.(true);
       service.stopUpdateService();
     }
   });
@@ -1186,6 +1321,8 @@ describe('startup update relaunch safety', () => {
   it('does not restore a superseded patch after a channel change', async () => {
     const { DownloadError } = await import('../downloader/index');
     const service = await bootWithStagedPatch({ enabled: true });
+    service.stopUpdateService();
+    vi.useRealTimers();
     let releaseProbe: ((busy: boolean) => void) | undefined;
     const probeStarted = new Promise<void>((resolveStarted) => {
       service.setUpdateAutoRelaunchBusyProbe(
@@ -1197,9 +1334,16 @@ describe('startup update relaunch safety', () => {
       );
     });
     let failDownload: ((error: Error) => void) | undefined;
-    download.mockImplementation(() => new Promise((_, reject) => {
-      failDownload = reject;
-    }));
+    let downloadEntered: (() => void) | undefined;
+    const downloadStarted = new Promise<void>((resolve) => {
+      downloadEntered = resolve;
+    });
+    download.mockImplementation(() => {
+      downloadEntered?.();
+      return new Promise((_, reject) => {
+        failDownload = reject;
+      });
+    });
     try {
       await probeStarted;
       await expect(service.enableUncustomizedBetaChannel()).resolves.toBe(true);
@@ -1210,18 +1354,15 @@ describe('startup update relaunch safety', () => {
       });
       fetchManifest.mockResolvedValue(updateManifest('0.0.66'));
       const checkPromise = service.checkForUpdate();
-      await vi.waitFor(() => {
-        expect(failDownload).toBeTypeOf('function');
-      });
+      await downloadStarted;
+      expect(service.getUpdateStatus()).toBe('superseding');
       releaseProbe?.(true);
-      await vi.waitFor(() => {
-        expect(service.getUpdateStatus()).toBe('superseding');
-      });
       failDownload?.(new DownloadError('NETWORK', 'boom'));
       await expect(checkPromise).resolves.toBe('idle');
       expect(service.getUpdateStatus()).toBe('idle');
       expect(fs.existsSync(path.join(TEST_USER_DATA, 'updates', 'patch-info.json'))).toBe(false);
     } finally {
+      releaseProbe?.(true);
       service.stopUpdateService();
     }
   });
@@ -1604,9 +1745,11 @@ describe('startup update relaunch safety', () => {
         error: 'manifest_failed',
       });
       expect(service.getUpdateStatus()).toBe('idle');
-      expect(fs.existsSync(path.join(updatesDir, 'patch-info.json'))).toBe(false);
-      expect(fs.existsSync(path.join(updatesDir, 'xdt-maker-0.0.65.zip'))).toBe(false);
-      expect(fs.existsSync(flagPath)).toBe(false);
+      await vi.waitFor(() => {
+        expect(fs.existsSync(path.join(updatesDir, 'patch-info.json'))).toBe(false);
+        expect(fs.existsSync(path.join(updatesDir, 'xdt-maker-0.0.65.zip'))).toBe(false);
+        expect(fs.existsSync(flagPath)).toBe(false);
+      });
     } finally {
       service.stopUpdateService();
     }
@@ -1816,4 +1959,5 @@ describe('splash 启动下载 0% 显式广播', () => {
     expect(await service.checkForUpdate(updateManifest('0.0.66'))).toBe('ready');
     expect(progressCountWhenDownloadStarted).toBe(0);
   });
+});
 });

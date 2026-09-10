@@ -71,6 +71,36 @@ const baseCatalog = {
 };
 
 describe('Codex smart Subagent catalog', () => {
+  it('only selects subscription routes belonging to the current account host', () => {
+    const providers = [
+      provider('openai', [model('gpt-account-default')], { authStrategy: 'oauth-passthrough' }),
+      provider('account-a', [model('gpt-account-a')], { authStrategy: 'oauth-passthrough' }),
+      provider('account-b', [model('gpt-account-b')], { authStrategy: 'oauth-passthrough' }),
+      provider('xd', [model('api-model')]),
+    ];
+    expect(selectCodexSmartSubagentCandidates(providers, { allowChatGptOAuth: true, oauthProviderId: 'account-b' })
+      .map((candidate) => candidate.providerId).sort()).toEqual(['account-b', 'xd']);
+  });
+  it('preserves a newly discovered native v2 model including its larger maximum window', () => {
+    const astra = {
+      slug: 'gpt-6-astra',
+      multi_agent_version: 'v2',
+      context_window: 272_000,
+      max_context_window: 872_000,
+      supported_reasoning_levels: [{ effort: 'ultra', description: 'native delegation' }],
+    };
+    const built = buildCodexSmartModelCatalog({ models: [astra] }, [
+      { providerId: 'openai', model: model('gpt-6-astra', 'gpt') },
+      { providerId: 'xd', model: model('deepseek/deepseek-v4-flash') },
+    ]);
+    expect(built?.models[0]).toEqual(astra);
+    expect(built?.models[1]).toMatchObject({
+      slug: 'deepseek/deepseek-v4-flash',
+      context_window: 200_000,
+      max_context_window: 200_000,
+    });
+  });
+
   it('keeps native Sol/Terra and selects additional connected Codex chat models', () => {
     const candidates = selectCodexSmartSubagentCandidates(
       [

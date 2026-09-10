@@ -42,6 +42,7 @@ import { ProgressNormalizer } from './updateProgressNormalizer';
 import { compareAppUpdateVersions } from './updateVersionPolicy';
 import { applyOfficialNoticeAction, getOfficialUpdateSnapshot, getPersonalUpdateBuildInfo, officialUpdateScopeKey, recordOfficialUpdateCheck } from './officialUpdateNotice';
 import type { OfficialNoticeRequest, OfficialUpdateSnapshot } from '../shared/personalBuildInfo';
+import { writeStartupBinaryUpdateMarker } from './agent-binaries/startup-update';
 
 import { createLogger, maskPath } from './logger';
 import {
@@ -79,6 +80,7 @@ import {
 } from './windowsUpdaterPrerequisites';
 
 const log = createLogger('updateService');
+let cancelStartupBinaryUpdateCheck: (() => void) | undefined;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -1431,6 +1433,8 @@ async function doCheckForUpdate(manifestOverride?: Manifest | null): Promise<Che
 // ── Spawn failure handler ─────────────────────────────────────────────────
 
 function handleApplyFailure(reason: string): void {
+  cancelStartupBinaryUpdateCheck?.();
+  cancelStartupBinaryUpdateCheck = undefined;
   log.error('Update apply failed (reason=%s), clearing patch and notifying renderer', reason);
   removePatchInfo();
   readyVersion = undefined;
@@ -1883,9 +1887,9 @@ function executeUpdateLinux(debPath: string): void {
   });
 }
 
-async function executeRelaunch(theme: 'light' | 'dark'): Promise<void> {
+async function executeRelaunch(theme: 'light' | 'dark', checkForBinaryUpdates = false): Promise<void> {
   try {
-    await executeRelaunchUnguarded(theme);
+    await executeRelaunchUnguarded(theme, checkForBinaryUpdates);
   } catch (err) {
     log.error('executeRelaunch() failed: %s', err instanceof Error ? err.stack ?? err.message : String(err));
     try {
@@ -1897,11 +1901,15 @@ async function executeRelaunch(theme: 'light' | 'dark'): Promise<void> {
     // Any return from here that is not `process.exit` means the relaunch did
     // not happen, so the fence must come down — including the early returns
     // inside the guarded body.
-    if (!isRelaunching) await clearSubagentLaunchFence();
+    if (!isRelaunching) {
+      cancelStartupBinaryUpdateCheck?.();
+      cancelStartupBinaryUpdateCheck = undefined;
+      await clearSubagentLaunchFence();
+    }
   }
 }
 
-async function executeRelaunchUnguarded(theme: 'light' | 'dark'): Promise<void> {
+async function executeRelaunchUnguarded(theme: 'light' | 'dark', checkForBinaryUpdates: boolean): Promise<void> {
   if (isRelaunching) {
     log.info('executeRelaunch() skipped — already in progress');
     return;
@@ -2001,6 +2009,10 @@ async function executeRelaunchUnguarded(theme: 'light' | 'dark'): Promise<void> 
     maskPath(readyFilePath), fs.statSync(readyFilePath).size,
   );
 
+  if (checkForBinaryUpdates && readyVersion) {
+    cancelStartupBinaryUpdateCheck = writeStartupBinaryUpdateMarker(app.getPath('userData'), readyVersion);
+  }
+
   switch (process.platform) {
     case 'win32':
       executeUpdateWindows(readyFilePath, theme);
@@ -2046,7 +2058,7 @@ export function initUpdateService(): void {
     }
     const resolved = theme === 'light' || theme === 'dark' ? theme : 'dark';
     resolvedRelaunchTheme = resolved;
-    void executeRelaunch(resolved);
+    void executeRelaunch(resolved, true);
   });
 
   ipcMain.handle(

@@ -5,6 +5,10 @@
  * 失败时 throw `Error("[CODE] message")`，service 层包装回 `ApiError`。
  */
 
+import { physicalWorktreeKey, withWorktreeResourceLocks } from '../../worktree/resourceLock';
+import { managedWorktreeRoot } from '../../worktree/runtimeLeases';
+import { queueSessionWorktreeRecycle } from '../../worktree/recycleQueue';
+import { notifyWorktreeRecycleOpportunity } from '../../worktree/recycleEvents';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -22,7 +26,8 @@ import { DEFAULT_DRAFT_SESSION_TITLE, normalizeAutoTitle } from '@cindy/maker-sh
 import { getDbClient } from '../client/current';
 import * as currentDb from '../client/current';
 import type { DbClient } from '../client/DbClient';
-import { sessions } from '../schema';
+import { sessions, messages } from '../schema';
+import { commitBotProfileDeletion } from '../botProfileDeletionStore.js';
 import {
   LIST_PREVIEW_EXTRACT_SQL,
   LATEST_VISIBLE_PREVIEW_FILTER_SQL,
@@ -34,6 +39,10 @@ import { throwIpcError, requireString, requireObject } from '../../utils/ipcVali
 import { bindDeletedPiSubagentCleanupCancel } from './piSubagentDeletion';
 import { resolveBusinessSessionId } from '../../sessionIds';
 import { normalizeDbAgentKind } from '../../../shared/agentKindConversion';
+import {
+  projectSessionContextWindow,
+  type ContextWindowSession,
+} from '../../../shared/sessionContextWindow';
 import {
   sessionToCamel,
   sessionUsageToCamel,
@@ -119,18 +128,22 @@ function compactTerminalSessionToolResults(
 type OwnerScope = ReturnType<typeof broadcastTap.captureDataOwnerBroadcastScope> | null;
 type SessionRemovalCancelOperations = (sessionId: string) => Promise<void>;
 type SessionRemovalCleanup = (sessionId: string) => Promise<void>;
+type SessionWorktreeRecycle = (sessionId: string, resources?: readonly string[]) => Promise<void>;
 export interface SessionRecycleScope {
   ownerScope: OwnerScope;
   mediaDb: DbClient['drizzle'];
 }
 
 export interface RegisterSessionIpcOpts {
+  /** Use the same live catalog as runtime usage, without writing during reads. */
+  resolveContextWindow?: (session: ContextWindowSession) => number | null;
   /** Close a local Pi/Codex runtime only if its current turn is idle. */
   closeIdleSessionForMove?: (sessionId: string) => Promise<boolean>;
 }
 
 let sessionRemovalCancelOperations: SessionRemovalCancelOperations | null = null;
 let sessionRemovalCleanup: SessionRemovalCleanup | null = null;
+let sessionWorktreeRecycle: SessionWorktreeRecycle | null = null;
 
 /** Composition-root injection for Host-owned operations that must stop before worktree recycle. */
 export function setSessionRemovalCancelOperations(
@@ -144,6 +157,13 @@ export function setSessionRemovalCleanup(
   cleanupRemovedSession: SessionRemovalCleanup | null,
 ): void {
   sessionRemovalCleanup = cleanupRemovedSession;
+}
+
+/** Composition-root injection keeps the localDb IPC layer independent of worktree implementation modules. */
+export function setSessionWorktreeRecycle(
+  recycle: SessionWorktreeRecycle | null,
+): void {
+  sessionWorktreeRecycle = recycle;
 }
 
 function captureOwnerScope(): OwnerScope {
@@ -167,13 +187,66 @@ function isOwnerScopeCurrent(scope: OwnerScope): boolean {
 }
 
 async function withStatusWriteLock<T>(
+  db: DbClient['drizzle'],
   sessionId: string,
   status: unknown,
   task: () => Promise<T>,
   alreadyLocked = false,
 ): Promise<T> {
-  if (status === undefined || alreadyLocked) return task();
-  return withSessionRouteLock(sessionId, task);
+  const write = async () => {
+    const resources = status === undefined ? [] : await readSessionWorktreeResources(db, sessionId);
+    const physicalResources = await Promise.all(resources.map(physicalWorktreeKey));
+    const mutate = async () => {
+      if (status === 'archived' || status === 'deleted') await requestWorktreeRecycle(sessionId, resources);
+      const result = await task();
+      for (const resource of physicalResources) notifyWorktreeRecycleOpportunity(resource);
+      return result;
+    };
+    return withWorktreeMutation(resources, mutate);
+  };
+  if (status === undefined || alreadyLocked) return write();
+  return withSessionRouteLock(sessionId, write);
+}
+
+async function requestWorktreeRecycle(sessionId: string, resources: readonly string[] = []): Promise<void> {
+  const recycle = sessionWorktreeRecycle;
+  if (!recycle) throw new Error('worktree recycle implementation is not wired');
+  await recycle(sessionId, resources);
+}
+
+/** Persist a terminal cleanup intent using references from the same DB snapshot. */
+export async function requestSessionWorktreeRecycle(
+  db: DbClient['drizzle'],
+  sessionId: string,
+): Promise<void> {
+  await requestWorktreeRecycle(sessionId, await readSessionWorktreeResources(db, sessionId));
+}
+
+/** Read from the same captured database that will receive the status/path update. */
+async function readSessionWorktreeResources(db: DbClient['drizzle'], sessionId: string): Promise<string[]> {
+  try {
+    const [row] = await db.select({
+      workingDir: sessions.workingDir, worktreePath: sessions.worktreePath, remoteHostId: sessions.remoteHostId,
+    }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    if (!row || row.remoteHostId) return [];
+    return [row.workingDir, row.worktreePath].flatMap((value) => {
+      const root = value ? managedWorktreeRoot(value) : null;
+      return root ? [root] : [];
+    });
+  } catch {
+    throwIpcError('PRECONDITION_FAILED', 'Worktree references are temporarily unavailable');
+  }
+}
+
+async function withWorktreeMutation<T>(resources: string[], task: () => Promise<T>): Promise<T> {
+  try {
+    return await withWorktreeResourceLocks(resources, task);
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code && error instanceof Error && error.message.startsWith(`[${code}]`)) throw error;
+    log.warn('worktree mutation postponed', { code: code ?? 'unavailable' });
+    throwIpcError('PRECONDITION_FAILED', 'Worktree is busy or its recovery record could not be saved');
+  }
 }
 
 async function writeSessionPatch(
@@ -312,13 +385,26 @@ export async function recycleSessionWorktreeForStatusChange(
   capturedScope?: SessionRecycleScope,
 ): Promise<void> {
   if (status !== 'deleted' && status !== 'archived') return;
+  // Capture before queueing: an account switch while waiting cannot redirect cleanup.
+  try {
+    const scope = capturedScope ?? captureSessionRecycleScope();
+    await queueSessionWorktreeRecycle(() => recycleSessionWorktreeInQueue(sessionId, scope));
+  } catch (error) {
+    log.warn('worktree recycle scheduling postponed', {
+      sessionId, code: (error as NodeJS.ErrnoException).code ?? 'unavailable',
+    });
+  }
+}
+
+async function recycleSessionWorktreeInQueue(
+  sessionId: string,
+  capturedScope: SessionRecycleScope,
+): Promise<void> {
   const affectedWorktreeSessionIds = new Set<string>();
   try {
-    // Callers that already crossed an async status write pass the owner/DB
-    // captured at operation entry. The fallback is only for direct callers.
-    const ownerScope = capturedScope?.ownerScope ?? captureOwnerScope();
-    const mediaDb = capturedScope?.mediaDb ?? getDbClient().drizzle;
-    if (!isOwnerScopeCurrent(ownerScope)) return;
+    const { ownerScope, mediaDb } = capturedScope;
+    const ownerIsCurrent = (): boolean => isOwnerScopeCurrent(ownerScope) && getDbClient().drizzle === mediaDb;
+    if (!ownerIsCurrent()) return;
     const cancelOperations = sessionRemovalCancelOperations;
     const cleanupRemovedSession = sessionRemovalCleanup;
     if (!cancelOperations || !cleanupRemovedSession) {
@@ -328,7 +414,6 @@ export async function recycleSessionWorktreeForStatusChange(
       import('../../maker-host/index.js'),
       import('../../worktree/sessionRemovalRecycle.js'),
     ]);
-    const ownerIsCurrent = (): boolean => isOwnerScopeCurrent(ownerScope);
     const isStillRemovable = async (id: string): Promise<boolean> =>
       ownerIsCurrent() && recycle.isSessionStillRemovable(id, mediaDb);
     const closeAndRecycle = async (targetSessionId: string, scanOwners: boolean): Promise<void> => {
@@ -1117,12 +1202,15 @@ export function registerSessionIpc(
 
         scheduleSessionListProjectionBackfill(mergedRows);
         return mergedRows.map((r) =>
-          sessionToCamel({
-            ...r.session,
-            messageCount: r.messageCount,
-            latestMessageExtract: r.latestMessageExtract,
-            latestMessageRole: r.latestMessageRole,
-          }),
+          projectSessionContextWindow(
+            sessionToCamel({
+              ...r.session,
+              messageCount: r.messageCount,
+              latestMessageExtract: r.latestMessageExtract,
+              latestMessageRole: r.latestMessageRole,
+            }),
+            opts.resolveContextWindow,
+          ),
         );
       };
       const loadUsageHistoryRows = async () => {
@@ -1133,7 +1221,9 @@ export function registerSessionIpc(
         const statusWhere = () =>
           statusFilter ? eq(sessions.status, statusFilter) : ne(sessions.status, 'deleted');
         const rows = await selectSessionUsageRows(db, and(sourceFilter, statusWhere()));
-        return rows.map(sessionUsageToCamel);
+        return rows.map((row) =>
+          sessionUsageToCamel(projectSessionContextWindow(row, opts.resolveContextWindow)),
+        );
       };
       // key 用同一快照上的 userId + clientEpoch + 归一化参数。
       // forceRefresh / status 重拉带 fresh，不并入写前那次查询。
@@ -1204,6 +1294,12 @@ export function registerSessionIpc(
     ) {
       throwIpcError('INVALID_PARAMS', `invalid orcaRole: ${String(bodyObj.orcaRole)}`);
     }
+    if (bodyObj.source !== undefined) {
+      throwIpcError(
+        'UNSUPPORTED_CAPABILITY',
+        'Bot task creation is only available through the Bot lifecycle service',
+      );
+    }
     const workspaceKind =
       (createBody?.workspaceKind as 'project' | 'dialogue' | undefined) ?? 'project';
     const explicitWorkingDir =
@@ -1254,7 +1350,11 @@ export function registerSessionIpc(
       autoSnapshotEnabled: readGitSafetySettings().autoSnapshotEnabled,
       source: 'local-db:sessions:create',
     });
-    await db.insert(sessions).values(insertRow);
+    const resource = !insertRow.remoteHostId && insertRow.workingDir
+      ? managedWorktreeRoot(insertRow.workingDir) : null;
+    const insert = async () => { await db.insert(sessions).values(insertRow); };
+    if (resource) await withWorktreeMutation([resource], insert);
+    else await insert();
     const [row] = await db.select().from(sessions).where(eq(sessions.id, id));
     if (!row) throwIpcError('NOT_FOUND', 'Session 创建后查询失败');
     // recent-workdirs: 项目目录走 sidebar 分组,要进"最近"列表;dialogue 目录是
@@ -1389,7 +1489,7 @@ export function registerSessionIpc(
     const db = getDbClient().drizzle;
     const row = await selectSessionWithCount(db, sid);
     if (!row) throwIpcError('NOT_FOUND', 'Session 不存在');
-    return sessionToCamel(row);
+    return projectSessionContextWindow(sessionToCamel(row), opts.resolveContextWindow);
   });
 
   /**
@@ -1456,8 +1556,9 @@ export function registerSessionIpc(
       }
 
       const db = getDbClient().drizzle;
-      const updated = await withSessionRouteLock(sid, async () => {
+      const updated = await withStatusWriteLock(db, sid, 'active', async () => {
         if (!isOwnerScopeCurrent(ownerScope)) return null;
+        await assertGenericSessionLifecycleAllowed(db, sid);
         // 显式 .run() 才能从生产 DbClient.drizzle proxy 拿到 changes；隐式 await
         // 会丢弃写结果。CAS 是否命中必须以该原子 UPDATE 的 changes 判定。
         const writeResult = await db
@@ -1636,9 +1737,11 @@ export function registerSessionIpc(
       // 按下过保存,这个方向的偏差是安全的。
       if (typeof p.title === 'string') noteUserTitleWritten(sid);
       await withStatusWriteLock(
+        db,
         sid,
         p.status,
         async () => {
+          if (p.status !== undefined) await assertGenericSessionLifecycleAllowed(db, sid);
           await writeSessionPatch(db, sid, setObj, p.status);
           cleanupSessionRuntimeForTerminalStatus(sid, p.status);
         },
@@ -1764,7 +1867,15 @@ export function registerSessionIpc(
       compactTerminalSessionToolResults(dbClient, sid, p.status);
       return updated;
     };
-    return p.workingDir === undefined ? update() : withSessionRouteLock(sid, update);
+    if (p.workingDir === undefined) return update();
+    return withSessionRouteLock(sid, async () => {
+      const [binding] = await db.select({ remoteHostId: sessions.remoteHostId }).from(sessions).where(eq(sessions.id, sid)).limit(1);
+      const resource = !binding?.remoteHostId && typeof p.workingDir === 'string'
+        ? managedWorktreeRoot(p.workingDir) : null;
+      const resources = await readSessionWorktreeResources(db, sid);
+      if (resource) resources.push(resource);
+      return withWorktreeMutation(resources, update);
+    });
   });
 
   // 窄口径会话元数据编辑(status / title / pinnedAt)。专为 device-link 控制端**远程**
@@ -1844,7 +1955,8 @@ export async function patchSessionMetaInDb(
   const setObj = sessionPatchToRow(patch, { bumpUpdatedAt: false });
   // 控制端远程改名走这条,与本机改名同口径(同样先记号后写库)。
   if (patch.title !== undefined) noteUserTitleWritten(sessionId);
-  const updated = await withStatusWriteLock(sessionId, patch.status, async () => {
+  const updated = await withStatusWriteLock(db, sessionId, patch.status, async () => {
+    if (patch.status !== undefined) await assertGenericSessionLifecycleAllowed(db, sessionId);
     await writeSessionPatch(db, sessionId, setObj, patch.status);
     const row = await selectSessionWithCount(db, sessionId);
     if (!row) throwIpcError('NOT_FOUND', 'Session 不存在');
@@ -1894,6 +2006,28 @@ export async function patchSessionMetaInDb(
   }
   compactTerminalSessionToolResults(dbClient, sessionId, patch.status);
   return updated;
+}
+
+/**
+ * Bot tasks are absent from the ordinary task pool, so their active/history/
+ * route transitions must go through the Bot lifecycle service. That service
+ * updates the Profile pointer and Session projection atomically.
+ */
+async function assertGenericSessionLifecycleAllowed(
+  db: DbClient['drizzle'],
+  sessionId: string,
+): Promise<void> {
+  const [target] = await db
+    .select({ source: sessions.source })
+    .from(sessions)
+    .where(eq(sessions.id, sessionId))
+    .limit(1);
+  if (target?.source === 'bot') {
+    throwIpcError(
+      'PRECONDITION_FAILED',
+      'Bot task lifecycle is managed by teammate recovery and history controls',
+    );
+  }
 }
 
 export interface RenameSessionMetaChange {
@@ -2007,18 +2141,32 @@ export async function setSessionsStatusInDb(
   const ownerScope = captureOwnerScope();
   const dbClient = getDbClient();
   const applied = await withSessionRouteLocks(sessionIds, async () => {
-    const rows = await dbClient.tx('sessions.setStatus', { sessionIds, status }).catch((err) => {
-      const code = (err as { code?: string }).code;
-      const message = err instanceof Error ? err.message : String(err);
-      if (code === 'NOT_FOUND' || code === 'INVALID_PARAMS' || code === 'PRECONDITION_FAILED') {
-        throwIpcError(code, message);
+    const resources: string[] = [];
+    const perSession = new Map<string, string[]>();
+    for (const id of sessionIds) {
+      const paths = await readSessionWorktreeResources(dbClient.drizzle, id);
+      perSession.set(id, paths);
+      resources.push(...paths);
+    }
+    const physicalResources = await Promise.all([...new Set(resources)].map(physicalWorktreeKey));
+    return withWorktreeMutation(resources, async () => {
+      if (status === 'archived') {
+        for (const id of sessionIds) await requestWorktreeRecycle(id, perSession.get(id));
       }
-      throw err;
+      const rows = await dbClient.tx('sessions.setStatus', { sessionIds, status }).catch((err) => {
+        const code = (err as { code?: string }).code;
+        const message = err instanceof Error ? err.message : String(err);
+        if (code === 'NOT_FOUND' || code === 'INVALID_PARAMS' || code === 'PRECONDITION_FAILED') {
+          throwIpcError(code, message);
+        }
+        throw err;
     });
     for (const item of rows) {
       cleanupSessionRuntimeForTerminalStatus(item.sessionId, item.status);
     }
+    for (const resource of physicalResources) notifyWorktreeRecycleOpportunity(resource);
     return rows;
+    });
   });
   for (const item of applied) {
     compactTerminalSessionToolResults(dbClient, item.sessionId, item.status);
@@ -2071,6 +2219,75 @@ function cancelDeletedPiSubagentCleanupImpl(sessionId: string): void {
 }
 
 bindDeletedPiSubagentCleanupCancel(cancelDeletedPiSubagentCleanupImpl);
+
+/**
+ * Detach Bot-owned tasks before the owning Profile is permanently removed.
+ * Kept transcripts become ordinary archived tasks; discarded transcripts
+ * become ordinary deleted tombstones so no inaccessible source=bot orphan is
+ * left after the Bot FK graph is cascaded away.
+ */
+export async function deleteBotProfileAndDetachSessionsInDb(
+  botId: string,
+  sessionIds: string[],
+  keepTaskHistory: boolean,
+): Promise<void> {
+  const ids = [...new Set(sessionIds)];
+  const ownerScope = captureOwnerScope();
+  const db = getDbClient().drizzle;
+  const commitDeletion = () => commitBotProfileDeletion({
+    botId,
+    sessionIds: ids,
+    keepTaskHistory,
+  });
+  const committed = ids.length > 0
+    ? await withSessionRouteLocks(ids, commitDeletion)
+    : await commitDeletion();
+  const status = committed.status;
+  const committedSessionIds = [...new Set(committed.sessionIds)];
+
+  for (const id of committedSessionIds) {
+    notifyAgentIslandSessionPatch(id, { status });
+    broadcastSessionPatched(id, { status, source: 'desktop' }, ownerScope);
+    notifyGhostSessionStatusChange(id, status, null);
+    removeHookAttachmentDir(id, status);
+    if (status === 'deleted') {
+      void imageCacheStore.removeSession(id).catch((error) => {
+        log.warn('Bot task image cleanup failed', { sessionId: id, error: String(error) });
+      });
+      void removeWechatSessionAttachmentDir(id).catch((error) => {
+        log.warn('Bot task attachment cleanup failed', { sessionId: id, error: String(error) });
+      });
+      void removeDeletedSessionMediaRefs(id, db).catch((error) => {
+        log.warn('Bot task media cleanup failed', { sessionId: id, error: String(error) });
+      });
+    }
+  }
+}
+
+/**
+ * hook 入站附件目录回收(fire-and-forget): deleted/archived 都是终态,
+ * 文件在 turn 送出后即无用。所有把 session 置为终态的路径都应调用。
+ */
+function removeHookAttachmentDir(sessionId: string, status: unknown): void {
+  if (status !== 'deleted' && status !== 'archived') return;
+  if (status === 'deleted') {
+    void removeTurnChangeSetsForSession(sessionId).catch((err) => {
+      log.warn('turn change-set cleanup failed', {
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
+  const attachRoot = path.join(app.getPath('userData'), 'hook-attachments');
+  const attachDir = path.join(attachRoot, sessionId);
+  if (!attachDir.startsWith(attachRoot + path.sep)) return;
+  void fs.rm(attachDir, { recursive: true, force: true }).catch((err) => {
+    log.warn('hook attachment dir cleanup failed', {
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  });
+}
 
 /**
  * Can this parent task still start a durable Subagent?
@@ -2351,6 +2568,7 @@ function selectSessionUsageRows(
       | 'totalTokenUsage'
       | 'contextTokens'
       | 'contextWindow'
+      | 'agentKind'
       | 'userSendAt'
       | 'updatedAt'
     >
@@ -2365,6 +2583,7 @@ function selectSessionUsageRows(
       totalTokenUsage: sessions.totalTokenUsage,
       contextTokens: sessions.contextTokens,
       contextWindow: sessions.contextWindow,
+      agentKind: sessions.agentKind,
       userSendAt: sessions.userSendAt,
       updatedAt: sessions.updatedAt,
     })

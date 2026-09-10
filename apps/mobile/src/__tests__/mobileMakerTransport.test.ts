@@ -37,6 +37,20 @@ describe('mobile maker transport', () => {
       { deviceId: 'dev-1', channel: 'local-db:subagent-runs:transcript', args: [transcript] },
     ]);
   });
+
+  it('rejects a legacy unscoped quota response for an independent account', async () => {
+    const { maker, calls } = harness();
+    await expect(maker.getCodexRateLimits('openai-second')).rejects.toThrow('Account scope unsupported');
+    expect(calls.at(-1)).toMatchObject({ channel: 'maker:usage:codex-rate-limits', args: ['openai-second'] });
+    await expect(maker.getAccountUsage('codex', 'openai-second')).rejects.toThrow('Account scope unsupported');
+  });
+
+  it('accepts only the requested account in scoped quota responses', async () => {
+    const invoke: RemoteInvoke = async () => ({ providerId: 'openai-second' }) as never;
+    const maker = createMobileMakerTransport({ deviceId: 'dev-1', invoke });
+    await expect(maker.getCodexRateLimits('openai-second')).resolves.toMatchObject({ providerId: 'openai-second' });
+    await expect(maker.getCodexRateLimits('openai-third')).rejects.toThrow('Account scope unsupported');
+  });
   it('documents the remote channels used by the mobile transport', () => {
     expect(MOBILE_MAKER_CHANNELS).toEqual([
       'maker:create-session',
@@ -52,6 +66,9 @@ describe('mobile maker transport', () => {
       'local-db:sessions:ack-interrupted',
       'maker:regenerate-title',
       'local-db:messages:list',
+      'local-db:messages:view',
+      'local-db:messages:work-details',
+      'local-db:messages:view-intent',
       'local-db:messages:around',
       'local-db:messages:around-client-id',
       'maker:send',
@@ -71,6 +88,7 @@ describe('mobile maker transport', () => {
       'maker:get-new-maker-worktree-branch-pref',
       'maker:apply-new-maker-worktree-branch-pref',
       'maker:usage:model-pricing',
+      'local-db:messages:estimatedSessionValue',
       'maker:usage:codex-rate-limits',
       'maker:usage:codex-rate-limit-reset',
       'maker:api-key:present',
@@ -199,7 +217,7 @@ describe('mobile maker transport', () => {
       {
         deviceId: 'dev-1',
         channel: 'maker:list-active',
-        args: [],
+        args: [{ summary: true }],
       },
     ]);
   });

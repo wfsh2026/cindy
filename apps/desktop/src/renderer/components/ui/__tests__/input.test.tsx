@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, render, screen } from '@testing-library/react';
+import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({
@@ -24,7 +25,7 @@ describe('Input', () => {
     expect(cls).toContain('text-[var(--text-primary)]');
     expect(cls).toContain('placeholder:text-[var(--text-placeholder)]');
     expect(cls).toContain('border-[var(--border-default)]');
-    expect(cls).toContain('focus:ring-[var(--focus-ring)]');
+    expect(cls).toContain('focus:ring-[var(--focus-ring-soft)]');
     expect(cls).not.toContain('settings-input-placeholder');
   });
 
@@ -37,7 +38,7 @@ describe('Input', () => {
     expect(inputClass()).toContain('h-[40px]');
   });
 
-  it('keeps ivory as an explicit registered-debt variant', () => {
+  it('keeps ivory as an explicit white-panel variant', () => {
     render(<Input value="" onChange={() => {}} surface="ivory" />);
     expect(inputClass()).toContain('bg-[var(--settings-input-bg)]');
     expect(inputClass()).not.toContain('bg-[var(--surface-elevated)]');
@@ -55,6 +56,15 @@ describe('Input', () => {
     const field = document.querySelector('input');
     expect(field?.getAttribute('type')).toBe('password');
     expect(screen.getByRole('button', { name: 'settings.apiKey.showKey' })).toBeTruthy();
+  });
+
+  it('forwards the legacy focus ref and aria label aliases', () => {
+    const inputRef = createRef<HTMLInputElement>();
+    render(<Input value="" onChange={() => {}} inputRef={inputRef} ariaLabel="Context window" />);
+    const field = screen.getByRole('textbox');
+    expect(inputRef.current).toBe(field);
+    expect(field.getAttribute('aria-label')).toBe('Context window');
+    expect(field.getAttribute('inputref')).toBeNull();
   });
 
   it('keeps caller inline style instead of silently dropping it', () => {

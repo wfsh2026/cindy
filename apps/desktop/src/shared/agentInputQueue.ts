@@ -224,6 +224,8 @@ export interface RecoveryCheckpoint {
 }
 
 export interface AgentInputQueuedMessage {
+  /** Host-captured authored text before plugin/reference decoration; omitted from wire projections. */
+  autoReviewUserText?: string;
   clientId: string;
   text: string;
   /**
@@ -574,8 +576,9 @@ export function queuedMessageRetryToken(queued: AgentInputQueuedMessage): string
 }
 
 /**
- * 队列崩溃恢复快照不能持久化跨设备引用正文。正文只在当前进程内存中存活；
- * 恢复后保留 fail-closed 标记，禁止按目标设备本地坐标重新解释 raw refs。
+ * 队列崩溃恢复快照不能持久化跨设备引用正文或瞬时 Bot 状态。两者只在当前
+ * 进程内存中存活；恢复后正文保留 fail-closed 标记，Bot 状态必须重新查询，
+ * 不能把崩溃前的 working/idle 当成当前事实。
  */
 export function sanitizeQueuedMessageForPersistence(
   item: AgentInputQueuedMessage,
@@ -604,8 +607,9 @@ export function sanitizeQueuedMessageForPersistence(
   // task-level clear after a queue round trip.
   if (item.experienceCleared !== undefined && item.experienceCleared !== true) changed = true;
   if (item.chatMessage?.experienceCleared !== undefined && item.chatMessage.experienceCleared !== true) changed = true;
+  let chatMessage = item.chatMessage;
 
-  const stripMessageBodies = (
+  const stripTransientReferenceData = (
     references: readonly unknown[],
   ): { references: unknown[]; stripped: boolean } => {
     let stripped = false;
@@ -614,26 +618,38 @@ export function sanitizeQueuedMessageForPersistence(
         return reference;
       }
       const record = reference as Record<string, unknown>;
-      if (
-        record.kind !== 'message' ||
-        (!Object.hasOwn(record, 'text') && !Object.hasOwn(record, 'truncated'))
-      ) {
-        return reference;
-      }
+      const hasMessageBody = record.kind === 'message'
+        && (Object.hasOwn(record, 'text') || Object.hasOwn(record, 'truncated'));
+      const hasBotHostSnapshot = record.kind === 'bot'
+        && Object.hasOwn(record, 'hostSnapshot');
+      if (!hasMessageBody && !hasBotHostSnapshot) return reference;
       stripped = true;
       const sanitized = { ...record };
-      delete sanitized.text;
-      delete sanitized.truncated;
+      if (hasMessageBody) {
+        delete sanitized.text;
+        delete sanitized.truncated;
+      }
+      if (hasBotHostSnapshot) delete sanitized.hostSnapshot;
       return sanitized;
     });
     return { references: stripped ? next : [...references], stripped };
   };
 
   if (agentReferences) {
-    const topLevel = stripMessageBodies(agentReferences);
+    const topLevel = stripTransientReferenceData(agentReferences);
     if (topLevel.stripped) {
       changed = true;
       agentReferences = topLevel.references as AgentInputReference[];
+    }
+  }
+  if (chatMessage.agentReferences) {
+    const chat = stripTransientReferenceData(chatMessage.agentReferences);
+    if (chat.stripped) {
+      changed = true;
+      chatMessage = {
+        ...chatMessage,
+        agentReferences: chat.references as AgentInputReference[],
+      };
     }
   }
   try {
@@ -641,7 +657,7 @@ export function sanitizeQueuedMessageForPersistence(
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       const record = parsed as Record<string, unknown>;
       if (Array.isArray(record.agentReferences)) {
-        const persisted = stripMessageBodies(record.agentReferences);
+        const persisted = stripTransientReferenceData(record.agentReferences);
         if (persisted.stripped) {
           changed = true;
           Object.assign(record, { agentReferences: persisted.references });
@@ -698,7 +714,7 @@ export function sanitizeQueuedMessageForPersistence(
       ? { sessionReferencesRequireTrustedSnapshot: true }
       : {}),
     chatMessage: {
-      ...item.chatMessage,
+      ...chatMessage,
       ...(normalizedExperience ? { experience: normalizedExperience } : {}),
       ...(experienceCleared ? { experienceCleared: true } : {}),
     },

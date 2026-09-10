@@ -348,6 +348,58 @@ function requireReadyDb() {
   throw err;
 }
 
+function worktreeReferenceQuery(nextDb) {
+  const info = nextDb.prepare('PRAGMA table_info(sessions)').all();
+  const columns = new Set(info.map((column) => column.name));
+  const hasWorktree = columns.has('worktree_path');
+  const hasSource = columns.has('source');
+  const hasRemote = columns.has('remote_host_id');
+  if (!['id', 'status', 'working_dir'].every((name) => columns.has(name))
+    || (hasSource && !hasWorktree) || (hasRemote && !hasSource)) {
+    throw new Error('unsupported task reference schema');
+  }
+  const status = hasRemote ? 'status' : 'NULL';
+  return 'SELECT id, ' + status + ' AS status, ' + (hasSource ? 'source' : 'NULL') + ' AS source, '
+    + 'working_dir AS workingDir, ' + (hasWorktree ? 'worktree_path' : 'NULL') + ' AS worktreePath '
+    + 'FROM sessions' + (hasRemote ? ' WHERE remote_host_id IS NULL' : '');
+}
+
+function readLocalWorktreeReferences() {
+  const location = db.prepare('PRAGMA database_list').all();
+  const main = location.find((entry) => entry.name === 'main');
+  const databasePath = main && main.file;
+  if (!databasePath || !path.isAbsolute(databasePath)) throw new Error('task database path unavailable');
+  const currentPath = path.resolve(databasePath);
+  const root = path.dirname(currentPath);
+  const profiles = path.join(root, 'profiles');
+  if (fs.existsSync(profiles) && fs.readdirSync(profiles).length) {
+    throw new Error('profile database catalog requires a compatible reader');
+  }
+  const names = fs.readdirSync(root).filter((name) => /^(?:cindy|xdt)-.+\.db$/.test(name));
+  if (!names.includes(path.basename(currentPath))) throw new Error('unknown task database layout');
+  const rows = [];
+  for (const name of names) {
+    const file = path.join(root, name);
+    if (!fs.lstatSync(file).isFile()) throw new Error('task database is not a regular file');
+    const isCurrent = file === currentPath;
+    const nextDb = isCurrent ? db : new Database(file, {
+      readonly: true, fileMustExist: true,
+      ...(workerData && workerData.nativeBinding ? { nativeBinding: workerData.nativeBinding } : {}),
+    });
+    try {
+      const references = nextDb.transaction(() => nextDb.prepare(worktreeReferenceQuery(nextDb)).all())();
+      rows.push(...references.map((row) => ({ ...row, currentDatabase: isCurrent })));
+    } finally {
+      if (!isCurrent) nextDb.close();
+    }
+  }
+  const after = fs.readdirSync(root).filter((name) => /^(?:cindy|xdt)-.+\.db$/.test(name));
+  if (after.length !== names.length || after.some((name) => !names.includes(name))) {
+    throw new Error('task database catalog changed during scan');
+  }
+  return rows;
+}
+
 const LOCAL_DUPLICATE_WINDOW_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const RETRY_BACKOFF_MS = [1000, 5000, 30000, 5 * 60000, 30 * 60000];
@@ -416,11 +468,87 @@ function dispatchTx(readyDb, payload) {
       return imDeleteBindings(readyDb, request.args);
     case 'im.replaceBinding':
       return imReplaceBinding(readyDb, request.args);
+    case 'skillUsage.applyMutation':
+      return skillUsageApplyMutation(readyDb, request.args);
     case 'session.importShare':
       return sessionImportShare(readyDb, request.args);
     default:
       throw Object.assign(new Error('unknown tx: ' + name), { code: 'UNKNOWN_TX' });
   }
+}
+
+// Keep in sync with worker/opHandlers/tx.ts:skillUsageApplyMutation.
+function skillUsageApplyMutation(readyDb, args) {
+  const payload = asRecord(args, 'skillUsage.applyMutation args');
+  const kind = expectString(payload.kind, 'kind');
+  if (kind === 'persist') {
+    const rawSource = asRecord(payload.source, 'source');
+    const source = {
+      rawFilePath: expectString(rawSource.rawFilePath, 'source.rawFilePath'),
+      analyzerVersion: expectString(rawSource.analyzerVersion, 'source.analyzerVersion'),
+      agentKind: expectString(rawSource.agentKind, 'source.agentKind'),
+      sessionId: expectString(rawSource.sessionId, 'source.sessionId'),
+      sdkSessionId: expectString(rawSource.sdkSessionId, 'source.sdkSessionId'),
+      mtimeMs: expectNumber(rawSource.mtimeMs, 'source.mtimeMs'),
+      sizeBytes: expectNumber(rawSource.sizeBytes, 'source.sizeBytes'),
+      scannedAt: expectNumber(rawSource.scannedAt, 'source.scannedAt'),
+    };
+    const exposures = expectArray(payload.exposures, 'exposures');
+    const upsertSource = readyDb.prepare(
+      "INSERT INTO skill_usage_sources (raw_file_path, analyzer_version, agent_kind, session_id, sdk_session_id, mtime_ms, size_bytes, last_scanned_at, status, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ok', NULL) ON CONFLICT(raw_file_path) DO UPDATE SET analyzer_version = excluded.analyzer_version, agent_kind = excluded.agent_kind, session_id = excluded.session_id, sdk_session_id = excluded.sdk_session_id, mtime_ms = excluded.mtime_ms, size_bytes = excluded.size_bytes, last_scanned_at = excluded.last_scanned_at, status = 'ok', error = NULL",
+    );
+    const deleteExposure = readyDb.prepare(
+      'DELETE FROM skill_usage_exposures WHERE raw_file_path = ? AND analyzer_version = ?',
+    );
+    const insertExposure = readyDb.prepare(
+      'INSERT INTO skill_usage_exposures (id, analyzer_version, raw_file_path, raw_line_no, session_id, sdk_session_id, agent_kind, skill_name, skill_path, skill_document_hash, exposure_content_hash, document_hash_source, source, tool_use_id, seen_at, tool_call_count, repeated_tool_call_count, tool_error_count, command_call_count, command_failure_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    return readyDb.transaction(() => {
+      upsertSource.run(source.rawFilePath, source.analyzerVersion, source.agentKind, source.sessionId, source.sdkSessionId, source.mtimeMs, source.sizeBytes, source.scannedAt);
+      deleteExposure.run(source.rawFilePath, source.analyzerVersion);
+      for (let index = 0; index < exposures.length; index += 1) {
+        const row = asRecord(exposures[index], 'exposures.' + index);
+        insertExposure.run(
+          source.analyzerVersion + ':' + expectString(row.id, 'exposures.' + index + '.id'),
+          source.analyzerVersion,
+          expectString(row.rawFilePath, 'exposures.' + index + '.rawFilePath'),
+          expectNumber(row.rawLineNo, 'exposures.' + index + '.rawLineNo'),
+          expectString(row.sessionId, 'exposures.' + index + '.sessionId'),
+          expectString(row.sdkSessionId, 'exposures.' + index + '.sdkSessionId'),
+          expectString(row.agentKind, 'exposures.' + index + '.agentKind'),
+          expectString(row.skillName, 'exposures.' + index + '.skillName'),
+          nullableString(row.skillPath),
+          nullableString(row.skillDocumentHash),
+          expectString(row.exposureContentHash, 'exposures.' + index + '.exposureContentHash'),
+          expectString(row.documentHashSource, 'exposures.' + index + '.documentHashSource'),
+          expectString(row.source, 'exposures.' + index + '.source'),
+          nullableString(row.toolUseId),
+          expectNumber(row.seenAt, 'exposures.' + index + '.seenAt'),
+          expectNumber(row.toolCallCount, 'exposures.' + index + '.toolCallCount'),
+          expectNumber(row.repeatedToolCallCount, 'exposures.' + index + '.repeatedToolCallCount'),
+          expectNumber(row.toolErrorCount, 'exposures.' + index + '.toolErrorCount'),
+          expectNumber(row.commandCallCount, 'exposures.' + index + '.commandCallCount'),
+          expectNumber(row.commandFailureCount, 'exposures.' + index + '.commandFailureCount'),
+        );
+      }
+    })();
+  }
+  if (kind === 'deleteBefore') {
+    const analyzerVersion = expectString(payload.analyzerVersion, 'analyzerVersion');
+    const recentSince = expectNumber(payload.recentSince, 'recentSince');
+    return readyDb.transaction(() => {
+      readyDb.prepare('DELETE FROM skill_usage_exposures WHERE analyzer_version = ? AND seen_at < ?').run(analyzerVersion, recentSince);
+      readyDb.prepare('DELETE FROM skill_usage_sources WHERE analyzer_version = ? AND mtime_ms < ? AND raw_file_path NOT IN (SELECT raw_file_path FROM skill_usage_exposures)').run(analyzerVersion, recentSince);
+    })();
+  }
+  if (kind === 'promote') {
+    const analyzerVersion = expectString(payload.analyzerVersion, 'analyzerVersion');
+    return readyDb.transaction(() => {
+      readyDb.prepare("INSERT INTO migration_meta (key, value) VALUES ('skill_usage_analyzer_version', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(analyzerVersion);
+      readyDb.prepare('DELETE FROM skill_usage_exposures WHERE analyzer_version <> ?').run(analyzerVersion);
+    })();
+  }
+  throw invalidArgs('unknown skill usage mutation: ' + kind);
 }
 
 // ⚠️ 与 worker/opHandlers/tx.ts 的 imDeleteBindings 保持一致。
@@ -517,9 +645,18 @@ function contextRebuild(readyDb, args) {
       ? null
       : expectNumber(payload.expectedClearedAt, 'expectedClearedAt');
   return readyDb.transaction(() => {
-    const sessionResult = readyDb.prepare(
-      'UPDATE sessions SET sdk_session_id = NULL, context_tokens = 0, updated_at = ?, list_message_count = NULL WHERE id = ? AND ifnull(cleared_at, -1) = ifnull(?, -1)',
-    ).run(updatedAt, sessionId, expectedClearedAt);
+    const replacement = payload.replacementRoute === undefined
+      ? null : asRecord(payload.replacementRoute, 'replacementRoute');
+    const sessionResult = replacement
+      ? readyDb.prepare(
+          'UPDATE sessions SET sdk_session_id = NULL, context_tokens = 0, updated_at = ?, list_message_count = NULL, model = ?, provider_id = ?, effort = COALESCE(?, effort), fast_mode = ? WHERE id = ? AND ifnull(cleared_at, -1) = ifnull(?, -1) AND sdk_session_id = ? AND status != ?',
+        ).run(updatedAt, expectString(replacement.model, 'replacementRoute.model'),
+          nullableString(replacement.providerId), nullableString(replacement.effort),
+          replacement.fastMode === true ? 1 : 0, sessionId, expectedClearedAt,
+          expectString(replacement.expectedSdkSessionId, 'replacementRoute.expectedSdkSessionId'), 'deleted')
+      : readyDb.prepare(
+          'UPDATE sessions SET sdk_session_id = NULL, context_tokens = 0, updated_at = ?, list_message_count = NULL WHERE id = ? AND ifnull(cleared_at, -1) = ifnull(?, -1)',
+        ).run(updatedAt, sessionId, expectedClearedAt);
     if (sessionResult.changes !== 1) {
       throw Object.assign(new Error('Session missing or clear-boundary changed: ' + sessionId), {
         code: 'PRECONDITION_FAILED',
@@ -866,7 +1003,7 @@ function sessionsSetStatus(readyDb, args) {
     throw Object.assign(new Error('invalid status: ' + status), { code: 'INVALID_ARGS' });
   }
   const selectSession = readyDb.prepare(
-    'SELECT id, title, working_dir AS workingDir, workspace_kind AS workspaceKind, status FROM sessions WHERE id = ? LIMIT 1',
+    'SELECT id, title, working_dir AS workingDir, workspace_kind AS workspaceKind, status, source FROM sessions WHERE id = ? LIMIT 1',
   );
   const updateSession = readyDb.prepare(
     'UPDATE sessions SET status = ?, updated_at = ? WHERE id = ? RETURNING id, title, working_dir AS workingDir, workspace_kind AS workspaceKind',
@@ -879,6 +1016,11 @@ function sessionsSetStatus(readyDb, args) {
       if (!existing) throw Object.assign(new Error('Session 不存在: ' + sessionId), { code: 'NOT_FOUND' });
       if (existing.status === 'deleted') {
         throw Object.assign(new Error('已删除的任务不能恢复或归档: ' + sessionId), {
+          code: 'PRECONDITION_FAILED',
+        });
+      }
+      if (existing.source === 'bot') {
+        throw Object.assign(new Error('Bot 任务必须通过 Bot 生命周期管理: ' + sessionId), {
           code: 'PRECONDITION_FAILED',
         });
       }
@@ -1664,6 +1806,18 @@ function parseAgentMeta(raw) {
   }
 }
 
+// Keep the inline fallback aligned with localDb/forkRecoverySnapshot.ts.
+function computeForkSourceMessagesDigest(rows) {
+  const hash = crypto.createHash('sha256');
+  for (const row of rows) {
+    hash.update(JSON.stringify([
+      row.client_id, row.role, row.content, row.tool_use_id ?? null,
+      row.agent_meta ?? null, row.agent_kind ?? null, row.created_at,
+    ])).update('\\n');
+  }
+  return hash.digest('hex');
+}
+
 function forkSession(readyDb, args) {
   const payload = asRecord(args, 'fork.session args');
   const sourceSessionId = expectString(payload.sourceSessionId, 'sourceSessionId');
@@ -1678,16 +1832,27 @@ function forkSession(readyDb, args) {
   const detachAgentSwitchSessions = payload.detachAgentSwitchSessions === true;
   const resetHandoffBoundaryClientId = nullableString(payload.resetHandoffBoundaryClientId);
   const newMessageIds = normalizeNewMessageIds(payload.newMessageIds);
-  const sourceMessages = readyDb.prepare(
-    'SELECT client_id, role, content, tool_use_id, agent_meta, agent_kind, created_at FROM messages WHERE session_id = ? AND (? IS NULL OR created_at > ?) AND (created_at < ? OR (? IS NOT NULL AND created_at = ? AND rowid < ?)) AND rewind_at IS NULL ORDER BY created_at ASC, rowid ASC',
-  ).all(sourceSessionId, sourceClearedAt, sourceClearedAt, targetCreatedAt, targetRowid, targetCreatedAt, targetRowid);
-  if (newMessageIds.length !== sourceMessages.length) {
-    throw invalidArgs('newMessageIds length mismatch: expected ' + sourceMessages.length + ', got ' + newMessageIds.length);
-  }
   const insertMessage = readyDb.prepare(
     'INSERT INTO messages (id, client_id, session_id, role, content, tool_use_id, agent_meta, agent_kind, created_at, rewind_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)',
   );
-  readyDb.transaction(() => {
+  return readyDb.transaction(() => {
+    if (payload.recoveryMarker != null && !readyDb.prepare(
+      'SELECT 1 FROM sessions WHERE id = ? AND cleared_at IS ?',
+    ).get(sourceSessionId, sourceClearedAt)) {
+      throw invalidArgs('Source history changed while preparing recovery fork');
+    }
+    const sourceMessages = readyDb.prepare(
+      'SELECT client_id, role, content, tool_use_id, agent_meta, agent_kind, created_at FROM messages WHERE session_id = ? AND (? IS NULL OR created_at > ?) AND (created_at < ? OR (? IS NOT NULL AND created_at = ? AND rowid < ?)) AND rewind_at IS NULL ORDER BY created_at ASC, rowid ASC',
+    ).all(sourceSessionId, sourceClearedAt, sourceClearedAt, targetCreatedAt, targetRowid, targetCreatedAt, targetRowid);
+    if (payload.recoveryMarker != null) {
+      const marker = asRecord(payload.recoveryMarker, 'recoveryMarker');
+      if (computeForkSourceMessagesDigest(sourceMessages) !== expectString(marker.sourceMessagesDigest, 'recoveryMarker.sourceMessagesDigest')) {
+        throw invalidArgs('Source history changed while preparing recovery fork');
+      }
+    }
+    if (newMessageIds.length !== sourceMessages.length) {
+      throw invalidArgs('newMessageIds length mismatch: expected ' + sourceMessages.length + ', got ' + newMessageIds.length);
+    }
     readyDb.prepare(
       'INSERT INTO sessions (id, title, working_dir, model, provider_id, effort, permission_mode, status, sdk_session_id, total_token_usage, total_cost_usd, context_tokens, context_window, fast_mode, cleared_at, pinned_at, user_send_at, agent_kind, workspace_kind, codex_history_has_product_prompt, parent_session_id, forked_at_message_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     ).run(
@@ -1721,8 +1886,32 @@ function forkSession(readyDb, args) {
       const ids = newMessageIds[i];
       insertMessage.run(ids.id, ids.clientId, expectString(newSession.id, 'newSession.id'), message.role, sanitizeForkedMessageContent(message, { detachAgentSwitchSessions, resetHandoffBoundaryClientId }), message.tool_use_id, remapForkedAgentMeta(message.agent_meta, uuidMap, legacyTranscriptParentUuids, toolParentUuids, nativeForkAnchorSessionMap), message.agent_kind, message.created_at);
     }
+    if (payload.recoveryMarker != null) {
+      const marker = asRecord(payload.recoveryMarker, 'recoveryMarker');
+      readyDb.prepare(
+        "INSERT INTO messages (id, client_id, session_id, role, content, agent_kind, created_at, rewind_at) VALUES (?, ?, ?, 'context_rebuild', ?, ?, ?, ?)",
+      ).run(
+        expectString(marker.id, 'recoveryMarker.id'),
+        expectString(marker.clientId, 'recoveryMarker.clientId'),
+        expectString(newSession.id, 'newSession.id'),
+        expectString(marker.content, 'recoveryMarker.content'),
+        expectString(newSession.agentKind, 'newSession.agentKind'),
+        expectNumber(marker.createdAt, 'recoveryMarker.createdAt'),
+        expectNumber(marker.createdAt, 'recoveryMarker.createdAt'),
+      );
+      const content = asRecord(JSON.parse(expectString(marker.content, 'recoveryMarker.content')), 'recoveryMarker content');
+      insertMessage.run(
+        expectString(marker.id, 'recoveryMarker.id') + ':card',
+        expectString(marker.clientId, 'recoveryMarker.clientId') + ':card',
+        expectString(newSession.id, 'newSession.id'),
+        'assistant', '', null,
+        JSON.stringify({ contextRebuild: { reason: content.reason, handoff: content.handoff } }),
+        expectString(newSession.agentKind, 'newSession.agentKind'),
+        expectNumber(marker.createdAt, 'recoveryMarker.createdAt'),
+      );
+    }
+    return { messageCount: sourceMessages.length };
   })();
-  return { messageCount: sourceMessages.length };
 }
 
 function sanitizeForkedMessageContent(message, opts) {
@@ -2144,6 +2333,8 @@ function invalidArgs(message) {
 async function dispatch(op, args) {
   const readyDb = requireReadyDb();
   switch (op) {
+    case 'worktreeReferences':
+      return readLocalWorktreeReferences();
     case 'query': {
       const { sql, params } = args || {};
       return readyDb.prepare(sql).all(...normalizeParams(params));

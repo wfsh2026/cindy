@@ -1,3 +1,5 @@
+import { filterLegacyGptContextProfiles } from './legacy-context-profiles.js';
+import { subscriptionAccountKind, subscriptionAccountState, isXaiSubscriptionProviderId, getValidClaudeAccountOAuth, resetSubscriptionAccountCaches } from './subscription-account-auth.js';
 /**
  * createDesktopProviderService —— 桌面端目录加载落地 + provider-service 接线。
  *
@@ -38,12 +40,21 @@ import {
 } from '@cindy/model-providers';
 
 import { createLogger } from '../logger.js';
+import { codexAccountState } from './codex-account-auth.js';
+import { listReadyProviderMediaModels } from '../cindy-media/providerMediaRuntime.js';
+import {
+  filterEnabledGatewayMediaModels,
+  isMediaModelExecutable,
+} from '../model-access/mediaModels.js';
+import { hasCustomProviderCredential } from './provider-connection-state.js';
 import { getBaseUrl } from '../manifestService.js';
 import { throwIpcError } from '../utils/ipcValidate.js';
 import { getBuildClientEndpoint, getClientEndpoint } from '../clientEndpointsService.js';
 import {
   commitActiveCatalogSnapshot,
+  clearDiscoveredProviderModels,
   getActiveCatalog,
+  getXdGatewayModels,
   getModelPlaneWarnings,
   setActiveCatalog,
   setCustomProviderConfigs,
@@ -400,20 +411,21 @@ let endpointReloadInflight: {
 
 async function readXaiProviderOAuthToken(
   options?: ProviderOAuthTokenReadOptions,
+  providerId = 'xai',
 ): Promise<string | null> {
-  if (!options?.forceRefresh) return getGrokAccessToken();
+  if (!options?.forceRefresh) return getGrokAccessToken(providerId);
 
   // A forced retry must stay bound to the exact bearer rejected upstream. Without that
   // baseline we cannot safely decide which account generation to refresh.
   const staleToken = options.staleToken;
   if (!staleToken) return null;
 
-  const outcome = await recoverGrokAuthAfterRejection(staleToken);
+  const outcome = await recoverGrokAuthAfterRejection(staleToken, providerId);
   if (outcome !== 'refreshed' && outcome !== 'superseded') return null;
 
   // `superseded` means another request/login already replaced the rejected credential.
   // Return that newer token, but never replay the bearer which caused the 401/403.
-  const token = await getGrokAccessToken();
+  const token = await getGrokAccessToken(providerId);
   return token !== staleToken ? token : null;
 }
 
@@ -421,6 +433,8 @@ async function readXaiProviderOAuthToken(
 function handleProviderSecretsCleared(): void {
   resetGenericOAuthMemoryCache();
   resetGrokOAuthMemoryCache();
+  resetSubscriptionAccountCaches();
+  clearDiscoveredProviderModels();
   clearXaiDiscoveredModels();
   clearXaiMediaModels();
 }
@@ -436,7 +450,10 @@ export function ensureActiveCatalogLoaded(): Promise<Catalog> {
   setCustomProviderKeyReader(readCustomProviderKey);
   setCustomProviderHeaderReader(readCustomProviderHeaders);
   setProviderOAuthTokenReader((providerId, agent, options) => {
-    if (providerId === 'xai') return readXaiProviderOAuthToken(options);
+    if (isXaiSubscriptionProviderId(providerId)) return readXaiProviderOAuthToken(options, providerId);
+    if (subscriptionAccountKind(providerId) === 'claude') {
+      return getValidClaudeAccountOAuth(providerId, options).then(oauth => oauth?.accessToken ?? null);
+    }
     // Codex and Pi processes do not carry Claude Code's native OAuth credential.
     // Their Anthropic bridges read the host-owned Claude.ai token and allow the
     // existing refresher to rotate it when needed.
@@ -942,7 +959,7 @@ let singleton: ProviderService | null = null;
  * Cindy account session keeps the full active catalog.
  */
 export function getDesktopSelectableCatalog(): Catalog {
-  return filterProviderCatalogForAccount(getActiveCatalog(), {
+  return filterProviderCatalogForAccount(filterLegacyGptContextProfiles(getActiveCatalog()), {
     canUseCindyGateway: getAppCapabilities().canUseCindyGateway,
   });
 }
@@ -1015,9 +1032,43 @@ export function getDesktopProviderService(): ProviderService {
     },
     // 通用 OAuth 供应商（目录 auth.oauth 描述符驱动）：连接态 = 本机凭证 blob 是否存在。
     genericOAuthConnected: (providerId) => hasGenericOAuthLogin(storedCustomProviderId(providerId)),
+    codexAccountConnected: (providerId) => codexAccountState(providerId).authenticated,
+    subscriptionAccountConnected: (providerId) => subscriptionAccountState(providerId).authenticated,
+    subscriptionAccountInfo: async (providerId) => ({ source: 'oauth', identity: subscriptionAccountState(providerId).identity }),
+    openAiAccountInfo: async (providerId) => {
+      const state = providerId === 'openai' ? await desktopCodexAuthAdapter.readAccountPresentationState() : codexAccountState(providerId);
+      return {
+        source: providerId !== 'openai' ? 'oauth' : state.credentialScope === 'system-shared'
+          ? 'local' : state.credentialScope === 'instance-isolated' ? 'oauth' : 'unknown',
+        ...(state.identity ? { identity: state.identity } : {}),
+        reconnectRequired: !state.authenticated && !!state.errorReason,
+      };
+    },
     // 内置 API-key 供应商(如 gemini 图像来源):连接态 = key 已存(providerSecretStore)。
     builtinApiKeyConnected: (providerId) =>
       providerId === 'gemini' ? Boolean(getProviderSecretStore().get('gemini')?.trim()) : false,
+    customApiKeyConnected: (provider) =>
+      hasCustomProviderCredential(provider, readCustomProviderKey),
+    getAvailableMediaModels: () => [
+      ...listReadyProviderMediaModels(),
+      ...(getAppCapabilities().canUseCindyGateway && readClaudeApiKey() != null
+        ? filterEnabledGatewayMediaModels(
+            getXdGatewayModels(),
+            undefined,
+            readModelDisableOverrides(),
+          )
+            .filter((model) =>
+              (['image.generate', 'image.edit', 'video.generate', 'video.image_to_video'] as const).some(
+                (capability) =>
+                  isMediaModelExecutable(
+                    model.id,
+                    capability,
+                  ),
+              ),
+            )
+            .map((model) => ({ providerId: 'xd', id: model.id }))
+        : []),
+    ],
     // 动态发现失败归因：目前只有 anthropic 的 live entitlement 证据依赖这条通道。
     // 即使 Registry presence 仍能展示目录，UI 也要说明当前账号验证失败，而不是一直
     // 说「正在发现」。

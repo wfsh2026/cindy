@@ -193,6 +193,8 @@ interface AssistantMessageProps {
    *  opacity-0 也占 24px 布局高度,每句都挂会拉散消息流)。默认 false。 */
   showActionBar?: boolean;
   turnSubagents?: readonly AssistantTurnSubagent[];
+  /** 伙伴对话使用常显、无费用、无 Fork 的轻量消息操作栏。 */
+  simplifiedBotConversation?: boolean;
   /** Per-turn 费用 (USD) — 仅该轮最后一条 assistant 有值, action bar 时间旁显示。 */
   turnMoney?: RegionalMoney;
   turnCostUsd?: number;
@@ -229,6 +231,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   sessionRunning,
   showActionBar = false,
   turnSubagents,
+  simplifiedBotConversation = false,
   turnMoney,
   turnCostUsd,
   turnCostIsEstimate,
@@ -411,6 +414,7 @@ export const AssistantMessage = memo(function AssistantMessage({
           copyLinkText={messageDeepLink}
           align="left"
           hovered={hovered}
+          simplifiedBotConversation={simplifiedBotConversation}
           onFork={canFork ? handleFork : undefined}
           onAddToChat={messageDeepLink ? handleAddToChat : undefined}
           onShareAsImage={handleShareAsImage}

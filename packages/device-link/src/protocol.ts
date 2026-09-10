@@ -58,6 +58,7 @@ export type DeviceLinkErrorCode = RelayErrorCode
   | 'CHANNEL_NOT_ALLOWED' // channel 不在远程调用白名单
   | 'ACCESS_REVOKED' // 被控端已撤销该控制端的访问权限(逐设备黑名单,被控端本地强制)
   | 'INVOKE_TIMEOUT' // 控制端等待 invoke-result 超时
+  | 'PEER_RESET' // peer 传输复位；仅用于可安全重试的幂等读请求
   | 'LINK_NOT_OPEN' // 控制链路未建立
   | 'NOT_CONNECTED' // 本端尚未连上 relay
   | 'BACKPRESSURE' // 本端可靠传输缓冲已满，拒绝继续制造积压
@@ -128,6 +129,9 @@ export const CONTROLLER_CAPABILITY_MODEL_WINDOW_CONFIRMATION_V1 =
  * 因此永远收不到该 channel,无需为未知 channel 做任何兼容。
  */
 export const CONTROLLER_CAPABILITY_MAKER_EVENT_BATCH_V1 = 'maker-event-batch-v1';
+
+/** Accepts ordered current-text snapshots and history repair hints, including after backpressure. */
+export const CONTROLLER_CAPABILITY_SESSION_TEXT_SNAPSHOT_V1 = 'session-text-snapshot-v1';
 
 export interface LinkAcceptPayload {
   appVersion: string;

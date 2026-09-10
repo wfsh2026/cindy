@@ -1,3 +1,4 @@
+import { isOpenAiSubscriptionProvider, providerCatalogId } from '@cindy/model-providers';
 import { randomUUID } from 'node:crypto';
 
 import { type AgentKind, type Maker } from '@cindy/maker-core';
@@ -13,6 +14,7 @@ import { activeOwnerScopeKey, isAppSessionBoundaryPending } from '../appSessionS
 import { readClaudeApiKey } from '../maker-host/auth-adapters.js';
 import { getChatgptBridgeAuth } from '../maker-host/anthropic-responses-bridge-host.js';
 import { getValidClaudeAiOAuth } from '../maker-host/claude-oauth-refresh.js';
+import { getValidClaudeAccountOAuth } from '../maker-host/subscription-account-auth.js';
 import { getGrokAccessToken } from '../maker-host/grok-oauth-login.js';
 import { readCachedGenericOAuthAccessToken } from '../maker-host/generic-oauth.js';
 // undici 的 fetch,但 per-request 现取系统代理(裸 undici 不吃代理设置)。
@@ -115,6 +117,8 @@ export type UtilityTextRequestOptions = {
   systemPrompt?: string;
   /** Additional output-shape instruction (mainly for Responses-compatible routes). */
   responseInstructions?: string;
+  /** Reject unusable output before selecting a winner, so the configured chain can continue. */
+  validateResponse?: (text: string) => boolean;
   /** Final ownership/config guard immediately before an explicit HTTP dispatch. */
   beforeDispatch?: (route: UtilityTextDispatchRoute) => Promise<boolean>;
   /** 显式任务来源；存在时禁止跨来源 fallback。 */
@@ -428,6 +432,11 @@ export async function requestDedicatedAutoReviewCandidateText(
   candidate: DedicatedAutoReviewCandidate,
   opts: { timeoutMs: number; signal?: AbortSignal },
 ): Promise<UtilityTextResult> {
+  // The reviewer escapes delimiters inside evidence. Keep Host rules on the native
+  // system channel, and action/user strings on the user channel for every candidate.
+  const evidenceBoundary = prompt.indexOf('\n<review_input>\n');
+  const systemPrompt = evidenceBoundary >= 0 ? prompt.slice(0, evidenceBoundary) : undefined;
+  const evidence = evidenceBoundary >= 0 ? prompt.slice(evidenceBoundary + 1) : prompt;
   const profile: UtilityModelProfile = {
     id: candidate.providerId,
     model: candidate.model,
@@ -465,11 +474,12 @@ export async function requestDedicatedAutoReviewCandidateText(
         headers: { Authorization: `Bearer ${apiKey}` },
         model: candidate.model,
         prompt: text,
+        systemPrompt,
         maxTokens: DEDICATED_AUTO_REVIEW_MAX_TOKENS,
         timeoutMs: requestOpts?.timeoutMs ?? opts.timeoutMs,
         signal: requestOpts?.signal ?? opts.signal,
       }),
-    }], prompt, [], {
+    }], evidence, [], {
       maxTokens: DEDICATED_AUTO_REVIEW_MAX_TOKENS,
       timeoutMs: opts.timeoutMs,
       signal: opts.signal,
@@ -492,7 +502,8 @@ export async function requestDedicatedAutoReviewCandidateText(
     return { ok: false, reason: 'no_candidate', attempts: [skippedAttempt(profile, 'model_unavailable')] };
   }
 
-  return requestBuiltinProviderText(prompt, {
+  return requestBuiltinProviderText(evidence, {
+    systemPrompt,
     provider,
     agentKind: candidate.agentKind,
     model: candidate.model,
@@ -592,7 +603,7 @@ async function runDefaultProfileCandidates(
     };
     try {
       const text = (await candidate.execute(prompt, candidateOpts)).trim();
-      if (!text) throw new UtilityTextExecutionError({ reason: 'empty_response' });
+      validateUtilityResponse(text, opts);
       return {
         ok: true,
         text,
@@ -624,6 +635,13 @@ function failedChainResult(attempts: UtilityTextAttempt[]): UtilityTextResult {
       : 'all_candidates_failed';
   log.warn('all utility text candidates failed', { reason, attempts: attempts.length });
   return { ok: false, reason, attempts };
+}
+
+function validateUtilityResponse(text: string, opts?: UtilityTextRequestOptions): void {
+  if (!text) throw new UtilityTextExecutionError({ reason: 'empty_response' });
+  if (opts?.validateResponse && !opts.validateResponse(text)) {
+    throw new UtilityTextExecutionError({ reason: 'request_failed' });
+  }
 }
 
 async function requestDefaultUtilityText(
@@ -842,7 +860,7 @@ async function requestExplicitProviderText(
     opts = { ...opts, maxTokens: Math.min(opts.maxTokens, catalogModel.maxOutput) };
   }
 
-  if (provider.id === 'xd' || provider.id === 'anthropic' || provider.id === 'openai' || provider.id === 'xai') {
+  if (provider.id === 'xd' || providerCatalogId(provider) === 'anthropic' || isOpenAiSubscriptionProvider(provider) || providerCatalogId(provider) === 'xai') {
     return requestBuiltinProviderText(prompt, {
       provider,
       agentKind,
@@ -855,6 +873,7 @@ async function requestExplicitProviderText(
       signal: opts.signal,
       systemPrompt: opts.systemPrompt,
       responseInstructions: opts.responseInstructions,
+      validateResponse: opts.validateResponse,
       beforeDispatch: opts.beforeDispatch,
       routeStillCurrent,
     });
@@ -1029,6 +1048,7 @@ async function requestBuiltinProviderText(
     signal?: AbortSignal;
     systemPrompt?: string;
     responseInstructions?: string;
+    validateResponse?: (text: string) => boolean;
     beforeDispatch?: (route: UtilityTextDispatchRoute) => Promise<boolean>;
     routeStillCurrent?: () => boolean;
   },
@@ -1104,8 +1124,10 @@ async function requestBuiltinProviderText(
     }], prompt, [], input);
   }
 
-  if (input.provider.id === 'anthropic') {
-    const oauth = await getValidClaudeAiOAuth();
+  if (providerCatalogId(input.provider) === 'anthropic') {
+    const readOAuth = () => input.provider.id === 'anthropic'
+      ? getValidClaudeAiOAuth() : getValidClaudeAccountOAuth(input.provider.id);
+    const oauth = await readOAuth();
     if (input.signal?.aborted) return cancelledUtilityTextResult(profile);
     if (!oauth?.accessToken) {
       return { ok: false, reason: 'no_candidate', attempts: [skippedAttempt(profile, 'not_authenticated')] };
@@ -1144,17 +1166,17 @@ async function requestBuiltinProviderText(
             })
           : undefined,
         credentialStillCurrent: requestOpts?.beforeDispatch
-          ? async () => (await getValidClaudeAiOAuth())?.accessToken === oauth.accessToken
+          ? async () => (await readOAuth())?.accessToken === oauth.accessToken
           : undefined,
         routeStillCurrent: requestOpts?.beforeDispatch ? input.routeStillCurrent : undefined,
       }),
     }], prompt, [], input);
   }
 
-  if (input.provider.id === 'openai') {
+  if (isOpenAiSubscriptionProvider(input.provider)) {
     let creds: Awaited<ReturnType<typeof getChatgptBridgeAuth>>;
     try {
-      creds = await getChatgptBridgeAuth();
+      creds = await (input.provider.id === 'openai' ? getChatgptBridgeAuth() : getChatgptBridgeAuth(input.provider.id));
     } catch {
       return { ok: false, reason: 'no_candidate', attempts: [skippedAttempt(profile, 'not_authenticated')] };
     }
@@ -1202,7 +1224,7 @@ async function requestBuiltinProviderText(
         credentialStillCurrent: requestOpts?.beforeDispatch
           ? async () => {
               try {
-                const current = await getChatgptBridgeAuth();
+                const current = await (input.provider.id === 'openai' ? getChatgptBridgeAuth() : getChatgptBridgeAuth(input.provider.id));
                 return current.accountId === accountId && current.accessToken === creds.accessToken;
               } catch {
                 return false;
@@ -1214,10 +1236,10 @@ async function requestBuiltinProviderText(
     }], prompt, [], input);
   }
 
-  if (input.provider.id === 'xai') {
+  if (providerCatalogId(input.provider) === 'xai') {
     let accessToken: string;
     try {
-      accessToken = await getGrokAccessToken();
+      accessToken = await (input.provider.id === 'xai' ? getGrokAccessToken() : getGrokAccessToken(input.provider.id));
     } catch {
       return { ok: false, reason: 'no_candidate', attempts: [skippedAttempt(profile, 'not_authenticated')] };
     }
@@ -1251,7 +1273,7 @@ async function requestBuiltinProviderText(
         credentialStillCurrent: requestOpts?.beforeDispatch
           ? async () => {
               try {
-                return (await getGrokAccessToken()) === accessToken;
+                return (await (input.provider.id === 'xai' ? getGrokAccessToken() : getGrokAccessToken(input.provider.id))) === accessToken;
               } catch {
                 return false;
               }
@@ -1285,7 +1307,7 @@ async function executeCandidates(
       }
     try {
       const text = (await candidate.execute(prompt, opts)).trim();
-      if (!text) throw new UtilityTextExecutionError({ reason: 'empty_response' });
+      validateUtilityResponse(text, opts);
       log.info('explicit utility text provider succeeded', {
         providerId: candidate.providerId,
         model: candidate.model,

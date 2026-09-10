@@ -244,7 +244,7 @@ async function startSession(
         canUseTool?: CanUseToolFn;
       hooks?: Record<
           string,
-          Array<{ hooks: Array<(input: unknown) => Promise<unknown>> }>
+          Array<{ matcher?: string; hooks: Array<(input: unknown) => Promise<unknown>> }>
         >;
         env?: Record<string, string>;
       }
@@ -1117,6 +1117,36 @@ describe('a custom server cannot take over a builtin name', () => {
     await handle.close();
   });
 
+  it('omits a locally hosted MCP server disabled by the frozen Bot Toolset snapshot', async () => {
+    const configDir = await makeTempDir();
+    process.env.CLAUDE_CONFIG_DIR = configDir;
+    const workingDir = await makeTempDir();
+    sdkMock.query.mockReturnValue(createFakeQuery());
+    const deps = createDeps();
+    deps.mcpProviders = [{
+      name: 'cindy_browser',
+      isEnabled: (context) => {
+        const disabled = context.vendorOptions?.__cindyDisabledBuiltinPluginIds;
+        return !Array.isArray(disabled) || !disabled.includes('browser');
+      },
+      toClaudeSdkConfig: () => ({ type: 'sdk', marker: 'browser' }),
+    }] as McpProvider[];
+
+    const handle = await new ClaudeCodeAgent(deps).startSession({
+      sessionId: 'bot-local-claude-toolset',
+      model: 'claude-opus-4-6',
+      workingDir,
+      permissionMode: 'default',
+      vendorOptions: { __cindyDisabledBuiltinPluginIds: ['browser'] },
+    });
+
+    const mcpServers = sdkMock.query.mock.calls.at(-1)?.[0]?.options?.mcpServers as
+      | Record<string, unknown>
+      | undefined;
+    expect(mcpServers?.cindy_browser).toBeUndefined();
+    await handle.close();
+  });
+
   it('keeps the first registration when two providers share a name', async () => {
     const configs: Array<{ name: string; marker: string }> = [];
     const contexts: McpToolApprovalContext[] = [];
@@ -1237,16 +1267,16 @@ describe('fail-closed still precedes the MCP policy', () => {
     await handle.close();
   });
 
-  it('denies trusted MCP tools in auto mode too when no resolver is attached', async () => {
+  it('allows trusted MCP tools in auto mode too when no resolver is attached', async () => {
     const { handle, canUseTool } = await startSession(() => 'auto-approve', {
       bare: true,
       permissionMode: 'auto',
     });
 
-    // Auto 只让**内建**工具在无 UI 下由本地规则/轻量 reviewer 自决;mcp__* 被刻意排除。
+    // Auto can decide trusted MCP actions without a UI resolver.
     const result = await canUseTool('mcp__cindy_browser__call_tool', {}, { toolUseID: 't-bare-auto' });
 
-    expect(result.behavior).toBe('deny');
+    expect(result.behavior).toBe('allow');
     await handle.close();
   });
 
@@ -1354,6 +1384,50 @@ describe('remote sessions share the same permission semantics', () => {
       workingDir,
     };
   }
+
+  it.each(['http', 'sse'] as const)('forwards a selected custom %s MCP to a remote Bot without the host bridge', async (transport) => {
+    process.env.CLAUDE_CONFIG_DIR = await makeTempDir();
+    const workingDir = await makeTempDir();
+    const deps = createDeps();
+    const selected = { type: transport, url: 'https://mcp.example.test/service' };
+    deps.mcpProviders = [
+      { name: 'custom-selected', toClaudeSdkConfig: () => selected },
+      { name: 'custom-unselected', toClaudeSdkConfig: () => selected },
+      { name: 'in-process', toClaudeSdkConfig: () => ({ type: 'sdk', name: 'in-process', instance: {} }) },
+    ];
+    let remoteStartParams: Record<string, unknown> | undefined;
+    deps.remoteCcQueryFactory = async ({ startParams }) => {
+      remoteStartParams = startParams as unknown as Record<string, unknown>;
+      return createFakeQuery() as never;
+    };
+    const handle = await new ClaudeCodeAgent(deps).startSession({
+      sessionId: 'remote-bot-custom-mcp',
+      model: 'claude-opus-4-6',
+      workingDir,
+      remoteHostId: 'remote-1',
+      permissionMode: 'default',
+      botRuntimeProfile: {
+        botId: 'bot-1', profileVersion: 1,
+        skillPolicy: { mode: 'allowlist', configured: [], catalog: [] },
+        toolsetPolicy: { mode: 'allowlist', configured: [], catalog: [] },
+        mcpPolicy: {
+          mode: 'allowlist', configured: ['custom-selected', 'in-process'],
+          catalog: [
+            { name: 'custom-selected', source: 'custom', available: true },
+            { name: 'custom-unselected', source: 'custom', available: true },
+            { name: 'in-process', source: 'builtin', available: true },
+          ],
+        },
+      },
+    });
+    try {
+      // This is the actual serialized input handed to the remote factory:
+      // the shared bridge is not involved in forwarding HTTP/SSE providers.
+      expect(remoteStartParams?.mcpServers).toEqual({ 'custom-selected': selected });
+    } finally {
+      await handle.close();
+    }
+  });
 
   it('passes the runtime session instance id into the remote Claude factory', async () => {
     const { handle, remoteIdentity } = await startRemoteSession(() => 'auto-approve');
@@ -1568,7 +1642,7 @@ describe('remote sessions share the same permission semantics', () => {
     await handle.close();
   });
 
-  it('does not let the controller auto-review remote destructive paths from lexical prefixes', async () => {
+  it('reviews remote destructive paths with explicit unavailable realpath evidence', async () => {
     const reviewer = vi.fn(async () => ({ verdict: 'allow' as const }));
     const { handle, onApprovalRequest, seen } = await startRemoteSession(
       () => 'prompt',
@@ -1586,9 +1660,10 @@ describe('remote sessions share the same permission semantics', () => {
       input: { command: 'rm -rf build' },
     });
 
-    expect(result.behavior).toBe('deny');
-    expect(reviewer).not.toHaveBeenCalled();
-    expect(permissionRequests(seen)).toHaveLength(1);
+    expect(result.behavior).toBe('allow');
+    expect(reviewer).toHaveBeenCalledOnce();
+    expect(reviewer).toHaveBeenCalledWith(expect.objectContaining({ action: expect.objectContaining({ kind: 'exec', command: 'rm -rf build', destructivePathResolution: 'unavailable' }) }));
+    expect(permissionRequests(seen)).toHaveLength(0);
     await handle.close();
   });
 

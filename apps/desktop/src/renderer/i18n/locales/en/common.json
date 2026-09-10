@@ -1,7 +1,77 @@
 {
+  "remoteDesktop": {
+    "windowsTitle": "Lock screen control",
+    "windowsready": "Enabled for this Cindy process. Restarting Cindy requires administrator authorization again.",
+    "windowsmissing": "Allow control of the lock screen and administrator prompts. Administrator authorization is required.",
+    "windowsinstallRequired": "Install Cindy for all users in Program Files to enable this feature.",
+    "windowsunavailable": "The system service is unavailable. Reinstall Cindy and try again.",
+    "windowsEnable": "Authorize",
+    "windowsDisable": "Remove service",
+    "windowsError": "Authorization was not completed. Try again on this computer.",
+    "permissionsTitle": "Remote desktop permissions",
+    "permissionsIntro": "Screen recording lets you view the desktop. Accessibility also enables control. Complete authorization on the computer; status updates automatically.",
+    "permissionsReady": "System permissions are ready. You can reconnect.",
+    "screenRecording": "Screen recording",
+    "accessibility": "Accessibility",
+    "screenRecordingHelp": "Open System Settings and enable screen recording for this Cindy app. If macOS asks you to restart, reopen Cindy before connecting.",
+    "accessibilityHelp": "Open settings and enable accessibility for the app identified by the system prompt. The actual input permission is checked automatically when you return.",
+    "permissionChecking": "Checking…",
+    "permissionGranted": "Granted",
+    "permissionUnknown": "Unconfirmed",
+    "permissionMissing": "Not granted",
+    "openPermissionSettings": "Grant permission",
+    "recheckPermissions": "Check again",
+    "permissionActionFailed": "Could not open the permission guide. Try again in Remote control settings on the computer.",
+    "permissionCheckFailed": "Could not check permissions. Make sure the computer is online and try again.",
+    "openGuideOnComputer": "Open guide on computer",
+    "permissionGuideOpened": "The permission guide is open on the computer. Continue there.",
+    "reconnectAfterPermissions": "Check and reconnect",
+    "closePermissionGuide": "Close",
+    "title": "Remote desktop",
+    "allow": "Allow remote desktop",
+    "allowHint": "Allow your signed-in devices to view and operate all apps on this computer. Also enable device control above.",
+    "permissionHint": "On the computer, allow screen recording and accessibility in system settings, then reconnect.",
+    "beingControlled": "Your desktop is being controlled",
+    "beingViewed": "Your desktop is being viewed",
+    "disconnect": "Disconnect",
+    "back": "Back",
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "disconnected": "Disconnected",
+    "compatibility": "Compatibility mode · lower frame rate",
+    "live": "Live",
+    "controlling": "Controlling",
+    "viewOnly": "View only",
+    "upgrade": "Update Cindy on the computer to use remote desktop.",
+    "disabled": "On the computer, enable remote desktop in Settings → Remote control.",
+    "busy": "Desktop input is busy. Release control on the other device or wait for the Agent action to finish.",
+    "connectionError": "Connection ended. Check that the computer is online, then reconnect.",
+    "releaseControl": "Release control",
+    "takeControl": "Take control",
+    "pointer": "Trackpad",
+    "touch": "Touch",
+    "pan": "Move view",
+    "keyboard": "Keyboard",
+    "rightClick": "Right click",
+    "fit": "Fit",
+    "display": "Display",
+    "gestureHint": "Pinch to zoom. Two fingers scroll; Move view pans. Hold, then move to drag.",
+    "textPlaceholder": "Type on the computer",
+    "sendText": "Send text",
+    "keys": "Keys",
+    "showDesktop": "Desktop",
+    "allWindows": "All windows"
+  },
   "ipcError": {
     "INVALID_PARAMS": "Invalid input. Please check and try again.",
     "PRECONDITION_FAILED": "This action is unavailable in the current state. Please try again.",
+    "MODEL_CONTEXT_USAGE_UNKNOWN": "Model not switched: Cindy can’t verify how much context this task uses. Keep the current model or start a new task.",
+    "MODEL_WINDOW_CURRENT_CONTEXT_UNKNOWN": "Model not switched: Cindy can’t verify the current model’s context window. Check the window setting for a custom model. If it can’t be changed, keep the current model or start a new task.",
+    "MODEL_WINDOW_TARGET_CONTEXT_UNKNOWN": "Model not switched: Cindy can’t verify the target model’s context window. Check the window setting for a custom model. If it can’t be changed, choose another model or start a new task.",
+    "MODEL_WINDOW_REMOTE_REBUILD_UNSUPPORTED": "Model not switched: this remote task can’t safely prepare its context for the smaller window. Keep the current model, or choose the target model in a new task.",
+    "MODEL_WINDOW_PROTECTION_UNAVAILABLE": "Model not switched: context protection is temporarily unavailable. Keep the current model or try again in a new task.",
+    "MODEL_SWITCH_TASK_RUNNING": "Model not switched: this task is still running. Wait for the current response to finish, then try again.",
+    "MODEL_WINDOW_PREPARATION_IN_PROGRESS": "Model not switched: Cindy is already preparing this task’s context. Wait for it to finish, then try again.",
     "SESSION_RUNNING": "This session is currently running a task. Please try again shortly.",
     "PI_IMAGE_INPUT_UNSUPPORTED": "Image input is not enabled for the current Pi model. Switch to a model that supports images. For a custom model, enable “Supports image input” in provider settings, then start a new Pi task.",
     "CREDENTIAL_SWITCH_BUSY": "Another Codex task is still running, so this provider switch was not applied (the session keeps its previous provider). Try again after those tasks finish.",
@@ -99,40 +169,6 @@
     }
   },
   "settings": {
-    "personalMods": {
-      "master": "Desktop Mods",
-      "hint": "Applies to this desktop. Turning this off keeps your choices. Preview works independently of the switches.",
-      "cartethyiaName": "Cartethyia Battle",
-      "cartethyiaDescription": "A character moves and battles above the composer as your session runs.",
-      "aboveComposer": "Above the composer",
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "paused": "Paused by the master switch",
-      "preview": "Preview",
-      "stopPreview": "Stop preview",
-      "configure": "Settings",
-      "failed": "This Mod has stopped after an error.",
-      "reload": "Reload",
-      "options": {
-        "ground": "Road background",
-        "damage": "Damage numbers",
-        "effects": "Battle effects",
-        "idle": "Show character while idle"
-      },
-      "import": "Import Mod",
-      "imported": "Imported",
-      "importHint": "Import a .cindymod resource pack. Reimporting updates artwork and keeps your settings. Packs belong to the current account on this desktop.",
-      "empty": "No Mods installed. Import a resource pack to get started.",
-      "loading": "Loading Mods…",
-      "working": "Working…",
-      "remove": "Uninstall",
-      "removeHint": "Uninstall this Mod? Your display settings will be kept for reimporting.",
-      "errors": {
-        "invalid-package": "This file is not a valid supported Mod pack. Check its format and images.",
-        "unavailable": "Mods are temporarily unavailable. Reload after the account is ready.",
-        "failed": "The operation could not be completed. Please retry."
-      }
-    },
     "title": "Settings",
     "back": "Back",
     "defaults": {
@@ -142,7 +178,7 @@
       "restoreFailed": "Failed to restore default settings"
     },
     "tabs": {
-      "personalMods": "Personal Mods",
+      "storage": "Storage",
       "general": "General",
       "billing": "Usage and billing",
       "usage": "Usage history",
@@ -164,7 +200,9 @@
       "help": "Help",
       "about": "About",
       "imBot": "IM bots",
-      "ghosts": "Plugins"
+      "ghosts": "Plugins",
+      "cindyMake": "Cindy Make",
+      "personalMods": "Personal Mods"
     },
     "sections": {
       "user": "User",
@@ -203,7 +241,8 @@
       "remoteControl": "Remote Connection",
       "windowBehavior": "App Behavior",
       "shortcuts": "Keyboard Shortcuts",
-      "mcpServers": "Custom MCP"
+      "mcpServers": "Custom MCP",
+      "bots": "Teammates"
     },
     "remote": {
       "title": "Remote machines",
@@ -822,6 +861,7 @@
       "appVersionLabel": "App version",
       "claudeCodeVersionLabel": "Claude Code version",
       "codexVersionLabel": "Codex version",
+      "piVersionLabel": "Pi version",
       "logsDirLabel": "Logs directory",
       "openLogsDir": "Open",
       "openLogsDirTooltip": "Open the logs directory in the system file manager",
@@ -847,8 +887,6 @@
         "unavailableNoConsent": "You need to accept the Privacy Policy first."
       },
       "openLogsDirError": "Failed to open logs directory",
-      "updateNotificationLabel": "Notify me when updates are available",
-      "windowsUpdateNotificationDescription": "Cartethyia shows an update notice but does not download or install updates automatically.",
       "autoUpdateLabel": "Install updates while idle",
       "autoUpdateDescription": "After an update finishes downloading, restart the app to install it when this computer has been idle for 10 minutes and no tasks are running.",
       "linuxUpdateDescription": "When a newer build is available, Cartethyia downloads the .deb in the app. Installing it asks for your system password, so updates are not applied while idle.",
@@ -884,10 +922,25 @@
         "unknown": "Unknown"
       },
       "storage": {
+        "mediaSectionTitle": "Media files",
+        "databaseSectionTitle": "Database",
+        "overviewTitle": "Local storage overview",
+        "overviewDescription": "Your database and media cache stay on this computer. Cindy does not delete your history automatically.",
+        "mediaSectionHint": "Manage separately; review items before clearing",
+        "databaseUsage": "Using {{size}}",
+        "databaseWarningNote": "Scan first, then choose what to clean. Scanning does not delete files immediately.",
+        "dbSizeWarningThresholdLabel": "Database reminder threshold",
+        "dbSizeWarningThresholdDescription": "Remind me to clean up when the database exceeds this size (G)",
+        "dbSizeWarningThresholdInvalid": "Enter a threshold between 1 and 1024 G.",
+        "dbSizeWarningSaveFailed": "Could not save database reminder settings. Try again.",
+        "dbSizeWarningDisableLabel": "Do not remind me again",
+        "dbSizeWarningDisableDescription": "When enabled, database space reminders are hidden.",
+        "unknown": "Unknown",
         "title": "Storage",
         "usageLabel": "Media storage used",
         "usageValue": "{{size}} ({{count}} files, {{cacheSize}} cache)",
         "statsFailed": "Stats temporarily unavailable",
+        "refreshStatsButton": "Refresh storage usage",
         "legacyUsage": "Legacy data (read-only, not part of cleanup): {{size}}",
         "legacyImagesLabel": "Image cache directory",
         "legacyImagesDescription": "Cartethyia does not scan or clean this directory automatically. Deleting files may make images in message history unavailable; review them before deleting.",
@@ -985,7 +1038,9 @@
         "reconcileFailed": "Check failed",
         "reconcileHealthy": "Ledger and disk match. No issues found.",
         "reconcileIssues": "Issues found: {{orphans}} untracked files ({{orphanSize}}), {{missing}} missing files, {{stray}} unrecognized entries. See the app log for the full list."
-      }
+      },
+      "updateNotificationLabel": "Notify me when updates are available",
+      "windowsUpdateNotificationDescription": "Cartethyia shows an update notice but does not download or install updates automatically."
     },
     "apiKey": {
       "showKey": "Show key",
@@ -1242,7 +1297,6 @@
           },
           "toast": {
             "title": "Added to dictionary",
-            "titleMultiple": "Added {{count}} terms",
             "termsSummary": "{{terms}} and {{count}} terms total",
             "automaticAdded": "Auto-added to dictionary: {{term}}",
             "automaticAddedMultiple": "Auto-added {{count}} terms, including {{term}}",
@@ -1441,6 +1495,10 @@
       },
       "pill": {
         "connected": "Connected",
+        "configured": "Configured",
+        "disconnected": "Not connected",
+        "connecting": "Connecting…",
+        "rename": "Rename",
         "suspended": "Disabled"
       },
       "button": {
@@ -1465,7 +1523,17 @@
         "reconnectRequired": "Reconnect Needed",
         "connect": "Connect ChatGPT",
         "reconnect": "Reconnect ChatGPT",
-        "cancelConnect": "Cancel Connection"
+        "cancelConnect": "Cancel Connection",
+        "accountSource": {
+          "local": "Local Codex account",
+          "oauth": "Independently signed-in account",
+          "unknown": "Existing OpenAI connection"
+        },
+        "useLocalAccount": "Use local Codex account",
+        "addIndependentAccount": "Sign in to a separate account",
+        "accountSourcesDescription": "Use your existing local Codex connection or sign in to a separately saved account. Both support the same features.",
+        "independentAccountDescription": "Sign in to a separately saved ChatGPT account, or connect with an API key.",
+        "localUnavailable": "No local connection is available to reuse. Existing provider accounts will not be replaced."
       },
       "xai": {
         "title": "xAI",
@@ -1474,7 +1542,7 @@
         "billingLabel": "SuperGrok subscription (direct)",
         "asset": {
           "weeklyTitle": "Weekly limit",
-          "weeklyUsed": "{{percent}}% used",
+          "weeklyRemaining": "{{percent}}% remaining",
           "resetsAt": "Resets {{at}}",
           "productLine": "{{product}} {{percent}}%",
           "openUsage": "Open Grok usage"
@@ -1517,8 +1585,14 @@
           "viewUsage": "View usage",
           "buyPlan": "Buy a plan",
           "upgradePlan": "Upgrade plan",
-          "syncFailed": "Credential sync failed, so the balance is unavailable right now. Your saved model settings are unaffected."
-        }
+          "syncFailed": "Credential sync failed, so the balance is unavailable right now. Your saved model settings are unaffected.",
+          "quotaTitle": "Remaining this period",
+          "quotaUsed": "Used {{used}} / Period allowance {{total}}",
+          "loading": "Loading…",
+          "unavailable": "Temporarily unavailable. Refresh to retry.",
+          "refresh": "Refresh allowance"
+        },
+        "simpleSubtitle": "Multiple models, billed through one account."
       },
       "custom": {
         "tag": "Custom",
@@ -1556,6 +1630,7 @@
           "modelIdPlaceholder": "model-id",
           "modelNamePlaceholder": "Display name",
           "modelContextWindowPlaceholder": "Context (tokens)",
+          "modelType": "Model type",
           "modelContextWindowTitle": "Context window in tokens. Leave empty for the conservative 200K default; affects the window display and compaction threshold.",
           "modelSupportsImageInput": "Supports image input",
           "modelSupportsImageInputHelp": "Enable only when the model actually accepts visual input. Start a new Pi task after saving.",
@@ -1748,18 +1823,12 @@
       },
       "models": {
         "search": "Search models",
-        "available": "Shown in Model Picker",
         "modelCount_one": "{{count}} model",
         "modelCount_other": "{{count}} models",
-        "enableAll": "Show All",
-        "disableAll": "Hide All",
         "subscription": "Subscription",
         "subscriptionProduct": "{{product}} Subscription",
         "noResults": "No matching models",
-        "splitAdjust": "Adjust per CLI",
-        "splitDone": "Done",
-        "capabilityNote": "Not available in {{agent}}",
-        "divergedChip": "Hidden in {{agent}}",
+        "capabilityNote": "Not configured for {{agent}}",
         "refreshAria": "Refresh model list (additions only)",
         "refreshBuiltinAria": "Refresh Model List",
         "refreshingAria": "Refreshing model list…",
@@ -1798,6 +1867,115 @@
           "invalid": "Enter valid non-negative input and output prices",
           "loadFailed": "Couldn’t load the price estimate. Please try again.",
           "saveFailed": "Couldn’t save the price estimate. Please try again."
+        },
+        "advanced": {
+          "open": "Advanced settings",
+          "openAria": "Advanced settings for {{name}}",
+          "noDescription": "No description in the catalog",
+          "identity": "Model details",
+          "modelId": "Model ID",
+          "providerLabel": "Provider",
+          "group": "Group",
+          "status": "Status",
+          "statusUnset": "Not labeled",
+          "spec": "Specs",
+          "contextWindow": "Provider context maximum",
+          "tokensApprox": "tokens (~{{approx}})",
+          "catalogMissing": "Not in the catalog",
+          "capability": "Capabilities",
+          "capabilityHint": "Uses capabilities declared by this provider. Image support falls back to model naming when undeclared.",
+          "imageInput": "Image input",
+          "supported": "Supported",
+          "unsupported": "Not supported",
+          "undeclared": "Not declared",
+          "pricing": "Pricing",
+          "pricingLabel": "Pricing",
+          "noPricing": "No pricing data for this route",
+          "perMtok": "/ million tokens",
+          "discount": "Discount",
+          "defaultEffort": "Default reasoning effort",
+          "defaultEffortHint": "The initial effort for new tasks. You can still adjust it within a task.",
+          "contextLimit": "Context limit",
+          "contextLimitHint": "Applies to all available engines for this model. Edit in whole K (1 K = 1,000 tokens); untouched values retain their precision. Saved changes apply to subsequent runs without interrupting a response. Actual capacity remains subject to the model service’s limits.",
+          "contextLimitAria": "Context limit (thousands of tokens)",
+          "contextLimitRoute": "Current {{tokens}} tokens · 1 K = 1,000 tokens",
+          "contextLimitOverWindow": "Above the provider’s declared window; requests may fail.",
+          "restoreDefault": "Restore default",
+          "engines": "Engine support",
+          "enginesHint": "Compatibility mode converts requests. It is off by default and can be enabled when needed.",
+          "engineUnsupported": "Not supported",
+          "engineNotConfigured": "Not configured",
+          "engineNoFast": "No Fast",
+          "vision": {
+            "vision": "Supported",
+            "no-vision": "Not supported",
+            "unknown": "Unknown"
+          },
+          "visionSource": {
+            "vision": "Evidence: the local prefix list marks this model as vision-capable",
+            "no-vision": "Evidence: the local prefix list marks this model as not vision-capable",
+            "unknown": "Not on the list — the catalog has no modality field, so this stays unknown"
+          },
+          "price": {
+            "input": "Input",
+            "output": "Output",
+            "cacheRead": "Cache read",
+            "cacheCreate": "Cache write"
+          },
+          "close": "Close",
+          "maxOutput": "Maximum output",
+          "catalogCapabilities": "Capabilities declared in the catalog",
+          "contextInvalid": "Enter a whole number from 1 to 100,000 K.",
+          "contextWriteFailed": "Not saved. Please retry.",
+          "contextMixed": "Existing harness settings differ. Editing or resetting applies to all harnesses.",
+          "inputModalities": "Input types",
+          "outputModalities": "Output types",
+          "modalities": {
+            "text": "Text",
+            "image": "Image",
+            "audio": "Audio",
+            "video": "Video",
+            "file": "File"
+          },
+          "effortMixed": "Effort differs by engine. A selection applies to engines that support that level.",
+          "protocol": {
+            "reference": "Native API",
+            "compatibility": "Compatibility mode",
+            "compatibilityHint": "Compatibility mode may be unstable or behave unexpectedly. Recommended for experienced users.",
+            "matching": "Native support",
+            "unknown": "Protocol unconfirmed"
+          },
+          "lifecycle": {
+            "alpha": "Early access",
+            "deprecated": "No longer recommended",
+            "retired": "Retired"
+          },
+          "codexContextUnknown": "CLI configuration unavailable",
+          "codexContextValues": "Total {{total}} · Usable {{usable}} · Auto-compact {{compact}} tokens",
+          "contextLimitGptHint": "GPT defaults to at most 272K; you can set it to 1M here. Codex applies the window and automatic compaction threshold together, retaining 5% headroom. Actual capacity depends on the model service."
+        },
+        "kindFilter": {
+          "all": "All",
+          "aria": "Filter by model type",
+          "chat": "Chat"
+        },
+        "hiddenGroup": "Not shown",
+        "management": {
+          "brand": "Manufacturer"
+        },
+        "manage": {
+          "title": "Models",
+          "selected": "{{count}} selected",
+          "hint": "Use the switches to choose your chat models.",
+          "menu": "Manage",
+          "arrange": "Arrange list",
+          "byBrand": "Group by maker",
+          "byName": "Order by model name",
+          "selection": "Model selection",
+          "showAll": "Select all models",
+          "hideAll": "Clear selection",
+          "reset": "Restore default selection",
+          "connectionRequired": "Connect to use these models. Your selections are saved."
         }
       },
       "genericOAuth": {
@@ -1909,7 +2087,7 @@
         "back": "← Back",
         "finish": "Finish",
         "cancel": "Cancel",
-        "useApiKey": "Use an API key instead",
+        "useApiKey": "API key connection",
         "metaOAuthOrApi": "Subscription (OAuth) · API key",
         "builtinApiKey": {
           "subtitle": "Connect with your own API key",
@@ -1929,8 +2107,8 @@
         "hostProfileApple": "Apple silicon · about {{memory}} GB unified memory",
         "hostProfileGeneric": "About {{memory}} GB memory",
         "hostProfileUnknown": "This computer’s memory isn’t available yet",
-        "bestForYou": "Best for you",
-        "alsoCoding": "Also good for coding",
+        "bestForYou": "Capability pick",
+        "alsoCoding": "Speed alternative",
         "packaging": {
           "mxfp8": "MXFP8",
           "mlx": "MLX",
@@ -1947,41 +2125,12 @@
         "noSearchResults": "No matching models",
         "alreadyInstalled": "Installed",
         "searchResults": "Search results",
-        "moreModels": "More local models",
-        "memoryWarning": "Not enough memory on this computer (needs {{need}} GB, about {{have}} GB available)",
+        "moreModels": "Other candidate models",
+        "memoryWarning": "Below the estimated memory threshold ({{need}} GB; this computer has about {{have}} GB)",
         "manualDownload": "Manual download",
         "manualDownloadPlaceholder": "Ollama library name or Hugging Face URL",
         "invalidLibraryName": "Enter an Ollama library name, or paste a huggingface.co model page URL",
         "advancedExactName": "Advanced: exact library name",
-        "models": {
-          "qwen38-27b": {
-            "blurb": "The strongest dense model you can run locally. Best for coding and long tasks."
-          },
-          "gpt-oss-20b": {
-            "blurb": "OpenAI’s open 20B. The usual pick for 16 GB machines."
-          },
-          "gemma4-e2b": {
-            "blurb": "Smallest Gemma 4. Light machines, with vision."
-          },
-          "gemma4-e4b": {
-            "blurb": "Google Gemma 4 small. Light daily use, with vision."
-          },
-          "gemma4-12b": {
-            "blurb": "Gemma 4 mid-size. Steadier chat and multimodal."
-          },
-          "gemma4-31b": {
-            "blurb": "Gemma 4 large. Stronger chat and multimodal, more memory."
-          },
-          "gemma4-26b": {
-            "blurb": "Gemma 4 mid-large MoE. Fewer active parameters, mid-to-high-end machines."
-          },
-          "ornith15-35b": {
-            "blurb": "Ornith 1.5 mid-size MoE. The local coding and agent backup."
-          },
-          "glm-47-flash": {
-            "blurb": "Zhipu’s current coding model. 30B MoE, good for code and agents."
-          }
-        },
         "onboardingTitle": "Install the Ollama runtime",
         "onboardingBody": "After you install Ollama, you can download and use local models in Cartethyia without opening the Ollama app. Ollama is a free, open-source third-party runtime.",
         "installInCindy": "Install in Cartethyia",
@@ -2050,8 +2199,8 @@
         "cancelDownload": "Delete Incomplete Download",
         "notRecommended": "This Mac doesn’t meet the 32 GB memory bar for Qwen3.8 27B. You can still enter an exact library name.",
         "sizeHint": "About {{size}} · needs {{memory}} GB unified memory",
-        "sizeHintApple": "About {{size}} · needs {{memory}} GB unified memory",
-        "sizeHintGeneric": "About {{size}} · needs {{memory}} GB memory",
+        "sizeHintApple": "Download {{size}} · estimated {{memory}} GB unified memory",
+        "sizeHintGeneric": "Download {{size}} · estimated {{memory}} GB memory",
         "deleteFromCindy": "Remove from Cartethyia",
         "deleteConfirmTitle": "Remove Ollama from Cartethyia?",
         "deleteConfirmBody": "This only removes the Cartethyia connection. Models already downloaded in Ollama stay on disk, and the service keeps running.",
@@ -2060,7 +2209,8 @@
         "deleteModelConfirmBody": "This deletes the downloaded model files from this computer and removes them from Cartethyia. You can download the model again later.",
         "deleteModelConfirm": "Delete",
         "deleteModelDone": "Deleted {{name}}",
-        "deleteModelFailed": "Couldn’t delete the model. Make sure Ollama is running, then try again."
+        "deleteModelFailed": "Couldn’t delete the model. Make sure Ollama is running, then try again.",
+        "noRecommendation": "No recommendation with sufficient evidence fits this computer yet. You can choose a candidate below."
       },
       "xdSignin": {
         "badge": "Recommended",
@@ -2090,17 +2240,16 @@
           "cancel": "Cancel"
         }
       },
-      "imagesKey": {
-        "label": "Image generation API key",
-        "placeholder": "Paste OpenAI platform API key",
-        "save": "Save",
-        "clear": "Clear",
-        "toast": {
-          "saved": "Image generation API key saved",
-          "saveFailed": "Failed to save image generation API key. Please try again.",
-          "cleared": "Image generation API key cleared",
-          "clearFailed": "Failed to clear image generation API key"
-        }
+      "usage": {
+        "percentRemaining": "{{percent}}% remaining",
+        "resetsAt": "Resets {{at}}",
+        "claudePlanFallback": "Claude subscription",
+        "claudeWeekly": "7-day window: {{percent}}% remaining",
+        "scopedModel": "{{model}}: {{percent}}% remaining",
+        "openClaudeUsage": "Open usage page",
+        "codexPlanFallback": "ChatGPT subscription",
+        "codexSecondary": "Secondary window: {{percent}}% remaining",
+        "codexResetCredits": "{{count}} limit reset credits"
       }
     },
     "experimental": {
@@ -2770,7 +2919,7 @@
     },
     "compaction": {
       "title": "Context compaction",
-      "description": "Control when Claude Code and Pi automatically compact context. Codex manages context compaction separately.",
+      "description": "Adjust Claude Code and Pi compaction ratios here. Codex derives its threshold from the model context setting. If remote compaction fails, it automatically switches to summary compaction and keeps using it for the current task.",
       "card": {
         "label": "Compaction trigger threshold",
         "badge": "Claude Code",
@@ -3037,12 +3186,29 @@
       "runtimeUnknown": "{{packageName}} requires Pi {{range}}, but Cartethyia could not determine whether its current Pi version satisfies it.",
       "warning": {
         "no-resources": "No Pi resources were found in this extension.",
+        "analysisIncomplete": "Pi completed the operation, but Cindy could not finish its follow-up analysis or optional build.",
         "inspection-failed": "Cartethyia could not inspect the installed contents. This does not disable the package; Pi still handles it natively.",
         "inspection-limit": "Cartethyia stopped displaying analysis after its inspection limit. The package remains available through Pi’s native loader.",
         "unsupported-filter": "Cartethyia cannot display this Pi resource filter yet. Pi still handles the package and filter natively.",
         "unsafe-source": "The saved source contains credentials or private URL parameters. Cartethyia hid those fields in this view without blocking Pi’s package behavior."
       },
+      "recovery": {
+        "check-credentials": "Check the source credentials.",
+        "check-permissions": "Check file and directory permissions.",
+        "check-network": "Check the network connection.",
+        "check-source": "Check the package name or repository address.",
+        "check-version": "Check the requested package version.",
+        "check-runtime": "Check that the Pi runtime is available.",
+        "free-disk-space": "Free up disk space.",
+        "check-build-dependencies": "Check the extension’s build dependencies.",
+        "refresh-package-state": "Refresh the extension list to check its current state.",
+        "inspect-state-before-retry": "Check the current extension state before retrying unfinished steps."
+      },
       "failure": {
+        "commandFailed": "The native Pi package command failed.",
+        "commandNotStarted": "The native Pi package command could not start.",
+        "commandTimedOut": "The native Pi package command timed out.",
+        "commandUnknown": "The result of the native Pi package command could not be confirmed.",
         "sourceUnavailable": "The source is unavailable. Check the network or URL, or try another source.",
         "packageNotFound": "The package was not found. Check the package name or repository URL.",
         "versionNotFound": "That version was not found. Choose an available version and try again.",
@@ -3797,24 +3963,15 @@
         "codexGuard": {
           "title": "Codex compatibility",
           "label": "Prevent Codex from occupying the device",
-          "aria": "Prevent Codex from occupying Codex Micro",
+          "aria": "Prevent Codex from occupying Work Louder keyboards",
           "recover": "Restore environment",
-          "status": {
-            "unsupported": "macOS only",
-            "disabled": "Off",
-            "protecting": "Restart Codex",
-            "intercepted": "Protected",
-            "recovery-required": "Recovery needed",
-            "error": "Unavailable"
-          },
           "descriptions": {
             "unsupported": "This protection is available on macOS only.",
-            "disabled": "While Cartethyia is running, stop Codex from connecting to Codex Micro. Cartethyia itself is not restricted.",
-            "protecting": "Protection is ready. Completely quit and reopen Codex; an already-running Codex is unaffected.",
-            "intercepted": "Codex's Work Louder service was blocked. Cartethyia can keep using the device.",
+            "disabled": "While Cartethyia is running, stop Codex from connecting to Work Louder keyboards. Cartethyia itself is not restricted.",
             "recovery-required": "Protection stopped, but NODE_OPTIONS has not been safely restored. Retry the recovery before enabling it again.",
             "error": "Cartethyia could not update Codex protection. Your previous NODE_OPTIONS value was preserved or queued for recovery."
-          }
+          },
+          "restartRequired": "Quit and reopen Codex to apply"
         },
         "commands": {
           "session.selectPrevious": {
@@ -4885,7 +5042,7 @@
         "fsWrite": "Can write files (create / modify)",
         "fsWriteDetail": "Its own private data folder is always writable. Writes into the current session's working directory follow the session's permission mode (auto-approve modes write directly; per-action modes ask you first). Any other folder always requires your confirmation. Files are always written by the host — the plugin itself never touches your file system.",
         "libraryPersist": "Can use a durable library (large files and databases)",
-        "libraryPersistDetail": "It gets a Cartethyia-managed storage area for your work (canvases, images, databases) with no normal plugin data quota. All file and database operations are executed by the host; the plugin only uses relative paths inside its own library and cannot touch your other files. It can also ask Cartethyia to show a library file in Finder or Explorer, or open the system Save As dialog so you choose where a copy goes; cancelling Save As copies nothing. Uninstalling the plugin does not delete this data; deletion requires separate confirmation in Cartethyia settings.",
+        "libraryPersistDetail": "It gets a Cartethyia-managed storage area for your work (canvases, images, databases) with no normal plugin data quota. All file and database operations are executed by the host; the plugin only uses relative paths inside its own library and cannot touch your other files. It can also ask Cartethyia to show a library file in Finder or Explorer, or open the system Save As dialog so you choose where a copy goes; cancelling Save As copies nothing. It can also write a PNG bitmap to the system clipboard with no confirmation dialog; this overwrites the current clipboard. Uninstalling the plugin does not delete this data; deletion requires separate confirmation in Cartethyia settings.",
         "networkHost": "Accesses the network domain {{host}}",
         "networkSecret": "Needs a credential from you: \"{{name}}\"",
         "networkSecretGhostInputDetail": "Collected by this plugin's own settings UI — the plugin page sees the value at entry time. It is then handed to the host in one step for encrypted storage; once stored, the plugin can never read it back, and the host injects it only for the domains it declares.",
@@ -4919,7 +5076,8 @@
         "nodeChildSpawn": "Its Node program can ask the host to start declared sub-processes from its package",
         "nodeChildSpawnDetail": "Only JS files declared inside its own package can be started (same local permissions as the main program); arbitrary commands cannot be executed. Sub-processes are closed together when the plugin is disabled or exits.",
         "skill": "Adds the skill \"{{name}}\" to your AI assistants",
-        "skillDetail": "A skill is an instruction file the AI loads and follows as its own, with your full permissions, in Claude Code and Codex, across every project — it is not confined to this plugin's sandbox. It stays available while the plugin is enabled and is removed when the plugin is disabled or uninstalled; turning the plugin off for a single folder does not hide it. The full skill text cannot be previewed here — only install plugins you trust."
+        "skillDetail": "A skill is an instruction file the AI loads and follows as its own, with your full permissions, in Claude Code and Codex, across every project — it is not confined to this plugin's sandbox. It stays available while the plugin is enabled and is removed when the plugin is disabled or uninstalled; turning the plugin off for a single folder does not hide it. The full skill text cannot be previewed here — only install plugins you trust.",
+        "routineEvents": "Routine Events"
       },
       "connections": {
         "confirmTitle": "Add connection address",
@@ -5017,6 +5175,8 @@
         "sidebarEntryTitle": "Sidebar entry",
         "showInSidebar": "Show in sidebar",
         "sidebarEntryDescription": "When turned on, “{{title}}” appears in the sidebar. Hiding it does not disable the plugin.",
+        "iosSimulatorAutoOpenTitle": "Open the embedded Simulator panel automatically",
+        "iosSimulatorAutoOpenDescription": "Show the Simulator in the right sidebar after starting it or launching an app. When off, you can still open it manually; all other features are unchanged.",
         "openTool": "View details for Tool {{name}}",
         "noToolDescription": "No description is available for this Tool.",
         "viewAllTools": "See All",
@@ -5416,6 +5576,53 @@
       "hint": "Remote IM keeps confirmation enabled for actions that need approval.",
       "fullAccessDisabled": "Full Access is unavailable for remote IM because actions that cannot be safely confirmed must not run directly.",
       "permissionModeDisabled": "This permission mode is unavailable because remote IM uses Cartethyia Desktop's confirmation policy."
+    },
+    "cindyMake": {
+      "title": "Cindy Make",
+      "openToolsDir": "Open tools folder",
+      "description": "The card below checks this computer and lets you install missing portable tools. Native compiler prerequisites show an official installation guide.",
+      "checking": "Checking environment…",
+      "forceManaged": {
+        "title": "Test Installation: Ignore System Tools",
+        "description": "Development builds only. Check portable tools in Cindy-managed copies and simulate missing Windows compiler tools. This switch only rechecks the environment; it does not start installation.",
+        "ariaLabel": "Test Installation: Ignore System Tools",
+        "enabledHint": "The card below can test downloading and installing missing Windows tools. Existing Cindy-managed tools are reused. This takes effect immediately and resets on reload or restart; system tools stay unchanged.",
+        "reportHint": "Installation test is on: portable tools use Cindy-managed copies. Windows compiler tools are shown as missing to test the official installation guide; turn off the switch to check their real status."
+      }
+    },
+    "personalMods": {
+      "master": "Desktop Mods",
+      "hint": "Applies to this desktop. Turning this off keeps your choices. Preview works independently of the switches.",
+      "cartethyiaName": "Cartethyia Battle",
+      "cartethyiaDescription": "A character moves and battles above the composer as your session runs.",
+      "aboveComposer": "Above the composer",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "paused": "Paused by the master switch",
+      "preview": "Preview",
+      "stopPreview": "Stop preview",
+      "configure": "Settings",
+      "failed": "This Mod has stopped after an error.",
+      "reload": "Reload",
+      "options": {
+        "ground": "Road background",
+        "damage": "Damage numbers",
+        "effects": "Battle effects",
+        "idle": "Show character while idle"
+      },
+      "import": "Import Mod",
+      "imported": "Imported",
+      "importHint": "Import a .cindymod resource pack. Reimporting updates artwork and keeps your settings. Packs belong to the current account on this desktop.",
+      "empty": "No Mods installed. Import a resource pack to get started.",
+      "loading": "Loading Mods…",
+      "working": "Working…",
+      "remove": "Uninstall",
+      "removeHint": "Uninstall this Mod? Your display settings will be kept for reimporting.",
+      "errors": {
+        "invalid-package": "This file is not a valid supported Mod pack. Check its format and images.",
+        "unavailable": "Mods are temporarily unavailable. Reload after the account is ready.",
+        "failed": "The operation could not be completed. Please retry."
+      }
     }
   },
   "remoteDevice": {
@@ -5726,9 +5933,9 @@
     "openProxyUsage": "Open the full usage dashboard in your browser",
     "openXaiUsage": "Open Grok usage page",
     "xai": {
-      "requestsLine": "Rate limit (requests): {{remaining}}/{{limit}} left",
-      "tokensLine": "Rate limit (tokens): {{remaining}}/{{limit}} left",
-      "noQuotaDetail": "SuperGrok weekly usage is unavailable; only the estimated value is shown",
+      "requestsLine": "Last response · requests left: {{remaining}}/{{limit}}",
+      "tokensLine": "Last response · tokens left: {{remaining}}/{{limit}}",
+      "noQuotaDetail": "SuperGrok weekly usage is currently unavailable",
       "weeklyLabel": "Weekly",
       "windowSegment": "{{label}} {{remaining}} left",
       "windowLine": "{{label}} {{remaining}} left ({{used}} used)",
@@ -5736,7 +5943,7 @@
       "resetAt": "Resets {{at}}",
       "productLine": "{{product}} {{percent}}",
       "extraCreditsLine": "Extra credits {{amount}}",
-      "accountWeeklyHint": "Account weekly usage, not this session's quota"
+      "accountWeeklyHint": "Account weekly usage"
     },
     "dailyLimitLabel": "Today {{spend}}/{{limit}}",
     "monthlyLimitLabel": "Cycle {{spend}}/{{limit}}",
@@ -5797,11 +6004,24 @@
     }
   },
   "quotaCard": {
+    "usageCritical": "High usage",
+    "usageWarning": "Elevated usage",
+    "usageTitle": "Usage details",
+    "gatewayTitle": "Cindy AI Gateway",
+    "balanceLabel": "Balance usage",
+    "dailyLabel": "Daily soft limit",
+    "monthlyLabel": "Monthly quota",
+    "speedLabel": "Speed",
+    "rateValue": "{{rate}} tokens/s",
+    "waiting": "Waiting for quota data.",
+    "windowsRegionLabel": "Usage details",
     "fiveHourLabel": "5 hours",
     "weeklyLabel": "Weekly",
     "modelWeeklyLabel": "{{model}} weekly",
-    "windowsRegionLabel": "Quota Windows",
     "usedPercent": "Used {{percent}}%",
+    "remainingPercent": "Remaining {{percent}}%",
+    "resetIn": "Resets in {{duration}}",
+    "resetPending": "Awaiting reset update",
     "resetAt": "Resets {{at}}",
     "noWindows": "No quota window data available",
     "limitRejected": "Plan limit reached; requests may be rejected",
@@ -5810,7 +6030,7 @@
     "costLine": "Cost this message: {{cost}}",
     "valueLine": "Token value this message: {{cost}}",
     "noBilledCost": "Cost unavailable for this message; showing usage only",
-    "latestMessageTitle": "Latest message total",
+    "latestMessageTitle": "Latest message",
     "turnCostUnavailable": "Cost unavailable for this message",
     "tokenLabel": "Tokens",
     "tokenBreakdown": "(input {{input}} · output {{output}})",
@@ -5822,7 +6042,7 @@
     "paceTrendFast": "Trending fast at the current average pace (rough estimate)",
     "paceTrendNormal": "Trending normally at the current average pace (rough estimate)",
     "paceTrendSlow": "Trending slowly at the current average pace (rough estimate)",
-    "waiting": "Claude subscription usage will update after the next request completes."
+    "includedLabel": "Including {{name}}"
   },
   "usageDetails": {
     "durationSeconds": "{{value}}s",
@@ -6952,12 +7172,19 @@
       "binary-missing": "Component unavailable"
     },
     "ariaLabel": "Sidebar navigation",
+    "databaseSizeWarning": {
+      "title": "Database is using a lot of space",
+      "description": "The database is about {{size}}, above {{threshold}} G. Consider cleaning it up in Storage.",
+      "openSettings": "Open Storage",
+      "disable": "Do not remind me"
+    },
     "horizontalTabbarAria": "Main view switcher",
     "tabs": {
       "projects": "Projects",
       "skillhub": "SkillHub",
       "plugins": "Plugins",
-      "issues": "Issues"
+      "issues": "Issues",
+      "bots": "Teammates"
     },
     "user": {
       "settingsLink": "Settings, current user: {{name}}",
@@ -7010,10 +7237,260 @@
       "close": "Close Download Dialog"
     }
   },
+  "bots": {
+    "sidebar": {
+      "newTaskWith": "Start a task with {{name}}"
+    },
+    "title": "Teammates",
+    "add": "Add teammate",
+    "createWizard": {
+      "createFailed": "The teammate could not be created. Try again.",
+      "templates": {
+        "cindy": {
+          "title": "Cindy Assistant",
+          "defaultName": "Cindy",
+          "defaultDescription": "I like bringing a little order to busy days and hearing fresh ideas. Writing, research, everyday odds and ends—let’s work through them together."
+        },
+        "dash": {
+          "title": "Dash, Company CEO",
+          "defaultName": "Dash",
+          "defaultDescription": "I’m curious about good products and good businesses. I enjoy thinking things through, talking about possibilities, and making a clear decision together."
+        },
+        "lizi": {
+          "title": "LiZi, Technical Director",
+          "defaultName": "LiZi",
+          "defaultDescription": "I enjoy taking tricky problems apart and turning ideas into something real. When we hit a snag, we’ll figure it out together."
+        },
+        "custom": {
+          "title": "Custom"
+        }
+      },
+      "chooseTemplate": "Who would you like to invite?"
+    },
+    "homeFolder": {
+      "title": "Advanced configuration",
+      "description": "The teammate maintains its own memory and reusable ways of working. Open its folder only when something needs correcting.",
+      "contents": "Contains SOUL.md, USER.md, system_prompt.md, skills/, and memories/. Models, permissions, and connections remain managed by Cindy.",
+      "open": "Open folder",
+      "openFailed": "The teammate folder could not be opened."
+    },
+    "profile": {
+      "changeAvatar": "Change avatar",
+      "avatarFailed": "Couldn’t change the avatar. Choose a PNG, JPEG, or WebP image under 5 MB.",
+      "summary": "Self-introduction",
+      "summaryPlaceholder": "For example: a novelist who loves serial fiction, has a dry sense of humor, and is fascinated by what makes characters tick.",
+      "avatarSelectionFailed": "Couldn’t read the image. Choose a PNG, JPEG, or WebP image up to 5 MB.",
+      "personality": "Personality & conversation"
+    },
+    "nameLabel": "What Should We Call Them?",
+    "close": "Close",
+    "list": {
+      "startChat": "Start the conversation",
+      "typing": "Typing…",
+      "unread": "{{count}} unread messages",
+      "search": "Search teammates",
+      "searchPlaceholder": "Search teammates…",
+      "showHidden": "Show hidden teammates",
+      "hideHidden": "Collapse hidden teammates",
+      "hidden": "Hidden ({{count}})",
+      "hide": "Hide",
+      "unhideNamed": "Unhide {{name}}",
+      "pin": "Pin to top",
+      "unpin": "Unpin",
+      "pinned": "Pinned",
+      "needsAttention": "Needs attention",
+      "duplicate": "Duplicate teammate",
+      "moreActions": "More actions for {{name}}"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "autosave": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "retry": "Save Again"
+    },
+    "retry": "Retry",
+    "backToBot": "Back to teammate",
+    "sessionLoadFailedTitle": "This teammate task could not be loaded",
+    "sessionLoadFailedDescription": "The task link is valid, but Cindy could not read the teammate state. Retry or return to the teammate overview.",
+    "sessionUnavailableTitle": "This teammate task is no longer available",
+    "sessionUnavailableDescription": "This task may be missing, deleted, or no longer belong to this teammate. Go back to open the recovered main task.",
+    "settings": "Settings",
+    "settingsTabs": {
+      "model": "Model"
+    },
+    "model": {
+      "description": "Choose the models this teammate uses.",
+      "restoreDefault": "Restore default model"
+    },
+    "modelChain": {
+      "primary": "Primary model",
+      "fallback": "Fallback {{index}}",
+      "routeLabel": "Model candidate {{index}}",
+      "add": "Add fallback model",
+      "remove": "Remove this candidate",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "description": "Configure up to 5 models. If one is unavailable, the teammate automatically continues with the next one—no task switching or manual retry.",
+      "options": "Backup models ({{count}})"
+    },
+    "actions": {
+      "message": "Message",
+      "addToGroup": "Add to group",
+      "export": "Export"
+    },
+    "emptyTitle": "No teammates yet",
+    "emptyDescription": "Create a teammate with a clear role, then connect the tools and channels it needs.",
+    "sessions": "tasks",
+    "open": "Open",
+    "archived": "Archived",
+    "historyTitle": "Archived history",
+    "historyEmpty": "No archived teammate tasks yet.",
+    "historySearch": {
+      "title": "Search teammate history",
+      "description": "Search this teammate’s past messages, background tasks, and archived records.",
+      "placeholder": "What do you remember discussing?",
+      "search": "Search",
+      "searching": "Searching…",
+      "failed": "Teammate history could not be searched. Try again.",
+      "empty": "No matching teammate history was found."
+    },
+    "lifecycle": {
+      "stoppedBots": "Teammates needing attention",
+      "title": "Activity and history",
+      "description": "Pause or resume this teammate and find past messages and results.",
+      "activeTitle": "Teammate is active",
+      "activeDescription": "Can receive messages, run background tasks, and contact other teammates.",
+      "pausedTitle": "Teammate is paused",
+      "pausedDescription": "New work is blocked. User-paused automations remain paused after the teammate resumes.",
+      "stoppedTitle": "Teammate has stopped",
+      "stoppedDescription": "This is a legacy stopped state. You can still keep its task transcripts when permanently deleting it.",
+      "pause": "Pause teammate",
+      "resume": "Resume teammate",
+      "delete": "Delete permanently",
+      "deleteTitle": "Permanently delete teammate",
+      "deleteDescription": "This deletes {{name}} — the personality, the connected channels and the scheduled runs. It cannot be undone.",
+      "working": "Updating…",
+      "actionFailed": "The action did not finish. Try again shortly."
+    },
+    "backToChat": "Back to chat",
+    "memoryRecovery": {
+      "action": "Turn memory back on"
+    },
+    "profileSaveFailed": "Teammate settings could not be saved. No changes were applied.",
+    "modelLabel": "Model",
+    "modelUnavailable": "{{model}} (currently unavailable)",
+    "codexAutomaticCompact": "Codex teammates compact context on their own, and /new keeps the current task. Only start a new task when you actually need a clean slate.",
+    "image": "Add image",
+    "send": "Send message",
+    "roster": {
+      "create": "Invite companion",
+      "customNamePlaceholder": "Give your teammate a name",
+      "customTitle": "Meet someone new"
+    },
+    "chat": {
+      "newMessagesBoundary": "NEW",
+      "composerPlaceholder": "Say something to {{name}}…",
+      "composerPlaceholderLatin": "Say something to {{name}}…"
+    },
+    "globalSettings": {
+      "restoreHint": "Restoring defaults follows the client’s default model settings. Individual teammates’ custom models stay unchanged.",
+      "restoreFailed": "Could not restore defaults. Try again.",
+      "title": "Teammates",
+      "description": "Settings shared by all teammates. Anything about one teammate lives on their own page.",
+      "rosterNote": "The shipped roster grows with each release."
+    },
+    "collab": {
+      "backgroundTask": "Background task",
+      "trackedTask": "Runs independently and returns its result",
+      "stopTask": "Stop task",
+      "messageSent": "Message sent to background task",
+      "watchWork": "Watch the work",
+      "actionFailed": "That didn't go through. Try again.",
+      "retrying": "Hasn't started yet — retrying…",
+      "status": {
+        "queued": "Getting started",
+        "waiting": "Waiting for input",
+        "running": "Working on it",
+        "completed": "Done",
+        "failed": "Failed",
+        "cancelled": "Stopped",
+        "timed-out": "Timed out",
+        "unknown": "Task status unavailable"
+      },
+      "duration": {
+        "seconds": "{{n}}s",
+        "minutes": "{{n}} min",
+        "hoursMinutes": "{{h}} h {{m}} min"
+      }
+    },
+    "directMessage": {
+      "sentTo": "Sent a message to {{name}}",
+      "receivedFrom": "Message from {{name}}",
+      "exchangeCount": "{{count}} messages with {{name}}",
+      "open": "View the conversation between teammates",
+      "readOnly": "This conversation is view-only",
+      "close": "Close conversation",
+      "unavailable": "This teammate conversation is no longer available.",
+      "empty": "There are no messages to view yet.",
+      "limitReached": "This teammate conversation reached its limit; both teammates returned to their main tasks"
+    },
+    "joined": {
+      "today": "Joined today",
+      "yesterday": "Joined yesterday",
+      "days": "Joined {{n}} days ago",
+      "months": "Joined {{n}} months ago",
+      "years": "Joined {{n}} years ago"
+    },
+    "background": {
+      "title": "Responsibilities",
+      "edit": "Edit",
+      "done": "Done",
+      "placeholder": "What they own, what they should advance proactively, which decisions require approval, and how they should communicate.",
+      "empty": "Responsibilities and boundaries have not been defined.",
+      "footnote": "This enters the teammate's identity context. Quick personality settings are stored separately and are preserved when this text changes."
+    },
+    "welcome": {
+      "generic": "Hi, I'm {{name}}. Tell me anything you need from now on — I will get my bearings in the meantime.",
+      "withRole": "Hi, I'm {{name}} — {{description}}. Just tell me what you need."
+    },
+    "invitation": {
+      "title": "Getting ready to meet",
+      "waiting": "See you soon, {{name}}",
+      "background": "Feel free to step away. Preparation continues in the background.",
+      "profile": "Writing a personal story",
+      "skills": "Preparing a computer for {{name}}",
+      "avatar": "{{name}} is choosing a new portrait",
+      "welcome": "Getting a first hello ready",
+      "failed": "Preparation paused. Everything completed so far is saved. You can try again.",
+      "retryFailed": "Couldn’t retry just now. Please try again shortly.",
+      "leave": "Step away",
+      "avatarSkipped": "Using the default portrait for now. You can change it anytime."
+    },
+    "permissionRequest": "{{name}} needs your go-ahead",
+    "remote": {
+      "online": "Online",
+      "offline": "Offline",
+      "thisDevice": "This computer",
+      "offlineDescription": "{{name}} is offline. Reconnect {{device}} to continue.",
+      "preparing": "Waiting for this teammate to get ready…"
+    },
+    "capabilities": {
+      "title": "Capabilities",
+      "search": "Search capabilities",
+      "loading": "Loading…",
+      "skill": "Skills",
+      "mcp": "MCP",
+      "toolset": "Built-in tools",
+      "unavailable": "Unavailable",
+      "empty": "No matching capabilities"
+    }
+  },
   "common": {
     "dismiss": "Dismiss"
   },
   "commonUi": {
+    "retry": "Try again",
     "crossAgentConvert": {
       "asking": {
         "title": "Convertible workspace config detected",
@@ -7069,53 +7546,105 @@
     "homeSuggestions": {
       "shuffle": "Show more",
       "dismiss": "Don't show again",
-      "downloadsDesktop": {
-        "label": "See what's piled up in Downloads and on the Desktop",
-        "prompt": "Look at my Downloads folder and Desktop. List what has piled up: the largest items, obvious duplicates, things untouched for six months or more, and anything safe to archive. For each item, say where it is, how big it is, and why you suggest dealing with it. This round is read-only; wait for me before moving or deleting anything."
-      },
-      "whatCindyCanDo": {
-        "label": "Look at this computer and tell me what you can help with",
-        "prompt": "Look at what is installed on this computer and the kinds of things I seem to work on. Then tell me the specific ways you can help, each in one sentence: when I would use it and what it would save me. Do not recite a feature list; ground it in what actually exists on this machine."
-      },
-      "recentDocs": {
-        "label": "Review my recent documents and make a list",
-        "prompt": "Look at documents I have opened or edited recently. Group them by topic, tell me how many piles of work I have, how far each has gotten, and whether anything looks abandoned. Give me a list with each file's location. Read-only; do not change my files."
-      },
-      "listCodeProjects": {
-        "label": "List the code projects on this computer",
-        "prompt": "Find code projects in the directories I commonly use. For each one, one sentence on what it is, what it is written in, and when it last changed. Then say which look like the main line of work and which look abandoned. If you find none, say so. This round is read-only; do not change any files."
-      },
       "storageUsage": {
-        "label": "Show what's using up disk space",
-        "prompt": "Survey disk use on this computer. List directories and files from largest to smallest, and say which are caches, duplicates, or old things I probably forgot. Give a ranking plus one conclusion: which categories would free the most space. Count only; do not delete anything."
-      },
-      "unusedApps": {
-        "label": "List apps I installed but barely use",
-        "prompt": "Look at apps installed on this computer. Rank them by disk use and last-opened time, and point out which have not been opened in a long time but still take a lot of space. Give me a list; do not uninstall anything yet."
-      },
-      "uncommittedChanges": {
-        "label": "Find my latest project and check uncommitted work",
-        "prompt": "Find the code project I touched most recently. Review uncommitted changes, say what they are doing, and flag anything that looks wrong or missing. Read-only; do not change files or commit."
-      },
-      "devEnvironment": {
-        "label": "Check my development environment",
-        "prompt": "Check this machine's development environment: language runtimes and package managers, their versions, obvious conflicts or stale versions, and git config problems. Give a snapshot plus one conclusion: what to fix first. Inspect only; do not install or change config."
+        "label": "Clean up my computer",
+        "prompt": "Help me find things worth cleaning up on my computer and how much space I could free. Let me confirm before cleaning anything up."
       },
       "whySlow": {
-        "label": "Find out why this computer is slow",
-        "prompt": "Find out why this computer feels slow: load, memory, disk, uptime, and the processes using the most CPU or memory. Give a short conclusion with evidence. Read-only; do not change anything, kill processes, or ask what I have open."
+        "label": "Find out why my computer is slow",
+        "prompt": "Help me find out why my computer is slow and suggest ways to improve it."
+      },
+      "downloadsDesktop": {
+        "label": "Organize my Downloads and Desktop",
+        "prompt": "Help me organize my Downloads folder and desktop so things are easy to find. Show me the plan first."
       },
       "diagnoseNetwork": {
         "label": "Diagnose my network speed",
-        "prompt": "Diagnose this computer's network: ping, DNS, and whether it is wired or Wi-Fi. Give a one- or two-sentence conclusion. Do not run a long speed test or ask about my ISP."
+        "prompt": "Help me find out why my internet is slow and suggest how to fix it."
       },
-      "subscriptionSpend": {
-        "label": "Tally my subscription spending",
-        "prompt": "Scan Downloads, receipts, and local invoices for subscription charges. List service names and amounts. If you find nothing, say so. Do not change subscriptions, ask for a bank card, or sign in to email."
+      "unusedApps": {
+        "label": "Find apps I rarely use that still take up space",
+        "prompt": "Help me find apps that may have gone unused for a long time and take up space. Let me confirm before uninstalling anything."
+      },
+      "stockDigest": {
+        "label": "Send me a daily stock briefing",
+        "prompt": "Set up a daily stock briefing for me. We can start with 2400.HK (XD Inc.); ask which other stocks interest me and when I'd like to receive it."
+      },
+      "morningBrief": {
+        "label": "Create my daily morning briefing",
+        "prompt": "Set up a daily morning briefing for me. Work with me to choose the topics and delivery time."
+      },
+      "watchWebpage": {
+        "label": "Keep an eye on a webpage for me",
+        "prompt": "Watch a webpage for me and let me know when something I care about changes. Work with me to choose the URL, what to watch for, and how often to check."
       },
       "expenseTracker": {
         "label": "Make a simple expense tracker",
-        "prompt": "In this conversation's workspace, make a local expense tracker I can open: date, amount, category, notes. No backend, and do not ask which extra features I want."
+        "prompt": "Help me build a personal expense tracker. We can talk through the features and how I'll use it, then let me try it out."
+      },
+      "kidsGame": {
+        "label": "I want to make a game",
+        "prompt": "I want to make a game. Help me develop my idea or suggest some fun concepts, then let's choose a direction and build it together."
+      },
+      "habitTracker": {
+        "label": "Make a habit tracker",
+        "prompt": "Build a habit-tracking page that fits what I want to keep doing, and let me try it out."
+      },
+      "recentDocs": {
+        "label": "Summarize these materials in one page",
+        "prompt": "Turn the materials I provide into a one-page summary so I can quickly grasp the key points."
+      },
+      "subscriptionSpend": {
+        "label": "Tally my subscription spending",
+        "prompt": "Help me review my subscription spending and find subscriptions worth canceling or changing. Give me suggestions first."
+      },
+      "organizeFolder": {
+        "label": "Sort and organize this folder",
+        "prompt": "Help me organize a folder so files are easier to find. Let's agree on the folder and plan first. Don't delete any files."
+      },
+      "photoTimeline": {
+        "label": "Organize my photos into a timeline",
+        "prompt": "Help me organize my photos into a clear timeline, keeping the originals."
+      },
+      "photoAlbumPage": {
+        "label": "Turn these photos into an album webpage",
+        "prompt": "Build a beautiful, easy-to-browse album website with my photos. Open it for me when it's ready, and keep the original photos."
+      },
+      "uncommittedChanges": {
+        "label": "Review my uncommitted changes",
+        "prompt": "Review the uncommitted changes in my project for problems and omissions. Give me suggestions without modifying files."
+      },
+      "exploreRepo": {
+        "label": "Show me around this project",
+        "prompt": "Show me around this project: what it does, how to run it, and which parts are worth exploring further."
+      },
+      "initAgentDoc": {
+        "label": "Generate an AGENTS.md",
+        "prompt": "Help me create a suitable AGENTS.md for my project. If guidance files already exist, suggest additions without overwriting them."
+      },
+      "listCodeProjects": {
+        "label": "List my code projects and explain what each does",
+        "prompt": "Help me take stock of the code projects on my computer and explain what each one does."
+      },
+      "devEnvironment": {
+        "label": "Check my development environment for problems",
+        "prompt": "Check my development environment for things worth fixing or improving. Give me suggestions first."
+      },
+      "makePlugin": {
+        "label": "Make a plugin for Cindy",
+        "prompt": "I want to make a Cindy plugin. Help me develop my requirements or suggest useful, fun ideas, then build it once we've chosen a direction."
+      },
+      "sendFeedback": {
+        "label": "Send feedback to Cindy's developers",
+        "prompt": "Help me turn my thoughts about Cindy into clear feedback. Let me review it before submitting."
+      },
+      "readOwnSource": {
+        "label": "Explore Cindy's own source code",
+        "prompt": "Show me Cindy's source code (github.com/makecindy/cindy), explain how you're built, and explore some interesting parts with me."
+      },
+      "whatCindyCanDo": {
+        "label": "Find a few things you can help me with",
+        "prompt": "Based on my recent tasks and your current capabilities, suggest concrete things you could do to save me effort. Let me choose one to start."
       }
     },
     "noProvider": {
@@ -7137,6 +7666,7 @@
       "stop": "Stop generating"
     },
     "pluginSetup": {
+      "reopen": "Reopen",
       "title": "{{name}} Settings",
       "assessmentReadFailed": "Couldn't read the plugin setup status.",
       "setupIncomplete": "Plugin setup is not complete.",
@@ -7303,6 +7833,7 @@
         "discountedVsStandard": "Discounted · {{percent}}% off standard"
       },
       "trigger": {
+        "currentAndNext": "Current: {{current}}\nNext message: {{next}}",
         "placeholder": "Select model",
         "aria": "Select model. Current: {{model}}",
         "ariaWithEffort": "Select model. Current: {{model}}, effort: {{effort}}",
@@ -7324,6 +7855,7 @@
         "china": "China",
         "image": "Image",
         "video": "Video",
+        "audio": "Audio Generation",
         "tts": "Text to Speech",
         "stt": "Speech to Text",
         "realtime": "Realtime Audio",
@@ -7345,8 +7877,11 @@
         "fastBadge": "Fast"
       },
       "source": {
+        "unavailable": "Model unavailable",
+        "reconnect": "Reconnect",
+        "manage": "Manage source",
         "railLabel": "Source",
-        "connect": "Add a model",
+        "connect": "Configure models",
         "connectCta": "Connect a source →",
         "viaSource": "Source: {{source}}",
         "emptyTitle": "No available source",
@@ -7361,10 +7896,6 @@
         "railAll": "All",
         "favoritesGroup": "Favorites",
         "favoritesEmpty": "No favorites yet — hover a model and hit ☆ to pin it here",
-        "layoutBadge": "Try style B",
-        "layoutClassic": "Back to style A",
-        "layoutTryUnified": "Try the new picker",
-        "layoutOriginal": "Back to old picker",
         "addFavorite": "Save to favorites",
         "customize": "Customize",
         "removeFavorite": "Remove from favorites",
@@ -7428,7 +7959,7 @@
           },
           "bypassPermissions": {
             "label": "Full access",
-            "description": "Routine tools run without asking. Pi extension commands you send directly run as requested; agent-initiated changes still require tool approval. Highest risk; use only for trusted tasks."
+            "description": "Allows editing any file and running networked commands without another confirmation. Highest risk; use only for trusted tasks."
           }
         }
       }
@@ -7570,46 +8101,6 @@
       "defaultPlaceholder": "What shall we work on today~",
       "createAgentPlaceholder": "Hi {{appName}}!",
       "recommendationShortcut": "Tab",
-      "projectExperience": {
-        "button": "Project experience",
-        "menuAria": "Project experience picker",
-        "title": "Project experience",
-        "clear": "Clear project experience",
-        "none": "No project experience",
-        "auto": "Choose automatically",
-        "explicit": "Choose manually",
-        "mode": "Apply mode",
-        "pack": "Experience pack",
-        "workflow": "Workflow",
-        "nodes": "Composable steps",
-        "modules": "Experience content",
-        "ready": "Ready",
-        "pending": "In progress",
-        "blocked": "Blocked",
-        "waiting": "Needs confirmation",
-        "not-applicable": "Not applicable",
-        "unavailable": "Unavailable",
-        "ignored": "Ignored",
-        "required": "Required",
-        "optional": "Optional",
-        "loading": "Loading experience index…",
-        "resolving": "Resolving this workflow…",
-        "noPacks": "No experience packs imported",
-        "loadFailed": "Could not load the experience index",
-        "autoHint": "Choose a workflow from this message and the current session context. You will be asked to choose if it is unclear.",
-        "noModules": "This step has no linked experience content",
-        "mainOwnedHint": "This session keeps your selection. You can change or turn off project experience at any time.",
-        "toggleNode": "Ignore step: {{name}}",
-        "toggleModule": "Ignore content: {{name}}",
-        "version": "Version {{version}}",
-        "chooseWorkflow": "Choose a workflow",
-        "explicitHint": "Use only the workflow you choose and adjust its optional content.",
-        "baseEnabled": "Base conversation rules · Required · Enabled",
-        "lastPrepared": "Last prepared: {{workflow}}",
-        "preparedDetails": "v{{version}} · {{count}} modules prepared",
-        "preparedOnly": "Input preparation only; not an execution or test result.",
-        "saveFailed": "Could not save or restore the project experience selection. Please retry."
-      },
       "voiceInput": {
         "start": "Start voice input",
         "stop": "Stop voice input",
@@ -7626,6 +8117,11 @@
       },
       "remoteSwitchFailed": "Remote setting change failed; not applied",
       "switchFailed": "Setting change failed; not applied",
+      "modelWindowUnknown": {
+        "custom": "Model not switched: the target model “{{model}}” has no context-window information. Add it under {{provider}} model settings, then retry.",
+        "builtin": "Model not switched: Cindy can’t verify the context window for “{{model}}”. Refresh the {{provider}} model list; if that still fails, reconnect the provider.",
+        "openSettings": "Open Settings"
+      },
       "permissionSwitchFailed": "Permission mode change failed; the previous setting was kept",
       "fullAccessConfirmation": {
         "title": "Enable Full access?",
@@ -7673,6 +8169,46 @@
           "cancel": "Keep Current Agent",
           "dontShowAgain": "Don’t remind me again"
         }
+      },
+      "projectExperience": {
+        "button": "Project experience",
+        "menuAria": "Project experience picker",
+        "title": "Project experience",
+        "clear": "Clear project experience",
+        "none": "No project experience",
+        "auto": "Choose automatically",
+        "explicit": "Choose manually",
+        "mode": "Apply mode",
+        "pack": "Experience pack",
+        "workflow": "Workflow",
+        "nodes": "Composable steps",
+        "modules": "Experience content",
+        "ready": "Ready",
+        "pending": "In progress",
+        "blocked": "Blocked",
+        "waiting": "Needs confirmation",
+        "not-applicable": "Not applicable",
+        "unavailable": "Unavailable",
+        "ignored": "Ignored",
+        "required": "Required",
+        "optional": "Optional",
+        "loading": "Loading experience index…",
+        "resolving": "Resolving this workflow…",
+        "noPacks": "No experience packs imported",
+        "loadFailed": "Could not load the experience index",
+        "autoHint": "Choose a workflow from this message and the current session context. You will be asked to choose if it is unclear.",
+        "noModules": "This step has no linked experience content",
+        "mainOwnedHint": "This session keeps your selection. You can change or turn off project experience at any time.",
+        "toggleNode": "Ignore step: {{name}}",
+        "toggleModule": "Ignore content: {{name}}",
+        "version": "Version {{version}}",
+        "chooseWorkflow": "Choose a workflow",
+        "explicitHint": "Use only the workflow you choose and adjust its optional content.",
+        "baseEnabled": "Base conversation rules · Required · Enabled",
+        "lastPrepared": "Last prepared: {{workflow}}",
+        "preparedDetails": "v{{version}} · {{count}} modules prepared",
+        "preparedOnly": "Input preparation only; not an execution or test result.",
+        "saveFailed": "Could not save or restore the project experience selection. Please retry."
       }
     },
     "agentSelect": {
@@ -7688,6 +8224,7 @@
       "browserTab": "Browser tab",
       "desktopWindow": "App window",
       "task": "Task",
+      "bot": "Message or delegate",
       "pluginResources": "Plugin resources",
       "pluginResource": "Plugin resource",
       "backToAll": "Back to all @ resources",
@@ -7725,12 +8262,27 @@
       "cancelEdit": "Cancel Editing",
       "saveEdit": "Save Text"
     },
+    "mediaDownload": {
+      "title": "Download the generated media?",
+      "description": "The media has been generated and needs to be downloaded from the address below.",
+      "scope": "Allow this download only.",
+      "source": "This address is not among the download sources confirmed by Cindy, so your confirmation is needed.",
+      "http": "This address uses unencrypted HTTP. Others on the network may read or alter the download.",
+      "port": "This address uses a non-default network port. Confirm access to that port.",
+      "credentials": "This download address includes login details. If allowed, those details will be sent only to this address.",
+      "network": "This address points to this device, a local network, or a reserved network. Access may reach internal services on the device.",
+      "allow": "Allow this download",
+      "defer": "Not now"
+    },
     "permissionPrompt": {
       "alwaysAllowScoped": "Always Allow {{scope}} in This Session",
       "alwaysAllowScopedHint": "Applies to the whole session, and only to what is listed here.",
       "alwaysAllowSessionHint": "Applies to the whole session, not just this one request.",
       "autoReviewUnavailable": "Automatic review could not finish. Confirm whether to allow this action.",
-      "ruleSeparator": ", "
+      "ruleSeparator": ", ",
+      "submitting": "Submitting your decision…",
+      "submissionFailed": "No confirmation was received. Check your connection and try again if the prompt is still open.",
+      "requestEnded": "This permission request has ended or was already handled. Check the latest status."
     },
     "deviceSwitcher": {
       "label": "Device",
@@ -7739,6 +8291,27 @@
       "offlineHint": "Offline — available once connected",
       "attachmentsDropped": "Removed {{count}} attachment(s) — they live on the previous device",
       "attachmentsRemoteUnsupported": "File attachments aren't supported on a remote device — skipped {{count}} (images are fine)"
+    },
+    "pluginSuggestions": {
+      "changed": "This suggestion has changed. Shuffle the suggestions and choose again.",
+      "unavailable": "This plugin is currently unavailable. Check it on the Plugins page.",
+      "pending": "After you install or enable the plugin, “{{task}}” will continue.",
+      "cancel": "Cancel continuation",
+      "usePlugin": "Use the {{name}} plugin ({{id}}) to complete this task. First query ghost_info for its current tools, then call ghost_call as needed. If an account connection is required, use the plugin’s existing connection flow.",
+      "mail": {
+        "today": {
+          "label": "Organize today’s emails that need my attention",
+          "prompt": "Help me find today's emails that need my attention and turn them into a to-do list. Leave the emails unchanged for now."
+        },
+        "unanswered": {
+          "label": "Find important emails I haven’t answered",
+          "prompt": "Help me find unanswered emails worth my attention and see which ones need a follow-up."
+        },
+        "reply": {
+          "label": "Draft a reply to this email",
+          "prompt": "Draft a reply to this email, taking the conversation and my thoughts into account. Don't send it yet."
+        }
+      }
     }
   },
   "onboarding": {
@@ -7773,19 +8346,6 @@
       },
       "detectedLabel": "Detected",
       "oauthSub": "Opens a verification page in your browser — connects automatically"
-    },
-    "inheritedSubscription": {
-      "title": "Using the {{products}} sign-in already on this computer",
-      "desc": "Cartethyia picked up the account you're already signed in to locally — no separate authorization was needed. Switch or disconnect it under model providers.",
-      "openProviders": "Open Model Providers",
-      "acknowledge": "Got it",
-      "separator": ", "
-    },
-    "promotionalGrant": {
-      "title": "Cartethyia AI is ready",
-      "desc": "A promotional balance of {{amount}} has been added and is valid until {{date}}. You can add funds any time after it runs out or expires.",
-      "openBilling": "View usage",
-      "acknowledge": "Got it"
     }
   },
   "voiceInputOverlay": {
@@ -7959,6 +8519,7 @@
     },
     "messageActionBar": {
       "copy": "Copy message",
+      "reply": "Reply",
       "linkCopied": "Link copied",
       "moreActions": "More message actions",
       "copyLink": "Copy current message link",
@@ -7994,6 +8555,7 @@
     },
     "runningStatus": {
       "tokenRate": "{{rate}} tok/s",
+      "tokenRateDescription": "The main Agent’s average generation speed for this turn, including thinking and excluding tool execution and approval waits. Updated with reported usage; the adjacent timer shows total turn time.",
       "tokenCount": "{{tokens}} tok"
     },
     "shareImage": {
@@ -8095,9 +8657,8 @@
       "dismissTitle": "Dismiss this interruption notice"
     },
     "unreadFailedScheduleBanner": {
-      "text": "This scheduled run did not finish.",
-      "markAsRead": "Mark as read",
-      "markAsReadTitle": "Clear this failed unread state"
+      "text": "Some scheduled runs did not finish. Check the run history.",
+      "dismissTitle": "Dismiss past failure notice"
     },
     "worktreeRestoreBanner": {
       "text": "This session's worktree has been cleaned up (directory missing).",
@@ -8200,7 +8761,10 @@
       "copyContent": "Copy content",
       "openInExplorer": "Open in file manager",
       "close": "Close",
-      "editIndex": "Edit {{index}}/{{total}}"
+      "editIndex": "Edit {{index}}/{{total}}",
+      "omittedDiffSegments": "{{count}} additional diff segments omitted from preview",
+      "diffPreviewTruncated": "Some diff lines are hidden in this preview",
+      "diffPreviewLoading": "Preparing diff preview…"
     },
     "textLightbox": {
       "unreadable": "Unable to read this file",
@@ -8420,7 +8984,7 @@
       "contextRebuild": {
         "labelOverflow": "Context reorganized, continuing",
         "labelTimeout": "Last turn didn't respond; context reorganized to continue",
-        "labelStrip": "Oversized images removed, continuing",
+        "labelStrip": "Historical images reorganized",
         "toggleHint": "View handoff context",
         "handoffTitle": "Handoff — the context summary sent to the next stretch of this conversation (not part of the chat transcript; shown only here)",
         "handoffTitleEnglishSource": "Handoff — the context summary sent to the next stretch of this conversation (not part of the chat transcript; shown only here)"
@@ -8455,6 +9019,8 @@
       "duplicateFiles": "Found {{count}} files with the same name, please use an absolute path",
       "copyFile": "Copy",
       "copyFilePath": "Copy file path",
+      "copyLocation": "Copy Location",
+      "locationCopied": "Location copied",
       "openWith": "Open with",
       "openWithAppFailed": "Couldn't open with the selected app",
       "revealFile": "Reveal in folder",
@@ -8597,10 +9163,16 @@
       "REMOTE_LOCAL_ONLY_PROVIDER": "This model provider is a local-only service (e.g. Ollama) that a remote SSH task cannot reach. Switch to the Cartethyia AI gateway, or pick a provider reachable from the remote host.",
       "LOCAL_OLLAMA_NOT_READY": "Local Ollama isn't ready. Open Settings → Model Providers → Ollama.",
       "DEVICE_LINK_CONTROL_DISABLED": "Control for this device is off; the message was not sent.",
-      "DEVICE_LINK_MEDIA_TRANSFER_FAILED": "Attachment transfer failed; the message was not sent. Please try again."
+      "DEVICE_LINK_MEDIA_TRANSFER_FAILED": "Attachment transfer failed; the message was not sent. Please try again.",
+      "MCP_APPROVAL_AUTO_BLOCKED": "Automatic approval review blocked this tool call. No manual rejection was received.",
+      "MCP_APPROVAL_CONFIRMATION_TIMEOUT": "The permission request timed out without a confirmed decision. A timeout does not show whether you clicked a button.",
+      "MCP_APPROVAL_CONFIRMATION_UNAVAILABLE": "Permission confirmation could not be completed. No manual rejection was received."
     },
     "generatedFiles": {
       "title": "Files created this message",
+      "botTitle": "Deliverables",
+      "relatedFiles": "{{count}} related files",
+      "openWebPreview": "Open web preview",
       "showMore": "Show {{count}} more",
       "showLess": "Show less",
       "artifactLabel": "Artifact",
@@ -8824,7 +9396,8 @@
       "projectContextLoaded": "Project Knowledge Base loaded",
       "contextRing": {
         "compactHint": "Click to compact context",
-        "codexAutoHint": "Codex compacts automatically on the server side; manual compaction is not supported",
+        "codexPendingHint": "Settings apply on the next send. Current usage is not yet available.",
+        "codexAutoHint": "Codex CLI manages context and automatic compaction. This control is read-only.",
         "confirmTitle": "Compact context?",
         "confirmDescription": "Current usage: {{used}} / {{total}} ({{pct}}%). This silently compacts context — the agent summarizes chat history to free up context space.",
         "confirmAction": "Compact",
@@ -8979,6 +9552,8 @@
         "all": "All"
       },
       "filterSortBy": {
+        "created": "Created Time",
+        "activity": "Recent Activity",
         "recency": "By time",
         "manual": "Manual",
         "priority": "Priority"
@@ -8994,7 +9569,7 @@
       "filterTaskSortHeading": "Session sort",
       "filterProjectOrderHeading": "Project order",
       "filterProjectOrder": {
-        "activity": "By recent activity",
+        "activity": "Follow Session Sorting",
         "custom": "Manual"
       },
       "filterProjectOrderTip": {
@@ -10069,7 +10644,7 @@
         "weekly-work-draft": {
           "name": "Weekly report drafter",
           "description": "Compile this week's work from documents in the working directory into a report draft",
-          "prompt": "Based on this week's changes to documents, notes, and deliverables in the working directory, compile a weekly report draft.\nConstraints:\n- Only use content with actual modification traces in the working directory as evidence, citing the files\n- Organize as \"Done this week / In progress / Next week / Needs coordination\", concise enough to submit directly\n- Separate substantive progress from routine chores and highlight valuable output\n- Leave placeholders with notes where the material is insufficient so the user can fill them in"
+          "prompt": "Based on this week's changes to documents, notes, and works in the working directory, compile a weekly report draft.\nConstraints:\n- Only use content with actual modification traces in the working directory as evidence, citing the files\n- Organize as \"Done this week / In progress / Next week / Needs coordination\", concise enough to submit directly\n- Separate substantive progress from routine chores and highlight valuable output\n- Leave placeholders with notes where the material is insufficient so the user can fill them in"
         },
         "knowledge-freshness": {
           "name": "Knowledge base freshness check",
@@ -10373,6 +10948,7 @@
     }
   },
   "commandPalette": {
+    "viewSkillDetails": "View skill details",
     "projectSkillNotLoaded": "This Pi task hasn't loaded this project Skill. New tasks will automatically try to load it."
   },
   "skillhub": {
@@ -10531,11 +11107,11 @@
         "market": "Back to Market",
         "skillhub": "Back to SkillHub"
       },
-      "uninstall": "Uninstall",
+      "uninstall": "Uninstall Skill",
       "uninstallDialog": {
-        "title": "Uninstall {{name}}?",
-        "description": "Will remove the local folder\n{{path}}\nThis cannot be undone.",
-        "confirm": "Confirm uninstall",
+        "title": "Uninstall “{{name}}”?",
+        "description": "Local files and edits will move to the trash and can be restored.\n\nOther Agents sharing this skill will also be affected. Published versions and installations elsewhere are unaffected.",
+        "confirm": "Uninstall",
         "cancel": "Cancel"
       },
       "uninstalledToast": "{{name}} uninstalled",
@@ -10933,6 +11509,27 @@
     "marketEdit": {
       "saved": "Market info saved",
       "displayNameRequired": "Display name is required"
+    },
+    "management": {
+      "disabled": "Disabled",
+      "enabledLabel": "Enable Skill “{{name}}”",
+      "moreLabel": "Manage Skill “{{name}}”",
+      "activationHint": "Controls Skill loading in Cindy only. Takes effect when starting or restarting an Agent.",
+      "enabledToast": "Skill “{{name}}” enabled. Start or restart the Agent to apply.",
+      "disabledToast": "Skill “{{name}}” disabled. Start or restart the Agent to apply.",
+      "toggleFailed": "Could not save the Skill setting. Try again.",
+      "uninstallFailed": "Could not move the Skill to the trash. Check file permissions and try again.",
+      "refreshRequired": "The Skill is being changed or its source has changed. Refresh the list and try again.",
+      "globalScope": "Installation: global Skill",
+      "projectScope": "Project: {{project}}",
+      "trashDescription": "Local files and edits will move to the trash and can be restored.",
+      "unlinkDescription": "Only the local skill entry will be removed. Original files and edits will be kept.",
+      "sharedImpact": "Other Agents sharing this skill will also be affected. Published versions and installations elsewhere are unaffected.",
+      "managedElsewhere": "This Skill belongs to another package or shared directory. Remove it at its source.",
+      "managedByPlugin": "This skill is provided by a plugin. Manage it on that plugin’s page.",
+      "cleanupIncomplete": "Uninstall cleanup for “{{name}}” is unfinished. Retry now or reopen Skills later to continue. Reinstallation is paused until cleanup completes.",
+      "retryCleanup": "Retry cleanup",
+      "cleanupComplete": "Cleanup completed"
     }
   },
   "makerExperimental": {
@@ -11031,7 +11628,7 @@
       "codexAutoReviewUnavailable": "Auto-review is temporarily unavailable. The current action was blocked and permissions switched to Default. Retry the request; Cartethyia will ask when needed.",
       "hostShellCommandBlocked": "Cartethyia blocked a shell command that would bypass the embedded iOS Simulator. Use the iOS Simulator tool for device control, app launches, interaction, screenshots, and diagnostics.",
       "upstreamResponseIdleTimeout": "The model stopped responding for a long time, so this turn was interrupted to avoid hanging forever. Completed tool calls are preserved — send the next message to continue.",
-      "codexHistoryOversized": "This task’s history includes oversized images, so remote compaction cannot finish. Cartethyia will omit those images and continue in this task.",
+      "codexHistoryOversized": "Automatic image history recovery and continuation could not finish. Send “Continue” to resume this task.",
       "codexHistoryOversizedRemote": "This task’s history includes oversized images, so remote compaction cannot finish. Open the task on the machine running Codex and send again; Cartethyia will omit those images there.",
       "codexCompactionNotConverging": "Codex kept compacting the context without making progress, so this turn was interrupted to stop the loop. What's taking up the space usually isn't the conversation — the system prompt and tool definitions can't be compacted away. Start a new task to continue.",
       "codexCompactionNotConvergingModelSwitch": "Codex kept compacting the context without making progress, so this turn was interrupted to stop the loop. This task switched model midway, and Codex still evaluates the context limit against the previous model. Switch back to that model to continue, or start a new task.",
@@ -11691,6 +12288,252 @@
         "downloads": "Downloads"
       }
     }
+  },
+  "modelNames": {
+    "manufacturers": {
+      "anthropic": "Anthropic",
+      "openai": "OpenAI",
+      "google": "Google",
+      "deepseek": "DeepSeek",
+      "qwen": "Alibaba",
+      "moonshot": "Moonshot",
+      "zai": "Z.ai",
+      "tencent": "Tencent",
+      "meta": "Meta",
+      "xai": "xAI",
+      "minimax": "MiniMax",
+      "bytedance": "ByteDance",
+      "alibaba": "Alibaba",
+      "elevenlabs": "ElevenLabs",
+      "voyage": "Voyage"
+    },
+    "families": {
+      "qwen": "Qwen",
+      "doubao": "Doubao",
+      "hunyuan": "Hunyuan"
+    }
+  },
+  "modelDescriptions": {
+    "longContext": "Optional long-context version; longer inputs may cost more.",
+    "security": "For security analysis and code review.",
+    "research": "For research, complex questions, coding and document creation.",
+    "quickCoding": "For quick code edits and small programming tasks.",
+    "reasoning": "For problem solving, analysis and coding.",
+    "coding": "For writing, debugging and improving code.",
+    "sustainedWork": "For extended coding tasks and in-depth research.",
+    "complexWork": "For complex analysis, coding and detailed writing.",
+    "everydayWork": "For everyday questions, writing and coding.",
+    "quickAnswers": "For quick questions, summaries and short writing tasks.",
+    "shortTasks": "For short questions, text cleanup and repeated small tasks.",
+    "writingAndCoding": "For writing, coding and working through questions.",
+    "readingAndWriting": "For reading materials, organizing information and writing.",
+    "image": "For generating images.",
+    "video": "For generating videos.",
+    "speech": "For turning text into speech.",
+    "transcription": "For turning speech into text.",
+    "realtime": "For real-time voice conversations.",
+    "embedding": "For finding related content by meaning.",
+    "compression": "For condensing lengthy content."
+  },
+  "routines": {
+    "title": "Routines",
+    "add": "Add Routine",
+    "back": "Back to Routines",
+    "error": "Could not update routines. Check the settings and try again.",
+    "empty": "Add a routine to tell this teammate what to do and when.",
+    "enabled": "Enabled",
+    "paused": "Paused",
+    "runNow": "Run Now",
+    "running": "Running…",
+    "name": "Name",
+    "instructions": "Instructions",
+    "when": "When to Run",
+    "addTrigger": "Add Trigger",
+    "removeTrigger": "Remove Trigger",
+    "schedule": "Schedule",
+    "hourly": "Hourly",
+    "daily": "Daily",
+    "weekdays": "Weekdays",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "interval": "Interval",
+    "advanced": "Advanced…",
+    "everyMinutes": "Every {{count}} Minutes",
+    "minutes": "Minutes",
+    "expression": "Cron Expression",
+    "timezone": "Time Zone",
+    "delete": "Delete Routine",
+    "save": "Save Routine",
+    "deleteConfirm": "Delete this routine and cancel its pending runs?",
+    "keep": "Keep Routine",
+    "history": "Run History",
+    "noRuns": "This routine has not run yet.",
+    "field": "Field",
+    "operator": "Condition",
+    "value": "Value",
+    "addFilter": "Add Condition",
+    "removeFilter": "Remove Condition",
+    "pluginCapability": "Publishes declared events to your routines. Only routines you configure can run.",
+    "time": "Time",
+    "day": "Day",
+    "weekday": "Weekday",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "interrupted": "Interrupted",
+      "cancelled": "Cancelled"
+    },
+    "sourceStatus": {
+      "listening": "Listening",
+      "disconnected": "Not Listening",
+      "error": "Source Needs Attention"
+    },
+    "operators": {
+      "equals": "Equals",
+      "contains": "Contains",
+      "not-equals": "Does Not Equal"
+    }
+  },
+  "cindyMakeDoctor": {
+    "description": "Check the local environment for building Cindy. Usage: /cindy-make-doctor",
+    "title": "Cindy Make · Environment",
+    "scope": "Check tools on this computer",
+    "limits": "Checks only; no installation or source checkout. Source and project dependencies still need checking when building.",
+    "running": "Checking",
+    "passed": "Basic checks passed",
+    "needsAttention": "Some items need attention",
+    "cancelled": "Check stopped",
+    "failed": "Check incomplete. Please retry.",
+    "details": "Show details",
+    "hideDetails": "Hide details",
+    "stop": "Stop check",
+    "recheck": "Check again",
+    "timeout": "The check timed out. Make sure the tool can start, then retry.",
+    "commandUnavailable": "The command list is not ready, or this running version does not include the command. Retry later or update Cindy.",
+    "usage": "Environment checks take no arguments or attachments. Send /cindy-make-doctor on its own.",
+    "localOnly": "Use /cindy-make-doctor on a local Desktop. SSH and device-link are not supported yet.",
+    "checks": {
+      "platform": "System and architecture",
+      "git": "Git",
+      "gitLfs": "Git LFS",
+      "node": "Node.js",
+      "pnpm": "pnpm",
+      "python": "Python",
+      "native": "Native build tools",
+      "storage": "Storage and permissions"
+    },
+    "checkStatus": {
+      "pending": "Pending",
+      "checking": "Checking",
+      "passed": "Passed",
+      "missing": "Not found",
+      "incompatible": "Incompatible",
+      "failed": "Not verified",
+      "warning": "Attention needed",
+      "cancelled": "Stopped",
+      "downloading": "Downloading",
+      "installing": "Installing"
+    },
+    "requirements": {
+      "platform": "Windows x64, macOS x64/arm64, and Linux x64/arm64 are supported. Build on the corresponding OS.",
+      "git": "Requires working Git 2.x or newer. No GitHub account is needed.",
+      "gitLfs": "Requires Git LFS to retrieve large files in the source.",
+      "node": "Requires Node.js ≥ 22.12.",
+      "pnpm": "Requires pnpm ≥ 10.7 and < 11; 10.33.2 is recommended. Automatic downloads are disabled for this check.",
+      "python": "Requires Python 3.{{pythonMinor}} or a newer Python 3.",
+      "native": "Requires C/C++ build tools for this OS.",
+      "nativeWin": "Requires Visual Studio C++ Build Tools, MSBuild, and Windows 10/11 SDK.",
+      "nativeMac": "Requires Xcode Command Line Tools, macOS SDK, and make.",
+      "nativeLinux": "Requires g++ and make (typically provided by build-essential).",
+      "storage": "Checks write access to Cindy's data directory; {{freeGiB}} GiB available. At least 10 GiB is recommended; actual build size varies."
+    }
+  },
+  "cindyMake": {
+    "description": "Check and prepare local tools for a personal Cindy build. Usage: /cindy-make [request]",
+    "localOnly": "/cindy-make currently supports local desktop sessions only. Switch to this device to use it.",
+    "usage": "Use /cindy-make or /cindy-make request. Environment checks do not yet accept attachments, references or comments. Your input is preserved.",
+    "request": "Requested changes",
+    "prepare": {
+      "scope": "Reuse compatible tools; automatically install missing portable tools",
+      "limits": "Tools stay in Cindy's data directory; global tools and PATH are unchanged. System build tools require your OS installer. No source checkout or build yet.",
+      "running": "Preparing tools",
+      "passed": "Basic environment ready",
+      "needsAttention": "Some items need attention",
+      "cancelled": "Preparation stopped",
+      "failed": "Preparation incomplete. Please retry.",
+      "stop": "Stop",
+      "retry": "Retry preparation",
+      "source": {
+        "system": "Existing",
+        "managed": "Managed by Cindy"
+      },
+      "downloadProgress": "{{loaded}} / {{total}} MiB",
+      "installGuide": "Installation guide",
+      "install": "Install missing tools",
+      "errors": {
+        "downloadFailed": "Download failed. Check your connection and retry.",
+        "checksum": "Integrity check failed. Nothing was installed. Please retry.",
+        "installFailed": "The tool could not be installed or started. Check free space and OS compatibility, or install a compatible tool manually, then retry.",
+        "busy": "Another preparation is running. Wait for it to finish, then retry."
+      },
+      "guidance": {
+        "windows": "Install Visual Studio Build Tools with Desktop development with C++, MSBuild and Windows 10/11 SDK, then retry.",
+        "mac": "Install Xcode Command Line Tools (includes Git and macOS SDK) using the command below, then retry.",
+        "linux": "Install Git and C/C++ build tools with your distribution package manager. Choose the matching command below, then retry."
+      }
+    },
+    "upstream": {
+      "pending": "Upstream search starts automatically once every environment check passes.",
+      "needsRequest": "A change request is needed",
+      "needRequest": "Describe the change, including a feature name or error, to search upstream.",
+      "placeholder": "For example: fix message stream flickering",
+      "search": "Search upstream",
+      "searching": "Searching upstream Issues and PRs…",
+      "found": "Found potentially related upstream work",
+      "notFound": "No matching upstream work found",
+      "failed": "Upstream search failed",
+      "cancelled": "Upstream search stopped",
+      "terms": "Keywords: {{terms}}",
+      "author": "by {{author}}",
+      "updated": "updated {{date}}",
+      "notFoundHint": "No public Issue or PR matched these keywords. Different wording may return other results.",
+      "resultHint": "Review the links to judge relevance. Results include only currently open Issues and PRs.",
+      "wait": "Wait for upstream",
+      "personal": "Continue with a personal version",
+      "retry": "Recheck and search again",
+      "expand": "Show upstream results",
+      "collapse": "Hide upstream results",
+      "count": "Found {{count}} potentially related open Issues or PRs",
+      "kind": {
+        "issue": "Issue",
+        "pr": "PR"
+      },
+      "state": {
+        "open": "Open",
+        "closed": "Closed",
+        "merged": "Merged",
+        "unknown": "Closed · merge status unverified"
+      },
+      "choice": {
+        "wait": "Chose to wait for upstream",
+        "personal": "Chose a personal version"
+      },
+      "decisionHint": {
+        "wait": "This workflow has stopped. No subscription or automatic update was created.",
+        "personal": "Your choice is recorded in this card. Source preparation and building are not connected yet; no source has been downloaded or changed."
+      },
+      "failure": {
+        "network": "Could not reach GitHub. Check your connection and retry.",
+        "rateLimit": "GitHub is limiting requests. Wait a moment and retry.",
+        "timeout": "The search timed out. Please retry.",
+        "invalidResponse": "GitHub returned an incomplete or unreadable result. Please retry."
+      }
+    },
+    "title": "Cindy Make",
+    "stepEnvironment": "1 · Prepare environment",
+    "stepUpstream": "2 · Check upstream"
   },
   "composerModes": {
     "cartethyiaBattle": {

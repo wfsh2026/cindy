@@ -9,7 +9,8 @@
 import type { AgentKind, ModelRegistry } from '@cindy/model-providers';
 import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
-import { modelPricingKey, providerReferencePriceQuote } from '../../shared/modelPriceQuote.js';
+import { modelPricingKey } from '../../shared/modelPriceQuote.js';
+import { accountReferencePriceQuote as providerReferencePriceQuote } from './accountReferencePrice.js';
 import type {
   ModelPriceOverrideDesiredQuote,
   ModelPriceOverrideTarget,
@@ -247,7 +248,7 @@ function mergedQuote(
   baseReference?: ComparablePrice | null,
 ): ModelPriceQuote | undefined {
   if (!values) return reference;
-  const savedBaseQuote = baseReference
+  const savedBaseQuote: ModelPriceQuote | undefined = baseReference
     ? {
         providerId: target.providerId,
         modelId: target.modelId,
@@ -398,6 +399,10 @@ function mergedQuote(
     ...(inputTokenPriceBands ? { inputTokenPriceBands } : {}),
     ...(cacheReadPerMtok !== undefined ? { cacheReadPerMtok } : {}),
     ...(cacheCreatePerMtok !== undefined ? { cacheCreatePerMtok } : {}),
+    // Standard-price edits do not change the independent Fast tariff or its currency.
+    ...(mergeReference?.priority && mergeReference.currency === currency
+      ? { priority: mergeReference.priority }
+      : {}),
   };
 }
 

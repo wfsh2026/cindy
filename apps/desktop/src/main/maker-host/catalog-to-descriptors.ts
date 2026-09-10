@@ -1,3 +1,4 @@
+import { isLegacyGptContextProfile } from './legacy-context-profiles.js';
 /**
  * catalog-to-descriptors —— 把 @cindy/model-providers 目录派生成 maker-core 的 per-agent
  * availableModels（ModelDescriptor[]）。
@@ -21,6 +22,7 @@
  */
 
 import {
+  PI_REASONING_EFFORTS,
   isAgentSelectableModel,
   isModelSelectableForNewRoute,
   type Catalog,
@@ -48,19 +50,29 @@ interface SeenModelProjection {
   includesUserProvider: boolean;
 }
 
+function hasValidPiReasoningCapabilities(m: CatalogModel): boolean {
+  const efforts = m.reasoningEfforts;
+  return (
+    Array.isArray(efforts) &&
+    efforts.length > 0 &&
+    efforts.every((effort) => PI_REASONING_EFFORTS.includes(effort)) &&
+    typeof m.reasoningDefaultEffort === 'string' &&
+    efforts.includes(m.reasoningDefaultEffort)
+  );
+}
+
 /** CatalogModel → ModelDescriptor。仅透传 ModelDescriptor 需要的字段；可选字段缺省时不写键。 */
 function toDescriptor(
   m: CatalogModel,
   agent: AgentKind,
   options: DescriptorProjectionOptions = {},
 ): ModelDescriptor {
-  // Pi runtime 原生接受 minimal thinking level。目录里的同一模型常从 CC/Codex
-  // 投影而来而未声明该档；只要模型有 reasoning 档，就把 Pi 的最小档补在最前。
-  // BYOM 的 efforts 则是用户显式声明的协议能力，必须原样保留，不能对外宣称一个
-  // models.json 会禁用的档位。
+  // 缺少或格式错误的 Pi 能力字段继续走旧目录 minimal 兼容补档。合法独立 Pi 目录的
+  // reasoningEfforts 与 BYOM 声明都是协议能力，不能额外公布 models.json 禁用的档位。
   const efforts =
     agent === 'pi' &&
     options.preserveExplicitPiEfforts !== true &&
+    !hasValidPiReasoningCapabilities(m) &&
     m.efforts.length > 0 &&
     !m.efforts.includes('minimal')
       ? (['minimal', ...m.efforts] as const)
@@ -149,6 +161,7 @@ export function deriveAvailableModels(catalog: Catalog, agent: AgentKind): Model
       // availableModels 是旧 mobile / device-link 等消费方的新选择清单，不能依赖下游
       // 再理解 retired。运行中会话仍从持久化 model + 完整 catalog 解析实际路由。
       const userProvider = provider.source === 'user';
+      if (isLegacyGptContextProfile(provider, m.id)) continue;
       if (!isModelSelectableForNewRoute(m, { userProvider })) continue;
       const descriptor = toDescriptor(m, agent, {
         preserveExplicitPiEfforts:
@@ -234,39 +247,31 @@ export function resolvePiGatewayDescriptorProviderId(
  *
  * 返回 null 一律意味着「不收敛」，也就是改动前的行为（fail-safe）。
  */
-export function resolveVerifiedContextWindow(
-  catalog: Catalog,
-  agent: AgentKind,
-  providerId: string | null | undefined,
-  modelId: string,
-): number | null {
-  const candidates: CatalogModel[] = [];
-  for (const provider of catalog.providers) {
-    if (provider.routing[agent]?.disabled === true) continue;
-    if (providerId && provider.id !== providerId) continue;
-    for (const m of provider.models[agent] ?? []) {
-      if (m.id === modelId) candidates.push(m);
-    }
+export { resolveVerifiedContextWindow } from '../../shared/sessionContextWindow';
+
+/** Resolve settings identity without borrowing a same-name model's provider. */
+export function resolveModelContextProviderId(
+  catalog: Pick<Catalog, 'providers'>, agent: AgentKind, providerId: string | null | undefined, modelId: string,
+  implicitDefaultProviderId?: string | null,
+): string | null {
+  if (agent === 'pi' && (providerId == null || providerId === 'cindy')) {
+    return resolvePiGatewayDescriptorProviderId(providerId);
   }
-  if (candidates.length !== 1) return null;
-  const only = candidates[0];
-  if (only.contextWindowVerified !== true) return null;
-  return only.contextWindow > 0 ? only.contextWindow : null;
+  if (providerId) return providerId;
+  const candidates = catalog.providers.filter((provider) => provider.routing[agent]?.disabled !== true &&
+    provider.models[agent]?.some((model) => model.id === modelId));
+  if (candidates.length === 1) return candidates[0]!.id;
+  return implicitDefaultProviderId && candidates.some((provider) => provider.id === implicitDefaultProviderId)
+    ? implicitDefaultProviderId : null;
 }
 
 /**
- * 自定义供应商上用户显式填写的 contextWindow。
- *
- * 注入 thread/start|resume 的 `model_context_window` 与
- * `model_auto_compact_token_limit`(窗口的 95%)。Codex 还会按模型目录里的
- * `max_context_window` 夹紧该值；Desktop 为这类会话启动隔离 app-server，并给它
- * 注入从当前 Codex 二进制提取、只抬高对应模型上限的完整目录。
- * 只认 `source === 'user'` 且 `contextWindowExplicit` 的条目:
- *   - 官方 ChatGPT 订阅走 live catalog 的 1M,不要被这条覆盖;
- *   - 网关核实上限(如 372K)只用于 Cindy 进度条收敛,写进 Codex 会改变官方会话压缩时机。
- * 缺省 200K 展示兜底不算显式,不注入。
+ * The model editor's default window for this exact provider/harness route.
+ * Codex must apply this value even when no user override has been saved.
+ * The caller prepares an isolated native catalog and sets the CLI window and
+ * compaction budget; this value never replaces native runtime usage reports.
  */
-export function resolveExplicitCustomContextWindow(
+export function resolveModelDefaultContextWindow(
   catalog: Catalog,
   agent: AgentKind,
   providerId: string | null | undefined,
@@ -275,11 +280,11 @@ export function resolveExplicitCustomContextWindow(
   const source = providerId?.trim();
   if (!source) return null;
   const provider = catalog.providers.find((entry) => entry.id === source);
-  if (!provider || provider.source !== 'user') return null;
+  if (!provider) return null;
   if (provider.routing[agent]?.disabled === true) return null;
   const model = (provider.models[agent] ?? []).find((entry) => entry.id === modelId);
-  if (!model || model.contextWindowExplicit !== true) return null;
-  return model.contextWindow > 0 ? model.contextWindow : null;
+  return model && Number.isSafeInteger(model.contextWindow) && model.contextWindow > 0
+    ? model.contextWindow : null;
 }
 
 /**

@@ -1,8 +1,14 @@
+import { getBotAuthorizationService } from '../maker-ipc/botAuthorizationService.js';
+import { isResidentBrowserGhost, spawnResidentGhost } from './residentGhost.js';
+import { handleRoutineRequest } from './routineSlot.js';
+import { getRoutineEngine, disconnectRoutineSource } from '../routines/service.js';
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
+  nativeImage,
   safeStorage,
   shell,
   type WebContents,
@@ -14,6 +20,14 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { supportsCindyVersion } from '@cindy/plugin-protocol';
 import { BRAND_NAME } from '@cindy/maker-shared/branding';
+import { buildGhostRecommendationSnapshot } from './ghostRecommendationSnapshot.js';
+import {
+  readGhostRecommendationEntries,
+  replaceGhostRecommendations,
+  markGhostRecommendationInstalled,
+  consumeGhostRecommendationPriority,
+  forgetGhostRecommendations,
+} from './ghostRecommendationStore.js';
 
 import { createLogger } from '../logger.js';
 import { throwIpcError } from '../utils/ipcValidate.js';
@@ -412,7 +426,7 @@ import {
   markGhostRecentlyUsed,
 } from './ghostRecentUsageStore.js';
 import { createXaiImageChannel } from './xaiImageClient.js';
-import { getCindyProxyMediaService } from '../mcp-integrations/cindyProxyMedia.js';
+import { getCindyProxyMediaService, getCindyVideoProviderRegistry } from '../mcp-integrations/cindyProxyMedia.js';
 import { getCindyProxySearchService } from '../mcp-integrations/cindyProxySearch.js';
 import { ImageChannelRegistry, decodeImageResponse } from './imageChannelRegistry.js';
 import { createGeminiImageChannel } from './geminiImageClient.js';
@@ -774,7 +788,7 @@ async function retryLegacyGhostRecoveryForActiveSession(): Promise<LegacyGhostRe
       spawnIfResident(ghost);
       if (
         stopped.browserRuntimeRunning &&
-        ghost.manifest.launch !== 'resident' &&
+        !isResidentBrowserGhost(ghost.manifest) &&
         isGhostAvailableForActiveSession(ghost.manifest.id) &&
         ghost.enabled
       ) {
@@ -1005,6 +1019,7 @@ export function suspendCindyAccountGhosts(): void {
  */
 export async function interruptGhostCallsForAccountBoundary(): Promise<void> {
   cancelActiveGhostOauthFlow();
+  await getBotAuthorizationService()?.dispose();
   getGhostSetupInteractionBridge()?.cleanupAll('session_aborted');
   getGhostGrantConfirmBridge()?.cleanupAll('session_aborted');
   getGhostConfirmDialogBridge()?.cancelAll();
@@ -1459,7 +1474,7 @@ async function reconcileBuiltinGhostsLocked(
       getGhostAgentSlot().clearGhost(manifest.id);
       getGhostErrandSlot().clearGhost(manifest.id);
       // 常驻声明的实例被本次撤销熄掉:记下 id,批准自愈那一轮补点火(见 set 头注释)。
-      if (manifest.launch === 'resident' || manifest.node?.lifecycle === 'resident') {
+      if (isResidentBrowserGhost(manifest) || manifest.node?.lifecycle === 'resident') {
         quenchedResidentBuiltinIds.add(manifest.id);
       }
       approvalChanged = true;
@@ -1640,6 +1655,7 @@ export function getGhostRuntime(): GhostRuntime {
       onFused: (id) => log.warn('ghost fused after repeated crashes', { id }),
       onStateChanged: (id, state) => {
         log.info('ghost runtime state', { id, state });
+        if (state !== 'running') disconnectRoutineSource(id);
         // 崩溃/熄灯时把该意识名下的在途工具调用收掉(结构化失败给 agent)。
         getGhostPipeDispatcher().onRuntimeState(id, state);
         broadcastGhostRuntimeStates();
@@ -3379,7 +3395,7 @@ export function getGhostScheduleSlot(): GhostScheduleSlot {
  * 产物落媒体总仓(blob + 账本,出生=该意识),意识只拿到指纹字符串。
  */
 function getVideoProviderRegistry() {
-  const registry = getCindyProxyMediaService().backend.videoRegistry;
+  const registry = getCindyVideoProviderRegistry();
   if (!registry) return null;
   const xaiCatalogProvider = getActiveCatalog().providers.find(
     (provider) => provider.id === 'xai',
@@ -4095,6 +4111,7 @@ const GHOST_ASPECT_TO_GATEWAY_SIZE: Record<GhostImageAspectRatio, string> = {
  * size 枚举的翻译在适配层完成(通道各家 wire 不同,意图翻译是通道自己的知识)。
  * 后续来源(gemini / openai / xai)在各自 PR 里追加注册。
  */
+const registeredCodexImageAccounts = new Set<string>();
 let imageChannelRegistrySingleton: ImageChannelRegistry | null = null;
 function getImageChannelRegistry(): ImageChannelRegistry {
   if (!imageChannelRegistrySingleton) {
@@ -4239,6 +4256,19 @@ function getImageChannelRegistry(): ImageChannelRegistry {
     });
     imageChannelRegistrySingleton = registry;
   }
+  for (const provider of getActiveCatalog().providers) {
+    if (provider.auth.native !== 'codex' || registeredCodexImageAccounts.has(provider.id)) continue;
+    const providerId = provider.id;
+    imageChannelRegistrySingleton.register(providerId, createCodexImageChannel({
+      providerId,
+      hasOAuthLogin: () => getCodexImageAuthBinding().hasAuth?.(providerId) === true,
+      getAuth: () => getCodexImageAuthBinding().getAuth(providerId),
+      onAuthFailure: async (failure) => { await getCodexImageAuthBinding().onAuthFailure(failure, providerId); },
+      fetchImplementation: ((url, init) => outboundFetch(url as string, init)) as typeof fetch,
+      beforeDispatch: (model) => assertMediaModelStillEnabled('image', model, providerId),
+    }));
+    registeredCodexImageAccounts.add(providerId);
+  }
   return imageChannelRegistrySingleton;
 }
 
@@ -4362,6 +4392,7 @@ function listLocalProviderVideoModels() {
 
 configureProviderMediaRuntime({
   listModels: listLocalProviderMediaModels,
+  listVideoModels: listLocalProviderVideoModels,
   invoke: async (request) => {
     if (request.capability !== 'image.generate' && request.capability !== 'image.edit') {
       throw new Error('当前第三方 Provider 执行通道不支持该媒体能力');
@@ -5007,6 +5038,9 @@ export async function executeGhostSetupAction(args: {
   ghostId: string;
   action: GhostSetupAllowedAction;
   responseTarget?: GhostSetupInteractionResponseTarget;
+  onAuthorizationUrl?: (url: string) => void;
+  assertCurrent?: () => void;
+  beforeCommit?: () => Promise<void>;
 }): Promise<GhostSetupActionResult> {
   const ghost = findAvailableGhost(args.ghostId);
   if (!ghost) {
@@ -5043,9 +5077,7 @@ export async function executeGhostSetupAction(args: {
       args.ghostId,
       secretKey,
       decl,
-      runtimeManifest.network?.hosts?.length
-        ? { deliveryHosts: runtimeManifest.network.hosts }
-        : undefined,
+      { deliveryHosts: runtimeManifest.network?.hosts, onAuthorizationUrl: args.onAuthorizationUrl, assertCurrent: args.assertCurrent, beforeCommit: args.beforeCommit },
     );
     return connected.ok
       ? { ok: true }
@@ -5349,6 +5381,21 @@ export function getGhostLibrarySlot(): GhostLibrarySlot {
           defaultPath: opts.defaultPath,
         });
         return { canceled: picked.canceled, filePath: picked.filePath };
+      },
+      writeClipboardPng: async (pngBytes) => {
+        // 插件要的是外部应用能粘的图像位图,不是 Finder 文件列表。
+        // 禁止复用 media:copy-to-clipboard 的 Set-Clipboard / osascript POSIX file 通道。
+        const candidates = mainShellWindows().filter(
+          (window) => window.isVisible() && !window.isMinimized(),
+        );
+        if (candidates.length === 0) {
+          throw new Error('没有可挂靠的宿主窗口');
+        }
+        const image = nativeImage.createFromBuffer(pngBytes);
+        if (image.isEmpty()) {
+          throw new Error('无法把 PNG 字节写成剪贴板位图');
+        }
+        clipboard.writeImage(image);
       },
     });
     // 面板只读投影(cindy-ghost://<id>/library/<relPath>)的解析器:与电子脑
@@ -5910,6 +5957,13 @@ export async function installOrUpdateLocalGhostPackageFromForge(
           enable: true,
           expectedPackageSha256: expected.packageSha256,
           ...(installOrigin ? { installOrigin } : {}),
+        }).then((ghost) => {
+          try {
+            markGhostRecommendationInstalled(ghost.manifest.id);
+          } catch {
+            log.warn('ghost recommendation install history unavailable');
+          }
+          return ghost;
         }),
         action: 'installed',
       };
@@ -6295,6 +6349,11 @@ async function uninstallGhostAndCleanupLocked(
         error: error instanceof Error ? error.message : String(error),
       });
     }
+    try {
+      forgetGhostRecommendations(id);
+    } catch {
+      log.warn('ghost recommendation cleanup unavailable', { id });
+    }
     // 未读随意识一起走:包都没了还留一颗点,用户既点不开也清不掉。
     // 限速记账一并抹掉,重装后的第一条不该被上一世的时刻挡住。
     extinguishGhostUnread(id);
@@ -6324,40 +6383,17 @@ export function isBuiltinGhostRemovedByUser(id: string): boolean {
 }
 
 /**
- * launch: 'resident' 的意识在"唤醒且在场"时保持电子脑常驻——本函数是所有
+ * launch: 'resident' 或声明 routineEvents 的意识在"唤醒且在场"时保持电子脑常驻——本函数是所有
  * "该在场了"时机的统一入口(应用启动扫描 / 装入即开 / 唤醒 / 更新换代后)。
  * spawn 幂等,重复调用零成本;失败走熔断记账,不抛出(fire-and-forget)。
  */
 function spawnIfResident(ghost: InstalledGhost): void {
-  if (!isGhostAvailableForActiveSession(ghost.manifest.id)) return;
-  if (!ghost.enabled) return;
-  // Node 常驻档与浏览器电子脑的 launch:resident 是两份独立声明、两项独立
-  // 权限。Node 默认按需；只有明确声明 resident 才在这里提前点火。
-  if (ghost.manifest.node?.lifecycle === 'resident') {
-    void getGhostNodeRuntimeBroker()
-      .startResident(ghost)
-      .catch((err) => {
-        log.warn('resident ghost node spawn error', {
-          id: ghost.manifest.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      });
-  }
-  if (ghost.manifest.launch !== 'resident') return;
-  void getGhostRuntime()
-    .spawn(ghost)
-    .then((r) => {
-      if (!r.ok)
-        log.warn('resident ghost spawn failed', { id: ghost.manifest.id, reason: r.reason });
-    })
-    .catch((err) => {
-      // spawn 已把可预期失败折叠成返回值;这里兜住意外异常,常驻点火绝不
-      // 变成 main 进程 unhandledRejection(review P1)。
-      log.warn('resident ghost spawn error', {
-        id: ghost.manifest.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
+  spawnResidentGhost(ghost, {
+    isAvailable: isGhostAvailableForActiveSession,
+    startNode: (installed) => getGhostNodeRuntimeBroker().startResident(installed),
+    spawnBrowser: (installed) => getGhostRuntime().spawn(installed),
+    warn: (message, fields) => log.warn(message, fields),
+  });
 }
 
 function readLegacyJson<T>(
@@ -6859,6 +6895,11 @@ export function registerGhostIpc(): void {
     if (!id) throwIpcError('PERMISSION_DENIED', '非意识电子脑上下文');
     requireGhostAvailableForActiveSession(id);
     const type = (payload as { type?: unknown } | null)?.type;
+    if (type === 'recommendations-update') {
+      const ghost = findAvailableGhost(id);
+      if (!ghost || !ghost.enabled) return { ok: false, errorCode: 'GHOST_ASLEEP' };
+      return replaceGhostRecommendations(id, (payload as { items?: unknown }).items);
+    }
     if (type === 'tool-result') {
       // 交卷结果不回传细节(accepted=false 的原因只进日志,不给沙箱探测面)。
       const outcome = getGhostPipeDispatcher().handleToolResult(id, payload);
@@ -6945,6 +6986,12 @@ export function registerGhostIpc(): void {
     // schedule-request = 打开自动化创建面板并预填(agent 槽的 schedule 加档):
     // 只开面板,任务由用户选模型后亲手保存才落库——本槽全程不碰 schedule storage。
     // 资格审/净化/频率钳制/限速在 scheduleSlot,落地在 renderer。
+    if (type === 'routine-request') {
+      const owner = activeOwnerScopeKey();
+      const ghost = getGhostManager().list().find((item) => item.manifest.id === id);
+      return handleRoutineRequest(ghost, payload, getRoutineEngine, () =>
+        activeOwnerScopeKey() === owner && getGhostManager().list().some((item) => item.manifest.id === id && item.enabled && ghostInstallApprovalToken(item.approval) === ghostInstallApprovalToken(ghost?.approval)));
+    }
     if (type === 'schedule-request') {
       return getGhostScheduleSlot().handleRequest(id, payload);
     }
@@ -7095,6 +7142,25 @@ export function registerGhostIpc(): void {
   ipcMain.on('ghosts:list', (event) => {
     event.returnValue = { ghosts: availableGhosts().map(projectGhostForRenderer) };
   });
+  // Author tasks may contain private context: local trusted application UI only.
+  ipcMain.on('ghosts:recommendations', (event) => {
+    const empty = { ownerId: null, sources: [], recentIds: [], newlyInstalledId: null };
+    if (!isTrustedAppRendererEvent(event)) {
+      event.returnValue = empty;
+      return;
+    }
+    try {
+      event.returnValue = buildGhostRecommendationSnapshot(
+        getActiveAppSession().dataOwnerId,
+        availableGhosts(),
+        readGhostRecommendationEntries(),
+        loadGhostRecentIds(),
+      );
+    } catch {
+      log.warn('ghost recommendation snapshot unavailable');
+      event.returnValue = empty;
+    }
+  });
 
   // Plugin 页的已安装快捷行按最近成功使用排序。历史是主机 UI 状态，不写入
   // publisher-owned manifest；同步读保证列表首帧不先按扫描序再跳成最近序。
@@ -7110,12 +7176,18 @@ export function registerGhostIpc(): void {
       event.returnValue = { ids: [] };
     }
   });
-  ipcMain.handle('ghosts:mark-used', (_event, id: unknown) => {
+  ipcMain.handle('ghosts:mark-used', (event, id: unknown) => {
+    assertTrustedAppRendererEvent(event);
     if (typeof id !== 'string' || !isValidGhostId(id)) {
       throwIpcError('INVALID_PARAMS', 'id must be a valid Ghost id');
     }
     if (!findAvailableGhost(id)) {
       throwIpcError('NOT_FOUND', `意识 ${id} 未安装`);
+    }
+    try {
+      consumeGhostRecommendationPriority(id);
+    } catch {
+      log.warn('ghost recommendation priority cleanup unavailable', { id });
     }
     try {
       const ids = markGhostRecentlyUsed(id);
@@ -7304,12 +7376,17 @@ export function registerGhostIpc(): void {
           textDefaultId === null || textDefaultLabel === null
             ? null
             : { id: textDefaultId, label: textDefaultLabel },
-        declaredModel: declaredResolved && declaredRaw
-          ? {
-              id: encodeCatalogPin(declaredResolved.providerId, declaredResolved.agentKind, declaredResolved.model),
-              label: declaredRaw,
-            }
-          : null,
+        declaredModel:
+          declaredResolved && declaredRaw
+            ? {
+                id: encodeCatalogPin(
+                  declaredResolved.providerId,
+                  declaredResolved.agentKind,
+                  declaredResolved.model,
+                ),
+                label: declaredRaw,
+              }
+            : null,
         // 存量轻量档位钉(目录扩展前钉下的合法值)的展示名表:渲染层据此给
         // 老钉值回显友好名,而不是把合法档位钉当 stale 原样露出 id。
         utilityProfiles: utilityModelPinOptions(),
@@ -7466,6 +7543,13 @@ export function registerGhostIpc(): void {
           ghostId: probe.manifest.id,
           enable,
           expectedPackageSha256,
+        }).then((ghost) => {
+          try {
+            markGhostRecommendationInstalled(ghost.manifest.id);
+          } catch {
+            log.warn('ghost recommendation install history unavailable');
+          }
+          return ghost;
         }),
       };
     } finally {
@@ -7498,10 +7582,7 @@ export function registerGhostIpc(): void {
       throwIpcError('INVALID_PARAMS', 'expectedPackageSha256 must come from ghosts:inspect');
     }
     if (!isGhostInstallApprovalToken(expectedInstalledApproval)) {
-      throwIpcError(
-        'INVALID_PARAMS',
-        'expectedInstalledApproval must come from ghosts:list',
-      );
+      throwIpcError('INVALID_PARAMS', 'expectedInstalledApproval must come from ghosts:list');
     }
     const inspected = await manager.inspect(lizFilePath);
     if ('rejection' in inspected) throwInstallError(inspected.rejection);
@@ -7816,7 +7897,9 @@ export function registerGhostIpc(): void {
     }
     const releaseMutation = beginGhostMutation();
     try {
-      const set = await getGhostLibraryBindingStore().setBinding(id, candidate, (root) => statfsFreeBytes(root));
+      const set = await getGhostLibraryBindingStore().setBinding(id, candidate, (root) =>
+        statfsFreeBytes(root),
+      );
       if (!set.ok) return { ok: false as const, message: set.message };
       await getGhostLibrarySlot().disposeGhost(id); // 作废会话,下一请求用新根
       await refreshMivoLibraryExtraDirGrant();

@@ -1,5 +1,6 @@
 import { isReviewSensitiveCredentialPath } from '@cindy/maker-core';
 import { BRAND_NAME } from '@cindy/maker-shared/branding';
+import { escapeUntrustedPromptMarkup } from '../../shared/untrustedPrompt.js';
 
 import type { TurnChangeSetDetail } from '../../shared/turnChangeSet.js';
 import type {
@@ -82,11 +83,9 @@ const MAX_DIFF_CHARS = 180_000;
 
 function untrustedInline(value: string, max: number, fallback: string): string {
   return (
-    value
-      .replace(/[\p{Cc}\u2028\u2029\u202a-\u202e\u2066-\u2069]+/gu, ' ')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
+    escapeUntrustedPromptMarkup(
+      value.replace(/[\p{Cc}\u2028\u2029\u202a-\u202e\u2066-\u2069]+/gu, ' '),
+    )
       .trim()
       .slice(0, max) || fallback
   );

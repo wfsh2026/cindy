@@ -877,6 +877,9 @@ export function devEnvPrefix(env = process.env, platform = process.platform) {
     ['XDT_ISOLATED_AUTH_PROOF', env.XDT_ISOLATED_AUTH_PROOF],
     // CDP 端口覆写(bootstrap-electron 消费): 并行多开沙箱时给后起实例换端口。
     ['XDT_CDP_PORT', env.XDT_CDP_PORT],
+    // A long-lived Terminal can retain a previous smoke run's environment.
+    // Override its value even when this invocation did not request the smoke.
+    ['CINDY_CUA_SMOKE', env.CINDY_CUA_SMOKE === '1' ? '1' : '0'],
     // 一次性 Grok wire 归因探针(dev-only;正常环境不设置,不产生额外日志)。
     ['XDT_WIRE_DIAGNOSTICS', env.XDT_WIRE_DIAGNOSTICS],
     // 一次性 Grok strict tool spike(dev-only;必须与 wire probe 一起显式开启)。
@@ -901,7 +904,6 @@ export function devEnvPrefix(env = process.env, platform = process.platform) {
     // 插件存储启动边界的 dev 黑盒验收：仅显式临时结果路径时启用。
     ['XDT_PLUGIN_STORAGE_SMOKE_RESULT_FILE', env.XDT_PLUGIN_STORAGE_SMOKE_RESULT_FILE],
   ].filter(([, value]) => value);
-  if (envEntries.length === 0) return '';
 
   if (platform === 'win32') {
     return envEntries
@@ -1067,9 +1069,15 @@ export function applyDesktopStartupConfigForPhase(options) {
   return applyDesktopDevStartupConfig(options);
 }
 
+export function clearInheritedIsolatedAuthAuthorization(env = process.env) {
+  delete env.XDT_ISOLATED_AUTH;
+  delete env.XDT_ALLOW_DEV_OAUTH_WRITE;
+  delete env.XDT_ISOLATED_AUTH_PROOF;
+}
+
 async function main() {
-  // Proofs are minted below only for this invocation's accepted --isolated-auth request.
-  delete process.env.XDT_ISOLATED_AUTH_PROOF;
+  // These capabilities are granted below only for this invocation's accepted --isolated-auth.
+  clearInheritedIsolatedAuthAuthorization();
   let argv = normalizeDesktopRestartArgv(process.argv.slice(2), process.env);
   const sharedArgvConflict = desktopRestartArgvConflictMessage(argv, process.env);
   if (sharedArgvConflict) throw new Error(sharedArgvConflict);

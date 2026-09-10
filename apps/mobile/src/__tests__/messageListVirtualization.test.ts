@@ -160,7 +160,7 @@ describe('mobile message list container', () => {
     expect(maybeFinishSource).toContain('historyTouchStartYRef.current !== null');
     expect(source).toContain('transaction.userHandoffPending = true;');
     expect(source).toContain('currentTransaction.userHandoffPending = false;');
-    // 直接拖动结束前不发请求，避免远端页在手指仍控制 ScrollView 时落地。
+    // Android 的手动锚定等手势结束；iOS 由 native MVCP 保持视口，可在手势中预取。
     expect(source).toContain('queuedLoadEarlierRef.current = true');
     expect(source).toContain('setHistoryPrependNativeMvcpDisabled(true)');
     expect(source).toMatch(
@@ -207,7 +207,7 @@ describe('mobile message list container', () => {
     )).toContain('return;');
     expect(scrollSource).toContain('shouldPreserveMobileHistoryBrowseIntent({');
     expect(scrollSource).toContain('historyBrowseIntent: userScrollForOlderRef.current');
-    expect(scrollSource).toContain('userControllingScroll: isDraggingRef.current');
+    expect(scrollSource).toContain('userControllingScroll: isDragSample');
     // 深链 / 搜索定位本身就是明确的历史浏览意图,后续近顶自动补页无需再拖一下。
     const focusEffectStart = source.indexOf('// 深链/搜索:滚到指定消息');
     const focusEffectEnd = source.indexOf('// 新消息红点', focusEffectStart);
@@ -220,8 +220,8 @@ describe('mobile message list container', () => {
   it('bounds the hidden initial correction while keeping full history mounted', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/session/MessageRenderer.tsx'), 'utf8');
     expect(source).toContain('programmaticScrollInFlight: programmaticScrollInFlightRef.current');
-    expect(source).toContain('evaluateMobileAnchorVerify({');
-    expect(source).toContain('initialAnchorVerifyFrameRef');
+    expect(source).toContain('createMobileTailFollower({');
+    expect(source).not.toContain('initialAnchorVerifyFrameRef');
     expect(source).toContain('scrollToEndProgrammatically(false)');
     // mVCP 只对 size 常开；流式 resize 仍需记 settle 安静窗，跟随 verifier 不能只依赖
     // readingOlderRef 判断是否等待。
@@ -230,8 +230,7 @@ describe('mobile message list container', () => {
     expect(source).toContain('mobileMessageListKeysSignature(itemKeys)');
     expect(source).toContain('[itemKeysSignature, markMobileMvcpSettle]');
     expect(source).not.toContain('[itemKeys, markMobileMvcpSettle]');
-    expect(source.match(/isMobileMvcpSettling\(Date\.now\(\), mvcpSettleAtRef\.current\)/g))
-      .toHaveLength(2);
+    expect(source).toContain('layoutSettleAt: mvcpSettleAtRef.current');
     expect(source).toContain('const nextStableFrames = settled ? stableFrames + 1 : 0;');
 
     expect(source).toContain('key={scrollResetKey}');
@@ -246,19 +245,22 @@ describe('mobile message list container', () => {
     expect(source).toContain('const [listRevealed, setListRevealed] = useState(false);');
     expect(source).toContain('setListRevealed(true);');
     expect(source).toContain('const initialRevealProgress = useMemo(');
-    expect(source).toContain('const initialRevealOpacity = useMemo(');
+    expect(source).toContain('const initialRevealOpacity = listRevealed ? 1 : initialRevealProgress;');
     expect(source).toContain('<Animated.View style={[styles.messageList, { opacity: initialRevealOpacity }]}>');
-    expect(source).toContain('MOBILE_INITIAL_ANCHOR_SETTLE_MS');
-    expect(source).toContain('MOBILE_INITIAL_REVEAL_MAX_MS');
+    expect(source).toContain('const MOBILE_INITIAL_REVEAL_MAX_MS = 300;');
+    expect(source).not.toContain('MOBILE_INITIAL_REVEAL_FADE_MS');
+    expect(source).toContain('onSettled: revealPositionedHistory');
+    expect(source).toContain('tailFollowerRef.current = null;');
     const initialAnchorEffectStart = source.indexOf('// 首次落底：完整历史已经在列表里');
     const initialAnchorEffectEnd = source.indexOf('// 会话切换(scrollResetKey)', initialAnchorEffectStart);
     const initialAnchorEffectSource = source.slice(initialAnchorEffectStart, initialAnchorEffectEnd);
     expect(initialAnchorEffectSource).toContain('Animated.timing(initialRevealProgress, {');
     expect(initialAnchorEffectSource).toContain('useNativeDriver: true');
-    expect(initialAnchorEffectSource).toContain('Date.now() >= revealDeadlineAt');
+    expect(initialAnchorEffectSource).toContain('easing: Easing.step1');
+    expect(initialAnchorEffectSource).not.toContain('const verify =');
     expect(initialAnchorEffectSource).not.toContain('setTimeout(');
     expect(initialAnchorEffectSource).toContain('scrollToEndProgrammatically(false);');
-    expect(initialAnchorEffectSource).toContain('initialAnchorVerifyFrameRef.current = requestAnimationFrame(() => {');
+    expect(initialAnchorEffectSource).not.toContain('requestAnimationFrame(');
     expect(source).not.toContain('initialRevealTimerRef');
     expect(source).not.toContain('messageListSettling');
   });
@@ -283,51 +285,42 @@ describe('mobile message list container', () => {
     expect(expandedStateSource).toContain('blockId ? store.subscribe(listener) : () => {}');
   });
 
-  it('clears stale history intent before verifying an explicit follow-latest request', () => {
+  it('uses the same explicit action for sending and jumping to the latest message', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/session/MessageRenderer.tsx'), 'utf8');
-    const effectStart = source.indexOf('// 「跳到最新」请求');
+    const effectStart = source.indexOf('// Sending and the jump button');
     const effectEnd = source.indexOf('// 自动加载更早', effectStart);
-    const effectSource = source.slice(effectStart, effectEnd);
-    const clearHistoryIntentAt = effectSource.indexOf('userScrollForOlderRef.current = false');
-    const verifyAt = effectSource.indexOf('runStickToLatestVerify();');
-
-    expect(effectStart).toBeGreaterThan(-1);
-    expect(effectEnd).toBeGreaterThan(effectStart);
-    expect(clearHistoryIntentAt).toBeGreaterThan(-1);
-    expect(verifyAt).toBeGreaterThan(clearHistoryIntentAt);
+    expect(source.slice(effectStart, effectEnd)).toContain('scrollToBottom();');
+    const jump = source.slice(source.indexOf('const scrollToBottom'), source.indexOf('const jumpToPreviousUserMessage'));
+    expect(jump.indexOf('userScrollForOlderRef.current = false')).toBeLessThan(
+      jump.indexOf("scrollToEndProgrammatically(true, 'explicit')"),
+    );
   });
 
-  it('verifies a manual jump-to-latest after issuing the animated scroll', () => {
+  it('routes manual jump-to-latest through the controller that owns seek and verification', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/session/MessageRenderer.tsx'), 'utf8');
     const callbackStart = source.indexOf('const scrollToBottom = useCallback');
     const callbackEnd = source.indexOf('const jumpToPreviousUserMessage', callbackStart);
     const callbackSource = source.slice(callbackStart, callbackEnd);
-    const scrollAt = callbackSource.indexOf('scrollToEndProgrammatically(true);');
-    const verifyAt = callbackSource.indexOf('runStickToLatestVerify();');
+    const scrollAt = callbackSource.indexOf("scrollToEndProgrammatically(true, 'explicit');");
 
     expect(callbackStart).toBeGreaterThan(-1);
     expect(callbackEnd).toBeGreaterThan(callbackStart);
     expect(scrollAt).toBeGreaterThan(-1);
-    expect(verifyAt).toBeGreaterThan(scrollAt);
+    expect(callbackSource).not.toContain('runStickToLatestVerify();');
     expect(callbackSource).toContain(
-      '}, [cancelHistoryPrependTransaction, runStickToLatestVerify, scrollToEndProgrammatically]);',
+      '}, [cancelHistoryPrependTransaction, scrollToEndProgrammatically]);',
     );
   });
 
-  it('waits for an animated follow scroll to settle before issuing non-animated verification retries', () => {
+  it('passes native geometry and animation ownership into the tail controller', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/session/MessageRenderer.tsx'), 'utf8');
-    const verifyStart = source.indexOf('const runStickToLatestVerify = useCallback');
-    const verifyEnd = source.indexOf('// DEV-only:', verifyStart);
-    const verifySource = source.slice(verifyStart, verifyEnd);
-    const contentSizeStart = source.indexOf('const handleContentSize = useCallback');
-    const contentSizeEnd = source.indexOf('// 冷开落底', contentSizeStart);
-    const contentSizeSource = source.slice(contentSizeStart, contentSizeEnd);
-
-    expect(verifySource).toContain('mobileFollowVerifyStartDelayMs({');
-    expect(verifySource).toContain('followVerifyTimerRef.current = setTimeout');
-    expect(contentSizeSource).toContain('if (programmaticAnimatedScrollInFlightRef.current)');
-    expect(contentSizeSource.indexOf('if (programmaticAnimatedScrollInFlightRef.current)'))
-      .toBeLessThan(contentSizeSource.indexOf('scrollToEndProgrammatically(false)'));
+    const adapter = source.slice(source.indexOf('const getTailFollower'), source.indexOf('const scrollToEndProgrammatically'));
+    expect(adapter).toContain('metrics: scrollMetricsRef.current');
+    expect(adapter).toContain('programmaticAnimatedScrollInFlightRef.current');
+    expect(adapter).toContain('programmaticScrollSettleAtRef.current');
+    expect(adapter).toContain('scrollToOffset({ animated: false, offset })');
+    expect(source).not.toContain('followVerifyFrameRef');
+    expect(source).not.toContain('followEndPinRecoveryTimerRef');
   });
 
   it('clears stale history intent when a manual downward scroll re-pins at the bottom', () => {
@@ -345,8 +338,8 @@ describe('mobile message list container', () => {
 
   it('keeps follow verification enabled for a dead-zone drag that never actually unpins', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/session/MessageRenderer.tsx'), 'utf8');
-    const verifyStart = source.indexOf('const runStickToLatestVerify');
-    const verifyEnd = source.indexOf('// DEV-only:', verifyStart);
+    const verifyStart = source.indexOf('const getTailFollower');
+    const verifyEnd = source.indexOf('const scrollToEndProgrammatically', verifyStart);
     const verifySource = source.slice(verifyStart, verifyEnd);
 
     expect(verifyStart).toBeGreaterThan(-1);

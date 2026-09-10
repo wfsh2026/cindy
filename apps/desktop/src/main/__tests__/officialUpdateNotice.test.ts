@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyOfficialNoticeAction, getOfficialUpdateSnapshot, normalizeOfficialNoticeState, officialUpdateScopeKey, recordOfficialUpdateCheck } from '../officialUpdateNotice';
 
+vi.mock('../../../personal-build.json', () => ({ default: {
+  edition: 'personal', upstreamVersion: '0.1.72', upstreamCommit: 'a'.repeat(40), changeKeys: ['officialNotices'],
+} }));
+
 const harness = vi.hoisted(() => ({ state: { records: {} } as ReturnType<typeof normalizeOfficialNoticeState>, beta: false, canary: false, version: '0.1.80' }));
 vi.mock('electron', () => ({ app: { getPath: () => 'unused', getVersion: () => harness.version } }));
 vi.mock('../canaryFlagStore', () => ({ read: () => harness.canary }));

@@ -1,3 +1,4 @@
+import { expandedRegistryEntries, providerMediaField } from '@cindy/model-providers';
 /**
  * modelPlanePolicy —— 内置供应商模型平面的**表驱动 policy**(纯逻辑,零 IO)。
  *
@@ -12,7 +13,8 @@
  *    硬约束最后收口。共享变换与拓扑都集中在本模块,目录装配和续跑描述符不得各写一套。
  *
  * Pi 不在 wire enum(protocol MODEL_ACCESS_AGENTS 只有 claude-code/codex)，也不从这两个
- * harness 复制。Pi 的成员与能力由客户端 Pi 原生目录和明确的 Pi 覆盖单独装配。
+ * harness 复制。本模块仅承担旧 Registry 根／桥接投影。Pi 消费 Server 的显式 models.pi，缺字段才
+ * 使用随包兜底；三个 Harness 的元数据仍经共同合并层处理。
  *  - openai:  codex root → claude-code bridge(membership 门控);
  *  - anthropic: claude-code root → codex bridge(membership 门控,fast=false);
  *  - xai:    claude-code/codex 双 root(perAgent 各自应用);
@@ -21,6 +23,9 @@
  */
 
 import {
+  clampEffortToSupported,
+  defaultEffortForCapabilities,
+  modelDefaultEffort,
   findModelRegistryRoute,
   type AgentKind,
   type CatalogModel,
@@ -114,26 +119,11 @@ type Effort = CatalogModel['efforts'][number];
 /** Claude 的 OpenAI bridge 默认收起的旧型号;与既有目录行为保持一致。 */
 const BRIDGE_DEFAULT_HIDDEN_SLUGS: ReadonlySet<string> = new Set(['gpt-5.4', 'gpt-5.4-mini']);
 
-/** anthropic-responses bridge 不会兑现的 GPT 思考档,投影时必须在客户端硬封顶。 */
-const CLAUDE_BRIDGE_UNSUPPORTED_EFFORTS: ReadonlySet<Effort> = new Set(['max', 'ultra']);
-
 /** OpenAI Codex root → Claude bridge。 */
 export function toChatgptBridgeModel(model: CatalogModel): CatalogModel {
-  const bridgeEfforts = model.efforts.filter(
-    (effort) => !CLAUDE_BRIDGE_UNSUPPORTED_EFFORTS.has(effort),
-  );
-  const cappedDefault: Effort | null =
-    model.defaultEffort && CLAUDE_BRIDGE_UNSUPPORTED_EFFORTS.has(model.defaultEffort)
-      ? bridgeEfforts.includes('xhigh')
-        ? 'xhigh'
-        : (bridgeEfforts[bridgeEfforts.length - 1] ?? null)
-      : model.defaultEffort;
   return {
     ...model,
     id: `${CHATGPT_MODEL_PREFIX}${model.id}`,
-    ...(bridgeEfforts.length !== model.efforts.length
-      ? { efforts: bridgeEfforts, defaultEffort: cappedDefault }
-      : {}),
     ...(BRIDGE_DEFAULT_HIDDEN_SLUGS.has(model.id) ? { defaultEnabled: false } : {}),
   };
 }
@@ -208,6 +198,7 @@ interface EffectiveRouteFields {
   description?: string;
   sortOrder?: number;
   contextWindow?: number;
+  contextWindowMax?: number;
   maxOutput?: number;
   efforts?: Effort[];
   defaultEffort?: Effort | null;
@@ -224,24 +215,22 @@ function effectiveRouteFields(
 ): EffectiveRouteFields {
   const override = agent ? entry.perAgent?.[agent] : undefined;
   const efforts = override?.efforts ?? entry.efforts;
-  const candidateDefaultEffort = override?.defaultEffort ?? entry.defaultEffort;
+  // The model owns the default intent. Legacy perAgent defaults must not change it.
+  const candidateDefaultEffort = modelDefaultEffort(entry);
   const hasInvalidEffort =
     efforts !== undefined &&
     (!Array.isArray(efforts) || efforts.some((effort) => !VALID_EFFORTS.has(effort)));
   const validatedEfforts =
     efforts !== undefined && !hasInvalidEffort ? ([...efforts] as Effort[]) : undefined;
   const defaultEffort: Effort | null | undefined =
-    validatedEfforts === undefined
-      ? candidateDefaultEffort !== undefined && VALID_EFFORTS.has(candidateDefaultEffort)
-        ? (candidateDefaultEffort as Effort)
-        : undefined
-      : validatedEfforts.length === 0
-        ? null
-        : candidateDefaultEffort !== undefined &&
-            VALID_EFFORTS.has(candidateDefaultEffort) &&
-            validatedEfforts.includes(candidateDefaultEffort as Effort)
+    candidateDefaultEffort === null || validatedEfforts?.length === 0
+      ? null
+      : validatedEfforts === undefined
+        ? candidateDefaultEffort !== undefined && VALID_EFFORTS.has(candidateDefaultEffort)
           ? (candidateDefaultEffort as Effort)
-          : undefined;
+          : undefined
+        : ((clampEffortToSupported(candidateDefaultEffort, validatedEfforts) ??
+            defaultEffortForCapabilities(validatedEfforts)) as Effort | null);
   return {
     name: entry.name,
     ...(entry.group !== undefined ? { group: entry.group } : {}),
@@ -250,6 +239,7 @@ function effectiveRouteFields(
     ...(override?.contextWindow !== undefined || entry.contextWindow !== undefined
       ? { contextWindow: override?.contextWindow ?? entry.contextWindow }
       : {}),
+    ...(entry.contextWindow !== undefined ? { contextWindowMax: entry.contextWindow } : {}),
     ...(entry.maxOutputTokens !== undefined ? { maxOutput: entry.maxOutputTokens } : {}),
     ...(validatedEfforts !== undefined ? { efforts: validatedEfforts } : {}),
     ...(defaultEffort !== undefined ? { defaultEffort } : {}),
@@ -269,8 +259,8 @@ function effectiveRouteFields(
  * 实体化门禁(protocol MODEL_REGISTRY.md 的 policy-based materialization 契约):
  *  - providerId ∈ allowlist,agent ∈ roots ∩ route.agents;
  *  - status 显式 ∈ {active, preview, deprecated}(缺失 = metadata-only,永不长实体);
- *  - 能力自洽完整:contextWindow>0、efforts 显式在场;efforts=[] ⇒ defaultEffort:=null
- *    (确定性推导);非空 efforts ⇒ effective default 必须显式在场且 ∈ efforts,不准猜。
+ *  - 能力自洽完整:contextWindow>0；缺省 efforts 只在最终实体化时按 [] 处理；efforts=[] ⇒ defaultEffort:=null
+ *    (确定性推导);非空 efforts 的默认值缺失时按共同策略从已声明档位选取，不合成新能力。
  *  - 不满足 ⇒ 该 route 单独跳过 + warning,不拖垮其余(隔离)。
  *
  * overlay(registry 显式字段 > discovery 显式值)对**已存在**条目始终适用(含
@@ -285,11 +275,13 @@ export function planRegistryRoots(registry: ModelRegistry | undefined): ModelPla
   };
   if (!registry) return plan;
   const claimedRootRoutes = new Set<string>();
-  for (const entry of registry.models) {
+  for (const entry of expandedRegistryEntries(registry)) {
     const status = materializableStatus(entry.status);
     for (const route of entry.routes) {
       const policy = MODEL_PLANE_POLICIES.get(route.providerId);
       if (!policy) continue;
+      // V4 media routes belong to media projections, not the chat root plane.
+      if (route.agents.length === 0 && providerMediaField(entry.mode)) continue;
       const routeAgents = route.agents as readonly RootAgentKind[];
       const memberRoots = policy.roots.filter((agent) => routeAgents.includes(agent));
       const canonicalPrefix = `${route.providerId}/`;
@@ -408,6 +400,9 @@ export function planRegistryRoots(registry: ModelRegistry | undefined): ModelPla
       for (const bridgeAgent of policy.membershipGatedBridges) {
         if (!routeAgents.includes(bridgeAgent)) continue;
         const fields = effectiveRouteFields(entry, bridgeAgent);
+        // A root's default is not consent to a cross-harness bridge. The online
+        // per-agent policy may opt in; local consumer overrides are applied later.
+        fields.defaultEnabled = entry.perAgent?.[bridgeAgent]?.defaultEnabled ?? false;
         if (fields.validationError) {
           plan.warnings.push({
             source: 'registry',
@@ -418,20 +413,8 @@ export function planRegistryRoots(registry: ModelRegistry | undefined): ModelPla
           });
           continue;
         }
-        if (
-          fields.efforts !== undefined &&
-          fields.efforts.length > 0 &&
-          (fields.defaultEffort == null || !fields.efforts.includes(fields.defaultEffort))
-        ) {
-          plan.warnings.push({
-            source: 'registry',
-            providerId: route.providerId,
-            agent: bridgeAgent,
-            modelId: route.modelId,
-            reason: 'bridge consumer has efforts but no self-consistent defaultEffort',
-          });
-          continue;
-        }
+        // 已存在的 root 投影允许缺省默认档；合并时按 root overlay 的同一规则收敛。
+        // 不可套用新实体的完整性门禁，连带丢掉 Fast 等独立的显式字段。
         const key = consumerPlanKey(route.providerId, bridgeAgent);
         let overlays = plan.consumers.get(key);
         if (!overlays) {
@@ -471,8 +454,32 @@ export function applyRegistryConsumerOverlay(
   plan: ModelPlaneRegistryPlan,
 ): CatalogModel {
   const overlay = plan.consumers.get(consumerPlanKey(providerId, consumer))?.get(rootModelId);
-  if (!overlay) return model;
-  return { ...model, ...overlay };
+  const bridge =
+    MODEL_PLANE_POLICIES.get(providerId)?.membershipGatedBridges.includes(
+      consumer as RootAgentKind,
+    ) === true;
+  const withDefaults = bridge ? { ...model, defaultEnabled: false } : model;
+  return overlay ? applyExistingRegistryOverlay(withDefaults, overlay) : withDefaults;
+}
+
+/** 已存在实体的字段覆盖：保留有效默认档，能力变化时复用既有确定性回退。 */
+function applyExistingRegistryOverlay(
+  model: CatalogModel,
+  overlay: Partial<CatalogModel>,
+): CatalogModel {
+  const overlaid = { ...model, ...overlay };
+  // 新实体仍由 toMaterializedModel 要求显式自洽；这里只处理已有 root/bridge。
+  if (overlay.efforts !== undefined) {
+    const { efforts, defaultEffort } = overlaid;
+    if (efforts.length === 0) return { ...overlaid, defaultEffort: null };
+    if (defaultEffort !== null && !efforts.includes(defaultEffort)) {
+      return {
+        ...overlaid,
+        defaultEffort: defaultEffortForCapabilities(efforts),
+      };
+    }
+  }
+  return overlaid;
 }
 
 /** registry 显式字段 → 已存在条目的 overlay(在场即胜出,不在场不触碰)。 */
@@ -488,6 +495,7 @@ function toOverlay(
     ...(fields.contextWindow !== undefined && fields.contextWindow > 0
       ? { contextWindow: fields.contextWindow, contextWindowVerified: true }
       : {}),
+    ...(fields.contextWindowMax !== undefined ? { contextWindowMax: fields.contextWindowMax } : {}),
     ...(fields.maxOutput !== undefined ? { maxOutput: fields.maxOutput } : {}),
     ...(fields.efforts !== undefined ? { efforts: fields.efforts } : {}),
     ...(fields.defaultEffort !== undefined ? { defaultEffort: fields.defaultEffort } : {}),
@@ -512,17 +520,14 @@ function toMaterializedModel(
   if (fields.contextWindow === undefined || fields.contextWindow <= 0) {
     return 'materializable route has no positive contextWindow';
   }
-  if (fields.efforts === undefined) {
-    return 'materializable route has no explicit efforts';
-  }
-  let defaultEffort: Effort | null;
-  if (fields.efforts.length === 0) {
-    defaultEffort = null;
-  } else if (fields.defaultEffort != null && fields.efforts.includes(fields.defaultEffort)) {
-    defaultEffort = fields.defaultEffort;
-  } else {
-    return 'materializable route has efforts but no self-consistent defaultEffort';
-  }
+  // Preserve absence through inheritance so discovery can supply known levels.
+  // Only a new entity without that evidence uses no explicit effort.
+  const efforts = fields.efforts ?? [];
+  const defaultEffort: Effort | null =
+    fields.defaultEffort === null || efforts.length === 0
+      ? null
+      : ((clampEffortToSupported(fields.defaultEffort, efforts) ??
+          defaultEffortForCapabilities(efforts)) as Effort | null);
   return {
     id: modelId,
     name: fields.name,
@@ -531,8 +536,9 @@ function toMaterializedModel(
     ...(fields.sortOrder !== undefined ? { sortOrder: fields.sortOrder } : {}),
     contextWindow: fields.contextWindow,
     contextWindowVerified: true,
+    ...(fields.contextWindowMax !== undefined ? { contextWindowMax: fields.contextWindowMax } : {}),
     ...(fields.maxOutput !== undefined ? { maxOutput: fields.maxOutput } : {}),
-    efforts: fields.efforts,
+    efforts,
     defaultEffort,
     ...(fields.supportsFastMode !== undefined ? { supportsFastMode: fields.supportsFastMode } : {}),
     status,
@@ -557,20 +563,7 @@ export function applyRootRegistryPlan(
   const existingIds = new Set(models.map((m) => m.id));
   const out = models.map((m) => {
     const overlay = rootPlan.overlays.get(m.id);
-    let overlaid = overlay ? { ...m, ...overlay } : m;
-    // 只有已有 discovery/静态证据的条目允许确定性修复缺失默认档。纯远端新实体
-    // 仍由 toMaterializedModel 严格要求显式自洽，不在这里猜。
-    if (overlay?.efforts !== undefined) {
-      const efforts = overlaid.efforts;
-      const defaultEffort = overlaid.defaultEffort;
-      if (efforts.length === 0) overlaid = { ...overlaid, defaultEffort: null };
-      else if (defaultEffort === null || !efforts.includes(defaultEffort)) {
-        overlaid = {
-          ...overlaid,
-          defaultEffort: efforts.includes('high') ? 'high' : efforts[efforts.length - 1]!,
-        };
-      }
-    }
+    const overlaid = overlay ? applyExistingRegistryOverlay(m, overlay) : m;
     return rootPlan.retired.has(m.id) ? { ...overlaid, status: 'retired' as const } : overlaid;
   });
   for (const addition of rootPlan.additions) {

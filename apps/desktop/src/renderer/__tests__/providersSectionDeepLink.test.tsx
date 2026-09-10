@@ -8,7 +8,7 @@
  *   4. wizard=1 → 向导目录第一步(entry undefined)。
  */
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, act, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +22,7 @@ const {
   codexAuthActions,
   toastError,
   setModelVisibilitiesSpy,
+  customDialogSpy,
 } = vi.hoisted(() => ({
   wizardSpy: vi.fn(),
   providersState: { providers: [] as unknown[], order: [] as string[] },
@@ -38,6 +39,7 @@ const {
   },
   toastError: vi.fn(),
   setModelVisibilitiesSpy: vi.fn(() => true),
+  customDialogSpy: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -59,7 +61,8 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 vi.mock('@/hooks/useCodexAuth', () => ({
-  isChatGptConnectionConnected: () => false,
+  isChatGptConnectionConnected: (state: { kind?: string; authSource?: string }) =>
+    state.kind === 'authenticated' && state.authSource === 'oauth',
   useCodexAuth: () => ({
     ...codexAuthState,
     ...codexAuthActions,
@@ -84,6 +87,12 @@ vi.mock('@/lib/toast', () => ({
 
 vi.mock('@/lib/customProviders', () => ({
   deleteCustomProvider: vi.fn(),
+  providerViewToCustomProviderConfig: (provider: ProviderView) => ({
+    id: provider.id,
+    name: provider.name,
+    auth: provider.auth,
+    runtimes: {},
+  }),
   readCustomProviderKey: vi.fn(async () => null),
   updateCustomProvider: vi.fn(),
 }));
@@ -105,7 +114,10 @@ vi.mock('@/state/modelVisibilityPrefs', () => ({
 }));
 
 vi.mock('@/components/settings/CustomProviderDialog', () => ({
-  CustomProviderDialog: () => null,
+  CustomProviderDialog: (props: unknown) => {
+    customDialogSpy(props);
+    return React.createElement('div', { 'data-testid': 'custom-provider-dialog-stub' });
+  },
 }));
 
 vi.mock('@/components/settings/AddProviderWizard', () => ({
@@ -184,6 +196,207 @@ afterEach(() => {
 });
 
 describe('ProvidersSection — 深链定位', () => {
+  it.each([true, false])(
+    'keeps a native Codex account without models visible (connected=%s)',
+    async (connected) => {
+      providersState.providers = [
+        makeProvider('openai-account', {
+          name: 'OpenAI Work',
+          source: 'user',
+          agents: ['codex'],
+          auth: { method: 'oauth', native: 'codex' },
+          models: { codex: [] },
+          connected,
+        }),
+      ];
+      renderAt('?tab=providers&connect=openai-account');
+      expect(await screen.findByRole('button', { name: /OpenAI Work/ })).toBeTruthy();
+      expect(screen.queryByTestId('wizard-stub')).toBeNull();
+      expect(
+        await screen.findByRole('button', {
+          name: connected
+            ? 'settings.providers.button.disconnect'
+            : 'settings.providers.button.authorize',
+        }),
+      ).toBeTruthy();
+    },
+  );
+
+  it('added OpenAI shares status and moves rename/delete into the single menu', async () => {
+    providersState.providers = [
+      makeProvider('openai-work', {
+        name: 'Work account',
+        source: 'user',
+        agents: ['codex'],
+        connected: true,
+        auth: { method: 'oauth', native: 'codex' },
+        models: { codex: [] },
+      }),
+    ];
+    renderAt('?tab=providers&connect=openai-work');
+    const actions = await screen.findByTestId('provider-detail-actions');
+    expect(within(actions).getByText('settings.providers.pill.connected')).toBeTruthy();
+    expect(within(actions).getAllByRole('button')).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: 'settings.providers.custom.deleteAria' }),
+    ).toBeNull();
+    expect(screen.queryByText('settings.providers.custom.tag')).toBeNull();
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'settings.providers.detail.moreActionsAria' }),
+      { button: 0, ctrlKey: false },
+    );
+    const menu = await screen.findByRole('menu');
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      'settings.providers.pill.rename',
+      'settings.providers.menu.disableProvider',
+      'settings.providers.custom.deleteAria',
+    ]);
+    fireEvent.click(within(menu).getByText('settings.providers.pill.rename'));
+    expect(await screen.findByTestId('custom-provider-dialog-stub')).toBeTruthy();
+    expect(customDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ initial: expect.objectContaining({ id: 'openai-work' }) }),
+    );
+  });
+
+  it('API key presence is configured rather than authenticated', async () => {
+    providersState.providers = [
+      makeProvider('api-work', {
+        models: {
+          'claude-code': [
+            {
+              id: 'test-model',
+              name: 'Test',
+              contextWindow: 100,
+              efforts: [],
+              defaultEffort: null,
+            },
+          ],
+        },
+        source: 'user',
+        connected: true,
+        auth: { method: 'apiKey' },
+      }),
+    ];
+    renderAt('?tab=providers&connect=api-work');
+    const actions = await screen.findByTestId('provider-detail-actions');
+    expect(within(actions).getByText('settings.providers.pill.configured')).toBeTruthy();
+    expect(within(actions).queryByText('settings.providers.pill.connected')).toBeNull();
+    expect(within(actions).queryByRole('button')).toBeNull();
+  });
+
+  it('added OpenAI recovery overrides a stale connected snapshot', async () => {
+    providersState.providers = [
+      makeProvider('openai-work', {
+        source: 'user',
+        connected: true,
+        agents: ['codex'],
+        models: { codex: [] },
+        auth: { method: 'oauth', native: 'codex' },
+        openAiAccount: { source: 'oauth', reconnectRequired: true },
+      }),
+    ];
+    renderAt('?tab=providers&connect=openai-work');
+    const actions = await screen.findByTestId('provider-detail-actions');
+    expect(within(actions).getByText('settings.providers.openai.reconnectRequired')).toBeTruthy();
+    expect(
+      within(actions).getByRole('button', { name: 'settings.providers.openai.reconnect' }),
+    ).toBeTruthy();
+    expect(within(actions).queryByText('settings.providers.pill.connected')).toBeNull();
+  });
+
+  it('a cancelled login cannot clear a newer login on the same account', async () => {
+    const completions: ((result: { ok: boolean }) => void)[] = [];
+    const login = vi.fn(() => new Promise<{ ok: boolean }>((resolve) => completions.push(resolve)));
+    Object.assign(window.electronAPI.maker, {
+      providerOAuthLogin: login,
+      providerOAuthCancel: vi.fn(async () => ({ ok: true })),
+    });
+    providersState.providers = [
+      makeProvider('openai-work', {
+        source: 'user',
+        connected: false,
+        agents: ['codex'],
+        models: { codex: [] },
+        auth: { method: 'oauth', native: 'codex' },
+      }),
+    ];
+    renderAt('?tab=providers&connect=openai-work');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'settings.providers.button.authorize' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'settings.providers.button.cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'settings.providers.button.authorize' }));
+    await act(async () => completions[0]({ ok: false }));
+    expect(screen.getByRole('button', { name: 'settings.providers.button.cancel' })).toBeTruthy();
+    expect(toastError).not.toHaveBeenCalled();
+    expect(login).toHaveBeenCalledTimes(2);
+    expect(login.mock.calls[0]).toEqual([
+      'openai-work',
+      expect.objectContaining({ ownerId: expect.any(String) }),
+    ]);
+    await act(async () => completions[1]({ ok: false }));
+    expect(
+      screen.getByRole('button', { name: 'settings.providers.button.authorize' }),
+    ).toBeTruthy();
+  });
+
+  it('Dev 只读复用 OpenAI 登录态时保持已连接且不能断开', async () => {
+    codexAuthState.state = {
+      kind: 'authenticated',
+      authSource: 'oauth',
+      credentialScope: 'system-shared',
+      oauthWritesBlocked: true,
+    };
+    providersState.providers = [
+      makeProvider('openai', {
+        name: 'OpenAI',
+        agents: ['codex', 'claude-code'],
+        connected: true,
+        models: { codex: [], 'claude-code': [] },
+      }),
+    ];
+    renderAt('?tab=providers&connect=openai');
+
+    const disconnect = await screen.findByRole('button', {
+      name: 'settings.providers.button.disconnect',
+    });
+    expect((disconnect as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(disconnect);
+    expect(codexAuthActions.logout).not.toHaveBeenCalled();
+  });
+
+  it('invalidated OpenAI auth blocks model selection even before the catalog reports disconnection', async () => {
+    codexAuthState.state = { kind: 'reconnect-required', reason: 'token_revoked' };
+    providersState.providers = [
+      makeProvider('openai', {
+        name: 'OpenAI',
+        connected: true,
+        agents: ['codex'],
+        models: {
+          codex: [
+            {
+              id: 'gpt-6',
+              name: 'GPT-6',
+              contextWindow: 272_000,
+              efforts: [],
+              defaultEffort: null,
+            },
+          ],
+        },
+      }),
+    ];
+    renderAt('?tab=providers&connect=openai');
+    const toggle = (await screen.findByRole('switch', { name: 'GPT-6' })) as HTMLButtonElement;
+    expect(toggle.disabled).toBe(true);
+    fireEvent.click(toggle);
+    expect(setModelVisibilitiesSpy).not.toHaveBeenCalled();
+    expect(screen.getByText('settings.providers.models.manage.connectionRequired')).toBeTruthy();
+  });
+
   it('ChatGPT 系统共享登录失效时显示来源说明并打开 ChatGPT App', async () => {
     codexAuthState.state = {
       kind: 'reconnect-required',
@@ -259,9 +472,75 @@ describe('ProvidersSection — 深链定位', () => {
 
     // 详情头切到 anthropic(默认是置顶的 xd;title key 只在详情头出现)。向导不打开。
     await waitFor(() =>
-      expect(screen.getByText('settings.providers.anthropic.title')).not.toBeNull(),
+      expect(screen.getByTestId('provider-detail-identity').textContent).toContain('Anthropic'),
     );
     expect(screen.queryByTestId('wizard-stub')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?tab=providers'));
+  });
+
+  it.each([true, false])(
+    '内置供应商深链会定位目标模型行（默认显示：%s）',
+    async (defaultEnabled) => {
+      providersState.providers = [
+        makeProvider('openai', {
+          name: 'OpenAI',
+          connected: true,
+          agents: ['codex'],
+          models: {
+            codex: [
+              {
+                id: 'gpt-unknown',
+                defaultEnabled,
+                name: 'GPT Unknown',
+                contextWindow: 0,
+                efforts: [],
+                defaultEffort: null,
+              },
+            ],
+          },
+        }),
+      ];
+      const view = renderAt('?tab=providers&connect=openai&model=gpt-unknown&agent=codex');
+
+      await waitFor(() =>
+        expect(view.container.querySelector('[data-deep-link-target="true"]')).not.toBeNull(),
+      );
+      expect(screen.getByText('GPT Unknown')).not.toBeNull();
+      await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?tab=providers'));
+    },
+  );
+
+  it('自定义供应商深链会打开编辑表单并定位模型上下文窗口', async () => {
+    providersState.providers = [
+      makeProvider('custom-provider', {
+        name: 'Custom Provider',
+        source: 'user',
+        connected: true,
+        agents: ['codex'],
+        auth: { method: 'apiKey' },
+        models: {
+          codex: [
+            {
+              id: 'custom-model',
+              name: 'Custom Model',
+              contextWindow: 0,
+              efforts: [],
+              defaultEffort: null,
+            },
+          ],
+        },
+      }),
+    ];
+    renderAt('?tab=providers&connect=custom-provider&model=custom-model&agent=codex');
+
+    expect(await screen.findByTestId('custom-provider-dialog-stub')).not.toBeNull();
+    expect(customDialogSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        focusModelId: 'custom-model',
+        focusAgent: 'codex',
+        initial: expect.objectContaining({ id: 'custom-provider' }),
+      }),
+    );
     await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?tab=providers'));
   });
 
@@ -346,7 +625,7 @@ describe('ProvidersSection — 深链定位', () => {
       ],
       false,
     );
-    expect(toastError).toHaveBeenCalledWith('settings.providers.models.visibilityWriteFailed');
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('settings.providers.models.visibilityWriteFailed'));
   });
 
   it('authorization-code 自定义供应商登录期间卸载时取消本视图拥有的授权', async () => {

@@ -39,6 +39,7 @@ describe('composerSuggestion', () => {
       query: '',
       actions,
       resources: [
+        { type: 'bot', name: 'Dash Bot', relPath: 'bot-dash-1' },
         { type: 'browser-tab', name: 'Docs', relPath: 'cindy://browser/docs' },
         { type: 'agent', name: 'reviewer', relPath: '.claude/agents/reviewer.md' },
       ],
@@ -61,6 +62,7 @@ describe('composerSuggestion', () => {
       'new-goal',
       'composer-mode',
       'plan-mode',
+      'bot:Dash Bot',
       'browser-tab:Docs',
       'agent:reviewer',
       'plugin-command:Cindy Art',

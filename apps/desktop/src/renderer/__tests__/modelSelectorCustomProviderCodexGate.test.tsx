@@ -142,7 +142,7 @@ vi.mock('@/hooks/useDeviceProviders', () => ({
 
 vi.mock('@/lib/providerModels', () => ({
   providerMonogram: (name: string) => name.slice(0, 1).toUpperCase(),
-  isChatBridgedCodexProvider: () => false,
+  isLocalOnlyProviderForAgent: () => false,
   filterChatBridgedCodexProviders: (providers: unknown[]) => providers,
   resolveVisibleModelAgentKind: ({ agentKind }: { agentKind: string | null }) =>
     agentKind ?? 'codex',
@@ -154,7 +154,8 @@ vi.mock('@/state/modelVisibilityPrefs', () => ({
   useModelVisibilityVersion: () => 0,
 }));
 
-vi.mock('@/state/providerModelMemory', () => ({
+vi.mock('@/state/providerModelMemory', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/state/providerModelMemory')>()),
   useProviderModelMemoryVersion: () => 0,
 }));
 

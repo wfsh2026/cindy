@@ -34,12 +34,18 @@ const {
     dataOwnerId: 'owner-1' as string | null,
     ownerGeneration: 1,
     order: ['anthropic', 'xd', 'custom'],
+    customConnected: true,
+    mediaReady: false,
   },
   wizardSpy: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'zh-CN' } }),
+  useTranslation: () => ({
+    t: (key: string, options?: { count?: number }) =>
+      key === 'settings.providers.models.manage.selected' ? `${key}:${options?.count}` : key,
+    i18n: { language: 'zh-CN' },
+  }),
 }));
 
 vi.mock('@/hooks/useProviders', () => ({
@@ -93,15 +99,15 @@ vi.mock('@/hooks/useProviders', () => ({
             },
           ],
         },
-        connected: true,
+        connected: providerSnapshotState.customConnected,
+        imageModels: [{ id: 'gpt-image-2', name: 'GPT Image 2' }],
+        availableMediaModelIds: providerSnapshotState.mediaReady ? ['gpt-image-2'] : [],
       } satisfies ProviderView,
     ];
     const byId = new Map(providers.map((provider) => [provider.id, provider]));
     return {
       providers:
-        providerSnapshotState.dataOwnerId === authState.dataOwnerId
-          ? [...byId.values()]
-          : [],
+        providerSnapshotState.dataOwnerId === authState.dataOwnerId ? [...byId.values()] : [],
       providerOrder:
         providerSnapshotState.dataOwnerId === authState.dataOwnerId
           ? providerSnapshotState.order
@@ -183,6 +189,8 @@ vi.mock('@/components/settings/AddProviderWizard', () => ({
   },
 }));
 
+import { setModelVisibilities } from '@/state/modelVisibilityPrefs';
+
 import { ProvidersSection } from '@/components/settings/ProvidersSection';
 
 type ScanResult = { detections: unknown[] };
@@ -192,6 +200,8 @@ beforeEach(() => {
   authState.dataOwnerId = 'owner-1';
   providerSnapshotState.dataOwnerId = 'owner-1';
   providerSnapshotState.ownerGeneration = 1;
+  providerSnapshotState.customConnected = true;
+  providerSnapshotState.mediaReady = false;
   providerSnapshotState.order = ['anthropic', 'xd', 'custom'];
   scanResult = { detections: [] };
   (window as unknown as { electronAPI: unknown }).electronAPI = {
@@ -210,15 +220,100 @@ afterEach(() => {
 });
 
 describe('ProvidersSection — 双栏管理', () => {
+  it('dims GPT Image 2 without a ready image channel, independently of chat connection', async () => {
+    providerSnapshotState.order = ['custom', 'xd'];
+    providerSnapshotState.customConnected = true;
+    const view = render(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('switch', { name: 'Custom model' });
+    fireEvent.click(screen.getByRole('button', { name: 'newChat.modelSelector.category.image1' }));
+    providerSnapshotState.customConnected = false;
+    view.rerender(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    const imageRow = () => screen.getByText('GPT Image 2').closest('div.group')!;
+    expect(imageRow().classList.contains('opacity-55')).toBe(true);
+    expect(screen.getByText('GPT Image 2').getAttribute('style')).toBe(
+      screen.getByText('Custom model').getAttribute('style'),
+    );
+    providerSnapshotState.mediaReady = true;
+    view.rerender(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    expect(imageRow().classList.contains('opacity-55')).toBe(false);
+    expect(screen.getByRole('switch', { name: 'Custom model' }).getAttribute('aria-checked')).toBe(
+      'false',
+    );
+    providerSnapshotState.mediaReady = false;
+    providerSnapshotState.customConnected = true;
+    view.rerender(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    expect(imageRow().classList.contains('opacity-55')).toBe(true);
+    expect(screen.getByRole('switch', { name: 'Custom model' }).getAttribute('aria-checked')).toBe(
+      'true',
+    );
+  });
+
+  it('keeps selections but blocks toggles when a connected source becomes unavailable', async () => {
+    providerSnapshotState.order = ['custom', 'xd'];
+    const view = render(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    let toggle = (await screen.findByRole('switch', { name: 'Custom model' })) as HTMLButtonElement;
+    expect(toggle.disabled).toBe(false);
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByText('settings.providers.models.manage.selected:1')).toBeTruthy();
+    providerSnapshotState.customConnected = false;
+    view.rerender(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    toggle = screen.getByRole('switch', { name: 'Custom model' }) as HTMLButtonElement;
+    expect(toggle.disabled).toBe(true);
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByText('settings.providers.models.manage.selected:0')).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(setModelVisibilities).not.toHaveBeenCalled();
+    expect(screen.getByText('settings.providers.models.manage.connectionRequired')).toBeTruthy();
+    providerSnapshotState.customConnected = true;
+    view.rerender(
+      <MemoryRouter>
+        <ProvidersSection />
+      </MemoryRouter>,
+    );
+    expect(
+      (screen.getByRole('switch', { name: 'Custom model' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(screen.queryByText('settings.providers.models.manage.connectionRequired')).toBeNull();
+    expect(screen.getByRole('switch', { name: 'Custom model' }).getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    expect(screen.getByText('settings.providers.models.manage.selected:1')).toBeTruthy();
+    expect(setModelVisibilities).not.toHaveBeenCalled();
+  });
+
   it('首个可见供应商默认选中;未连接内置渠道不占行;零模型仍可手动刷新', async () => {
     // ProvidersSection 内部消费 useSearchParams(深链定位),测试需要 Router 上下文。
     render(React.createElement(MemoryRouter, null, React.createElement(ProvidersSection)));
     expect(requestAutoRefreshSpy).toHaveBeenCalledWith('providers-open');
 
-    // 详情头 + 左栏行都显示 xd 标题(默认选中第一行 = xd)。
+    // 左栏保留品牌翻译，详情头使用连接的实际显示名。
     expect(
       (await screen.findAllByText('settings.providers.xd.title')).length,
-    ).toBeGreaterThanOrEqual(2);
+    ).toBeGreaterThanOrEqual(1);
     // 详情标题的模型数/订阅标签必须在可用宽度内折行，不能溢出覆盖右侧连接操作。
     const identity = screen.getByTestId('provider-detail-identity');
     const metadata = screen.getByTestId('provider-detail-metadata');
@@ -229,7 +324,7 @@ describe('ProvidersSection — 双栏管理', () => {
     expect(screen.queryByText('Anthropic')).toBeNull();
     // xd 实时模型为空 → 详情仍渲染模型工具行与刷新入口，避免用户无从恢复。
     expect(screen.getByText('settings.providers.detail.emptyModels')).not.toBeNull();
-    expect(screen.getByText('settings.providers.models.available')).not.toBeNull();
+    expect(screen.getByText('settings.providers.models.manage.title')).not.toBeNull();
     await act(async () => {
       fireEvent.click(
         screen.getByRole('button', { name: 'settings.providers.models.refreshBuiltinAria' }),
@@ -258,8 +353,7 @@ describe('ProvidersSection — 双栏管理', () => {
     const refreshingButton = screen.getByRole('button', {
       name: 'settings.providers.models.refreshingAria',
     });
-    expect(refreshingButton.getAttribute('title'))
-      .toBe('settings.providers.models.refreshingAria');
+    expect(refreshingButton.getAttribute('title')).toBe('settings.providers.models.refreshingAria');
 
     await act(async () => {
       resolveRefresh({ ok: true, providerId: 'xd' });

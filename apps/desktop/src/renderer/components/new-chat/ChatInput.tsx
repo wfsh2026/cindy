@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { buildLocalSkillPathRoute } from '@/features/skillhub/lib/localRoutes';
 import { Folder, MessageSquarePlus, Mic, Pen, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AgentInputReference } from '@cindy/maker-shared/agent-input-projection';
@@ -75,8 +76,14 @@ import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/lib/toast';
 import { mapIpcErrorToI18nKey } from '@/utils/ipcError';
+import { buildModelWindowRecoveryToast } from './modelWindowErrorToast';
 import { Tip } from '@/components/ui/tooltip';
-import type { AttachedFile, MentionedResource, ImageAnnotationStroke } from '@/lib/fileTypes';
+import type {
+  AttachedFile,
+  ComposerBotMention,
+  MentionedResource,
+  ImageAnnotationStroke,
+} from '@/lib/fileTypes';
 import {
   commentPreviewTag,
   formatBrowserCommentsForSend,
@@ -113,6 +120,8 @@ import {
   subscribePromptInsert,
   subscribeSessionLinkInsert,
 } from '@/lib/composerActionsBus';
+import { resolveComposerModelSelection } from './composerModelSelection';
+import type { SessionRuntimeProfileProjection, SessionRuntimePendingProjection } from '@/lib/ccAgent.types';
 import {
   ModelSelector,
   resolveRemoteModelListStatus,
@@ -237,6 +246,7 @@ import { ToolPayloadLightbox } from '@/components/chat/ToolPayloadLightbox';
 import { Fragment, Slice, type Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Selection, TextSelection } from '@tiptap/pm/state';
 import * as sessionService from '@/lib/sessionService';
+import { classifyCindyMakeCommand, tryStartCindyMakeCommand } from '@/lib/cindyMakeCommand';
 import { getModelById } from '@/lib/modelDefinitions';
 import {
   beginSlashCommandRosterLoad,
@@ -339,7 +349,6 @@ import {
   setProviderModelThinking,
   useProviderModelMemoryVersion,
 } from '@/state/providerModelMemory';
-import { useModelPickerLayout } from '@/state/modelPickerLayout';
 import {
   setSessionFavoriteAnchor as setSessionFavoriteAnchorMemory,
   useSessionFavoriteAnchor,
@@ -512,6 +521,8 @@ interface ChatInputProps {
    * 不能用 vendorKey 的 Claude Code 默认回退冒充真实身份。
    */
   runtimeAgentKind?: AgentKind | null;
+  runtimeEffective?: SessionRuntimeProfileProjection;
+  runtimePending?: SessionRuntimePendingProjection | null;
   /**
    * 会话的 Orca 角色(lead / worker;null = 已确认非协同;undefined = 元数据未加载)。
    * 协同运行时对 agent 形态有独立
@@ -775,6 +786,11 @@ interface ChatInputProps {
   /** 强制使用紧凑单行工具栏；容器测宽也会自动进入同一状态。 */
   narrowToolbar?: boolean;
   /**
+   * 隐藏模型运行时控件。伙伴模型链与故障接力由伙伴设置和宿主管理；
+   * 权限仍使用标准 chip，允许用户随时调整当前任务的执行权限。
+   */
+  hideRuntimeControls?: boolean;
+  /**
    * 工具行采用更紧凑的视觉密度 (字号 -1px)。
    * 用于 doc rail 这种宽度受限的容器,与 compactToolbar (wrap 兜底) 正交:
    *   - dense=true 把控件本身压瘦, 一般就够单行塞下
@@ -802,6 +818,8 @@ interface ChatInputProps {
    * 状态完全由 parent 持有 (controlled);ChatInput 只做展示与事件转发。
    */
   collaboration?: CollaborationMenuConfig;
+  /** Persistent teammates available as structured message targets in this task. */
+  botMentions?: readonly ComposerBotMention[];
   /**
    * 新会话统一模型选择器(model-selector-unified M5)的**选中直通**。
    *
@@ -1092,6 +1110,8 @@ export function ChatInput({
   onSend,
   sessionId,
   runtimeAgentKind,
+  runtimeEffective,
+  runtimePending,
   sessionOrcaRole,
   initialWorkingDir,
   remoteHostId,
@@ -1155,12 +1175,14 @@ export function ChatInput({
   onRememberedEffortChange,
   compactToolbar = false,
   narrowToolbar = false,
+  hideRuntimeControls = false,
   denseToolbar = false,
   visualVariant = 'default',
   middleToolbarSlot,
   compactMiddleToolbarSlot,
   topSlot,
   collaboration,
+  botMentions = [],
   onUnifiedDraftSelect,
   selectedFavoriteUid = null,
   restoredExperienceSelection,
@@ -1753,6 +1775,7 @@ export function ChatInput({
     model: string;
     effort: Effort;
     providerId: string | null;
+    fastMode: boolean;
   } | null>(null);
   // device-link 远程切换的「禁用」只绑定隧道 await 进行中(被控端 ack 即解除),**不**等完整 mirror 回流。
   // 原因:providerId 等字段在控制端 mirror 上回流不可靠(远程会话 serverSession 恒空、mirrorSessionFields
@@ -1788,16 +1811,21 @@ export function ChatInput({
   // main,控制端 store 里这份是它的镜像(登记时乐观写、重连时读回、push 回流覆盖)。
   const agentSwitchIntent =
     sessionId && !remoteHostId ? makerChatStore.getAgentSwitchIntent(sessionId) : null;
-  const activeModel =
-    agentSwitchIntent?.model ??
-    pendingRemoteSwitch?.model ??
-    initialModel ??
-    localVendorDefaults.model;
-  const activeEffort =
-    (agentSwitchIntent?.effort as Effort | undefined) ??
-    pendingRemoteSwitch?.effort ??
-    initialEffort ??
-    localVendorDefaults.effort;
+  const composerSelection = resolveComposerModelSelection({
+    current: {
+      agentKind: runtimeAgentKind ?? vendorKeyToAgentKind(vendorKey) ?? 'claude-code',
+      model: initialModel ?? localVendorDefaults.model,
+      providerId: initialProviderId ?? null,
+      effort: initialEffort ?? localVendorDefaults.effort,
+      fastMode: fastMode === true,
+    },
+    effective: sessionId ? runtimeEffective : undefined,
+    pending: sessionId ? runtimePending : undefined,
+    intent: agentSwitchIntent,
+    optimistic: pendingRemoteSwitch,
+  });
+  const activeModel = composerSelection.display.model;
+  const activeEffort = composerSelection.display.effort ?? 'low';
   const activePermissionMode: PermissionMode =
     initialPermissionMode ?? localVendorDefaults.permissionMode;
 
@@ -1818,7 +1846,7 @@ export function ChatInput({
   // 意图期的来源与模型/Agent 同属一份乐观展示快照。不能让旧会话的
   // selectedProviderId 继续参与断开态、默认来源与发送来源解析，否则会形成
   // 「目标 Agent + 目标模型 + 旧来源」的混合状态；null 仍表示跟随目标引擎默认路由。
-  const activeProviderId = agentSwitchIntent ? agentSwitchIntent.providerId : selectedProviderId;
+  const activeProviderId = runtimeEffective || composerSelection.pending ? composerSelection.display.providerId : selectedProviderId;
 
   /**
    * 会话内经统一面板选中的**收藏锚点**(model-selector-unified §1.5,2026-08-17 review 第三轮 G4)。
@@ -1858,14 +1886,15 @@ export function ChatInput({
     const settled =
       initialModel === pendingRemoteSwitch.model &&
       initialEffort === pendingRemoteSwitch.effort &&
-      (initialProviderId ?? null) === pendingRemoteSwitch.providerId;
+      (initialProviderId ?? null) === pendingRemoteSwitch.providerId &&
+      (fastMode === true) === pendingRemoteSwitch.fastMode;
     if (settled) {
       setPendingRemoteSwitch(null);
       return;
     }
     const timer = setTimeout(() => setPendingRemoteSwitch(null), 5000);
     return () => clearTimeout(timer);
-  }, [initialModel, initialEffort, initialProviderId, pendingRemoteSwitch]);
+  }, [initialModel, initialEffort, initialProviderId, fastMode, pendingRemoteSwitch]);
 
   const agentKind = vendorKeyToAgentKind(vendorKey);
   // device-link 远程会话:能力(模型 / fast / effort)从被控端读;本地会话 deviceLinkDeviceId undefined → 本地。
@@ -1956,10 +1985,10 @@ export function ChatInput({
 
   // cycle-permission-mode 快捷键 (默认 Shift+Tab) 的轮切候选 —— 与
   // PermissionSelector 用同一份 capabilities.permissionModes 列表, 键盘轮切
-  // 与下拉菜单看到的顺序一致。vendorKey 未锁定时按 PermissionSelector 的
-  // 默认取 cc。editorProps.handleKeyDown 是稳定闭包, 走 ref 取值。
+  // 与下拉菜单看到的顺序一致。伙伴保留这两个入口；任务设置锁定时一起禁用。
   const permissionCycleOptions = useMemo(
-    () => (settingsLocked ? [] : (activeAgentCapabilities?.permissionModes ?? [])),
+    () =>
+      settingsLocked ? [] : (activeAgentCapabilities?.permissionModes ?? []),
     [activeAgentCapabilities, settingsLocked],
   );
   const permissionCycleOptionsRef = useRef(permissionCycleOptions);
@@ -1981,6 +2010,7 @@ export function ChatInput({
   // 「有没有已连接来源」。vendorKey 锁定时直接信任;否则按 capabilities 反推
   // (按 availableModels 归类,不靠 id 前缀猜)。
   const currentModelAgentKind: AgentKind | null = useMemo(() => {
+    if (runtimeEffective || composerSelection.pending) return composerSelection.display.agentKind;
     if (agentKind) return agentKind;
     if ((ccCaps.capabilities?.availableModels ?? []).some((m) => m.id === activeModel)) {
       return 'claude-code';
@@ -1992,7 +2022,7 @@ export function ChatInput({
       return 'pi';
     }
     return null;
-  }, [activeModel, agentKind, ccCaps.capabilities, codexCaps.capabilities, piCaps.capabilities]);
+  }, [activeModel, agentKind, runtimeEffective, composerSelection.pending, composerSelection.display.agentKind, ccCaps.capabilities, codexCaps.capabilities, piCaps.capabilities]);
   // 供应商连接态。effectiveSourceId / sendProviderId / dispatchSend 预检用它。device-link 远程会话 /
   // 草稿用**被控端**供应商目录(隧道),否则用本机(两 hook 都无条件调用,按 deviceLinkDeviceId 取)。
   const localProviders = useProviders();
@@ -2023,8 +2053,7 @@ export function ChatInput({
     ? remoteModelListStatus === 'loading'
     : localProvidersLoading;
   // 统一模型选择器(model-selector-unified M5 / M6)在 composer 上的开关 —— **能力级**那一半
-  // (下面还要叠形态偏好才是真正启用,见 unifiedPanelCapable / unifiedPanelActive;
-  // NewMakerDraftRoute 的 unifiedModelPanelEnabled / unifiedModelPanelActive 与这两级逐字对应)。
+  // 下方还会核对任务引擎是否已确认；不再叠加本地样式偏好。
   //
   // 这一级唯一的降级条件是**没有供应商目录可用**:联合列表(unifiedModelEntries)只认目录里的
   // (provider, agent) 条目,而老被控端不支持 provider:list 时控制端只有一份拍平的
@@ -2100,19 +2129,11 @@ export function ChatInput({
     return effectiveSourceIdForModel(providers, activeProviderId, activeModel, kind);
   }, [providers, currentModelAgentKind, activeProviderId, activeModel]);
 
-  // 发送(草稿态建会话)时携带的**显式来源**:仅当本地选择仍在已连接来源栏内才带上
-  // (与 effectiveSourceId 的高亮口径一致,即"所见即所得");否则带 null。
+  // 发送保留显式连接，由 main 验证；目录不可用不能将账号身份变为默认账号。
   // 关键:这里**绝不**把"跟随默认"具体化成原生默认 id(如 'xd')——默认 cohort 必须保持
   //   providerId=null,路由才回落 spawn-aware 默认(字节级不变,no-break);写成显式 'xd'
   //   会改走 catalog gateway-key 路由(见 provider-route.ts),破坏默认 cohort 的路由/缓存基线。
-  const sendProviderId = useMemo<string | null>(() => {
-    const kind = currentModelAgentKind;
-    if (!kind || !activeProviderId) return null;
-    return effectiveSourceIdForModel(sendProviders, activeProviderId, activeModel, kind) ===
-      activeProviderId
-      ? activeProviderId
-      : null;
-  }, [sendProviders, currentModelAgentKind, activeProviderId, activeModel]);
+  const sendProviderId = activeProviderId || null;
 
   // 模型预设采用「全局默认 + 已创建会话保护」:
   //   - 本地草稿 / 已创建会话的**非选中行**都读写 providerModelMemory,所以同一
@@ -2389,10 +2410,11 @@ export function ChatInput({
           return true;
         }
 
-        // 2. 深链 / 路径混排 → text / session / project / path 分段:
+        // 2. 深链 / 独立路径 → text / session / project / path 分段:
         //    session、project 即时成 chip(session 裸链接先短 ID 占位,标题
-        //    异步原地补齐——sessionLinkPaste.ts);path 段先落纯文本,stat
-        //    确认存在后原地升级为 @chip(pathPaste.ts)。
+        //    异步原地补齐——sessionLinkPaste.ts);整段粘贴仅为一个工作区
+        //    绝对路径时,path 段先落纯文本,stat 确认存在后原地升级
+        //    为 @chip(pathPaste.ts);日志或叙述中的路径保持字面原文。
         const segments = text
           ? segmentPastedContent(text, { workingDir: workingDirRef.current })
           : null;
@@ -3075,52 +3097,49 @@ export function ChatInput({
   );
   // 统一建议面板的插件条目(旧 `+` 菜单口径的并集):可用项可选,无指令或
   // Host 入口或未生效项保留展示但置灰(entry 级 disabled + 原因)。
-  const pluginSuggestions = useMemo<ComposerPluginSuggestion[]>(
-    () => {
-      // device-link 会话的插件运行在被控端；控制端清单既不代表远端已安装
-      // 状态，选择后也无法用本地 InstalledGhost 解析并插入命令。fail-closed：
-      // 仅 deviceLinkDeviceId === null（已确认本机）才展示；undefined（所有权
-      // 尚未解析）与 string（远程）一律隐藏，避免 bootstrap/重连窗口期把控制端
-      // 本地插件项泄漏进可能落为远程的会话。
-      if (deviceLinkDeviceId !== null) return [];
-      return pluginsForMenu.map((ghost) => {
-        const hasCommand = !!ghost.manifest.command;
-        const hostCapability = remoteHostId ? null : hostCapabilityForGhost(ghost);
-        const hasComposerEntry = hasCommand || hostCapability !== null;
-        const selectable = pluginAvailableIds.has(ghost.manifest.id) && hasComposerEntry;
-        const entryKey = ghost.manifest.command ?? hostCapability ?? '';
-        return {
-          item: {
-            type: 'plugin-command' as const,
-            name: ghost.manifest.name,
-            relPath:
-              ghost.manifest.command ??
-              (hostCapability
-                ? `cindy://host-capability/${hostCapability}`
-                : `cindy://plugin/${ghost.manifest.id}`),
-            pluginId: ghost.manifest.id,
-            ...(ghost.iconDataUrl ? { iconDataUrl: ghost.iconDataUrl } : {}),
-            sourceLabel: entryKey,
-            _nameLower: `${ghost.manifest.name} ${entryKey}`.toLowerCase(),
-            _relPathLower: `${entryKey} ${ghost.manifest.id}`.toLowerCase(),
-          },
-          ...(selectable
-            ? {}
-            : {
-                disabled: true,
-                disabledReason: t(
-                  !pluginAvailableIds.has(ghost.manifest.id)
-                    ? 'extraDirs.pluginDisabled'
-                    : ghost.manifest.skill
-                      ? 'extraDirs.pluginAgentInvoked'
-                      : 'extraDirs.pluginNoCommand',
-                ),
-              }),
-        };
-      });
-    },
-    [deviceLinkDeviceId, pluginsForMenu, pluginAvailableIds, remoteHostId, t],
-  );
+  const pluginSuggestions = useMemo<ComposerPluginSuggestion[]>(() => {
+    // device-link 会话的插件运行在被控端；控制端清单既不代表远端已安装
+    // 状态，选择后也无法用本地 InstalledGhost 解析并插入命令。fail-closed：
+    // 仅 deviceLinkDeviceId === null（已确认本机）才展示；undefined（所有权
+    // 尚未解析）与 string（远程）一律隐藏，避免 bootstrap/重连窗口期把控制端
+    // 本地插件项泄漏进可能落为远程的会话。
+    if (deviceLinkDeviceId !== null) return [];
+    return pluginsForMenu.map((ghost) => {
+      const hasCommand = !!ghost.manifest.command;
+      const hostCapability = remoteHostId ? null : hostCapabilityForGhost(ghost);
+      const hasComposerEntry = hasCommand || hostCapability !== null;
+      const selectable = pluginAvailableIds.has(ghost.manifest.id) && hasComposerEntry;
+      const entryKey = ghost.manifest.command ?? hostCapability ?? '';
+      return {
+        item: {
+          type: 'plugin-command' as const,
+          name: ghost.manifest.name,
+          relPath:
+            ghost.manifest.command ??
+            (hostCapability
+              ? `cindy://host-capability/${hostCapability}`
+              : `cindy://plugin/${ghost.manifest.id}`),
+          pluginId: ghost.manifest.id,
+          ...(ghost.iconDataUrl ? { iconDataUrl: ghost.iconDataUrl } : {}),
+          sourceLabel: entryKey,
+          _nameLower: `${ghost.manifest.name} ${entryKey}`.toLowerCase(),
+          _relPathLower: `${entryKey} ${ghost.manifest.id}`.toLowerCase(),
+        },
+        ...(selectable
+          ? {}
+          : {
+              disabled: true,
+              disabledReason: t(
+                !pluginAvailableIds.has(ghost.manifest.id)
+                  ? 'extraDirs.pluginDisabled'
+                  : ghost.manifest.skill
+                    ? 'extraDirs.pluginAgentInvoked'
+                    : 'extraDirs.pluginNoCommand',
+              ),
+            }),
+      };
+    });
+  }, [deviceLinkDeviceId, pluginsForMenu, pluginAvailableIds, remoteHostId, t]);
   useEffect(() => {
     setGhostCommandRoster(editor, ghostsForCommand);
   }, [editor, ghostsForCommand]);
@@ -3268,10 +3287,7 @@ export function ChatInput({
     voiceInput.draftText,
   ]);
 
-  const captureSendFocusForRestore = useComposerSendFocusRestore(
-    editor,
-    composerTypingLocked,
-  );
+  const captureSendFocusForRestore = useComposerSendFocusRestore(editor, composerTypingLocked);
   const { settings: voiceInputSettings } = useVoiceInputSettings();
   const voiceInputShortcutLabel = useMemo(
     () => formatVoiceInputShortcut(voiceInputSettings.shortcut),
@@ -4330,6 +4346,13 @@ export function ChatInput({
   useEffect(() => {
     reloadSlashCommands();
   }, [reloadSlashCommands]);
+
+  useEffect(() => {
+    return window.electronAPI.skillhub?.onLocalStateChanged?.(() => {
+      void reloadSlashCommands({ forceReload: true });
+    });
+  }, [reloadSlashCommands]);
+
   useEffect(
     () =>
       window.electronAPI.maker.onPiPackagesChanged(() => {
@@ -4567,7 +4590,8 @@ export function ChatInput({
     if (onExtraDirsChange) {
       const currentExtraDirs = extraDirs ?? [];
       const currentWritableDirs = writableDirs ?? [];
-      const totalDirs = countUserExtraDirs(currentExtraDirs) + countUserExtraDirs(currentWritableDirs);
+      const totalDirs =
+        countUserExtraDirs(currentExtraDirs) + countUserExtraDirs(currentWritableDirs);
       actions.push({
         id: 'add-extra-dir',
         label:
@@ -4596,14 +4620,15 @@ export function ChatInput({
     // 原生目录选择器，只能在已确认本机会话中提供，不能把本机绝对路径发给 SSH/
     // device-link 被控端。undefined 表示归属尚未解析，同样 fail closed。
     if (
-      onWritableDirsChange
-      && writableGrantScope
-      && !remoteHostId
-      && deviceLinkDeviceId === null
+      onWritableDirsChange &&
+      writableGrantScope &&
+      !remoteHostId &&
+      deviceLinkDeviceId === null
     ) {
       const currentExtraDirs = extraDirs ?? [];
       const currentWritableDirs = writableDirs ?? [];
-      const totalDirs = countUserExtraDirs(currentExtraDirs) + countUserExtraDirs(currentWritableDirs);
+      const totalDirs =
+        countUserExtraDirs(currentExtraDirs) + countUserExtraDirs(currentWritableDirs);
       actions.push({
         id: 'add-writable-dir',
         label:
@@ -4651,7 +4676,21 @@ export function ChatInput({
     workingDir,
   ]);
 
-  const atResources = useMemo(() => (atState.kind === 'ready' ? atState.items : []), [atState]);
+  const atResources = useMemo(
+    () => {
+      const scanned = atState.kind === 'ready' ? atState.items : [];
+      const bots: AtResourceItem[] = botMentions.map((bot) => ({
+        type: 'bot',
+        name: bot.name,
+        relPath: bot.id,
+        ...(bot.description ? { description: bot.description } : {}),
+        _nameLower: bot.name.toLowerCase(),
+        _relPathLower: bot.id.toLowerCase(),
+      }));
+      return [...bots, ...scanned];
+    },
+    [atState, botMentions],
+  );
 
   const filteredAt = useMemo(
     () =>
@@ -5310,6 +5349,60 @@ export function ChatInput({
         const commentsForSend = optimisticallyClearRemoteComposer
           ? commentsBeforeOptimisticClear
           : sourceOwnedExtras.comments;
+        if (
+          !hostCapability &&
+          classifyCindyMakeCommand(editorText, slashCommandsReady ? mergedCommands : null).kind !== 'none'
+        ) {
+          const isMakeSourceCurrent = () =>
+            isDataOwnerGenerationCurrent(dataOwnerAtOptimisticClear) &&
+            editorOwnsSourceDraft({
+              editorDestroyed: editor.isDestroyed,
+              editorStorageKey: storageKeyForDraftRef.current,
+              sourceStorageKey,
+            });
+          const makeResult = await tryStartCindyMakeCommand({
+            text: editorText,
+            commands: slashCommandsReady ? mergedCommands : null,
+            sessionId: sourceSessionId,
+            remoteHostId,
+            deviceId: deviceLinkDeviceId,
+            agentKind: currentModelAgentKind,
+            workingDir: workingDirRef.current,
+            hasUnsupportedContent:
+              attachmentsForSend.length > 0 || commentsForSend.length > 0 ||
+              hasQuotes || mentions.length > 0 || agentReferences.length > 0,
+            isCurrent: isMakeSourceCurrent,
+            createOptions: {
+              // Home needs only a chat container; a project task could bootstrap Git.
+              workspaceKind: 'dialogue',
+              agentKind: currentModelAgentKind === 'claude-code' ? 'cc' : currentModelAgentKind ?? undefined,
+              model: activeModel,
+              effort: activeEffort,
+              permissionMode: activePermissionMode,
+              providerId: sendProviderId,
+              fastMode,
+              planModeEnabled: planModeEntry?.enabled ?? false,
+            },
+          });
+          if (!isMakeSourceCurrent() || makeResult.kind === 'stale') return;
+          if (makeResult.kind === 'blocked') {
+            toast.warning(t(makeResult.messageKey));
+            return;
+          }
+          if (makeResult.kind === 'failed') {
+            toast.error(t('cindyMakeDoctor.failed'));
+            return;
+          }
+          if (makeResult.kind === 'started') {
+            editor.commands.clearContent(true);
+            historyIndexRef.current = -1;
+            hydratedHistoryDocumentRef.current = null;
+            draftRef.current = null;
+            if (sourceStorageKey) clearComposerDraft(sourceStorageKey);
+            if (!sourceSessionId) navigate(`/cc-agent/${makeResult.sessionId}`);
+            return;
+          }
+        }
         if (
           !hostCapability &&
           isPlanModeComposerCommandText(
@@ -6006,6 +6099,7 @@ export function ChatInput({
       activePermissionMode,
       sendProviderId,
       selectedSourceDisconnected,
+      fastMode,
       hasAttachments,
       attachments,
       clearFiles,
@@ -6491,10 +6585,7 @@ export function ChatInput({
       }
       // SSH 不做远端 handoff。缩窗判据的任一事实未知时继续关闭。
       if (remoteHostId && (!hasVerifiedWindows || !hasVerifiedUsage)) return false;
-      if (
-        !requireDestructiveConfirmation &&
-        (!trustedContextTokens || trustedContextTokens <= 0)
-      ) {
+      if (!requireDestructiveConfirmation && (!trustedContextTokens || trustedContextTokens <= 0)) {
         return true;
       }
       const contextTokensForAssessment = trustedContextTokens ?? 0;
@@ -6559,8 +6650,9 @@ export function ChatInput({
     async (
       modelId: string,
       providerId: string | null | undefined,
-      invoke: (confirmedContextWindow?: number) =>
-        Promise<{ deferred: boolean; superseded?: boolean } | undefined>,
+      invoke: (
+        confirmedContextWindow?: number,
+      ) => Promise<{ deferred: boolean; superseded?: boolean } | undefined>,
     ): Promise<{
       accepted: boolean;
       result?: { deferred: boolean; superseded?: boolean };
@@ -6589,7 +6681,8 @@ export function ChatInput({
       if (
         typeof (result as { contextWindowConfirmationRequired?: unknown } | null)
           ?.contextWindowConfirmationRequired === 'number'
-      ) return { accepted: false };
+      )
+        return { accepted: false };
       return { accepted: true, result };
     },
     [confirmModelSwitchContextGuard],
@@ -6609,6 +6702,7 @@ export function ChatInput({
       modelId: string,
       expectedRevision?: number,
       effort?: Effort,
+      fastMode?: boolean,
     ) => void | boolean | Promise<void | boolean>;
     byModel: (
       modelId: string,
@@ -6876,6 +6970,7 @@ export function ChatInput({
                 newModelId,
                 result.sameEngineRevision,
                 newEffort,
+                targetFast,
               )
             : await sameEngineReselectRef.current.byModel(newModelId, result.sameEngineRevision);
           // 被更新的选择超车(byProvider / byModel 自带修订号守卫)→ 同样按「没切」上报。
@@ -7051,18 +7146,15 @@ export function ChatInput({
   //     (绝不拿 vendorKey 的 Claude Code 回退冒充,见 runtimeAgentKind 的 prop 说明);
   //   · 草稿:没有 session 身份可言,当前引擎就是 vendorKey 本身。
   const composerEngineMarkVendor = sessionId
-    ? (resolveModelSelectorAgentIdentity(runtimeAgentKind, null)?.vendorKey ?? null)
+    ? (resolveModelSelectorAgentIdentity(runtimeAgentKind, composerSelection.pending ? composerSelection.display.agentKind : null)?.vendorKey ?? null)
     : (vendorKey ?? null);
 
   /**
    * 下发给统一面板的收藏锚点:草稿用调用方(NewMakerDraftRoute)持有的那一份,会话用上面
    * 那份内存态。
    *
-   * 收藏是**独立选中项**(Chris 2026-08-20):选中身份就是那条收藏的 uid,不拿正在跑的
-   * 模型 / 引擎 / 思维去对副本 —— 对上才会勾,等于让下面的同名模型行把焦点抢走(点了
-   * Pi 收藏、任务还停在 Claude 时必现)。uid 指向的收藏被删 / 换账号后查无此条,由面板
-   * 侧 activeFavoriteUid 兜底。用户点普通模型行时 favoriteUid 显式置 null,那才是离开
-   * 这条收藏。
+   * uid 只记录用户曾选过哪条收藏。面板统一核对来源、模型、引擎、深度与 Fast，
+   * 完整匹配才选中收藏；旧任务与已编辑的收藏不一致时，显示实际模型行。
    */
   const effectiveSelectedFavoriteUid = sessionId
     ? (sessionFavoriteAnchor?.uid ?? null)
@@ -7086,14 +7178,10 @@ export function ChatInput({
   const inSessionEngineLocked = Boolean(sessionId) && !sessionEngineFilter;
   const lockedSessionAgentKind =
     inSessionEngineLocked && sessionEngineConfirmed ? (runtimeAgentKind ?? agentKind) : null;
-  // 形态偏好(三档并存,Chris 2026-08-17):'original' = 最原始选择器(含旧 harness
-  // 分段切换,agentSwitch 因 unifiedPanelActive=false 自动回来);'classic'/'badge' =
-  // 新选择器 A/B 版。capable 表示统一面板**可用**(老面板 footer 据此摆「尝试新
-  // 选择器」入口),active 才真正启用。
-  const modelPickerLayoutPref = useModelPickerLayout();
+  // 新旧用户统一使用 A；仅在远端能力或任务引擎尚未确认时回落兼容列表。
   const unifiedPanelCapable =
     unifiedModelPanelEnabled && (!inSessionEngineLocked || lockedSessionAgentKind !== null);
-  const unifiedPanelActive = unifiedPanelCapable && modelPickerLayoutPref !== 'original';
+  const unifiedPanelActive = unifiedPanelCapable;
   const effectiveUnifiedAgents = useMemo<readonly AgentKind[] | undefined>(
     () => (lockedSessionAgentKind ? [lockedSessionAgentKind] : unifiedAgents),
     [lockedSessionAgentKind, unifiedAgents],
@@ -7156,9 +7244,39 @@ export function ChatInput({
     [sessionId, settingsLocked, modelMemory, onUnifiedDraftSelect],
   );
 
+  const showModelSwitchFailure = useCallback(
+    (error: unknown, providerId: string | null | undefined, modelId: string) => {
+      const recovery = buildModelWindowRecoveryToast({
+        error,
+        providerId,
+        modelId,
+        agent: currentModelAgentKind,
+        providers,
+        t,
+      });
+      if (recovery) {
+        toast.error(recovery.message, {
+          action: {
+            label: recovery.actionLabel,
+            onClick: () => navigate(recovery.settingsPath),
+          },
+        });
+        return;
+      }
+      toast.error(t(mapIpcErrorToI18nKey(error, { fallback: 'newChat.chatInput.switchFailed' })));
+    },
+    [currentModelAgentKind, navigate, providers, t],
+  );
+
   const performModelChange = useCallback(
     async (newModelId: string, expectedAgentSwitchRevision?: number) => {
       if (settingsLocked) return false;
+      if (sessionId && sessionAgentSwitchSupported && !remoteHostId && runtimeAgentKind &&
+          expectedAgentSwitchRevision === undefined) {
+        const intent = makerChatStore.getAgentSwitchIntent(sessionId);
+        return performAgentSwitch(intent?.target ?? runtimeAgentKind, newModelId,
+          intent ? intent.providerId : effectiveSourceId ?? null);
+      }
       const sourceSessionId = sessionId;
       const sourceRemoteDeviceId = sourceSessionId
         ? (deviceLinkDeviceId ?? getSessionDeviceId(sourceSessionId))
@@ -7240,6 +7358,7 @@ export function ChatInput({
               model: newModelId,
               effort: newEffort,
               providerId: selectedProviderId,
+              fastMode: atomicFast,
             });
             setRemoteSwitchInFlight(true);
             // 被控端可能返回 { deferred }(会话在跑,凭证切换登记为 pending、turn 结束生效);
@@ -7401,7 +7520,7 @@ export function ChatInput({
             });
         }
         log.warn('model change failed:', err);
-        toast.error(t(mapIpcErrorToI18nKey(err, { fallback: 'newChat.chatInput.switchFailed' })));
+        showModelSwitchFailure(err, effectiveSourceId, newModelId);
         return false;
       }
     },
@@ -7431,7 +7550,11 @@ export function ChatInput({
       setModelWithFinalWindowConfirmation,
       performAgentSwitch,
       remoteAtomicModelSelectionSupported,
+      showModelSwitchFailure,
       settingsLocked,
+      sessionAgentSwitchSupported,
+      remoteHostId,
+      runtimeAgentKind,
     ],
   );
 
@@ -7484,6 +7607,7 @@ export function ChatInput({
               model: activeModel,
               effort: newEffort,
               providerId: selectedProviderId,
+              fastMode: fastMode === true,
             });
             setRemoteSwitchInFlight(true);
             try {
@@ -7610,7 +7734,7 @@ export function ChatInput({
           void handleClickSend();
           return true;
         case 'composer.toggleFastMode':
-          void handleFastModeChange(!fastMode);
+          void handleFastModeChange(!composerSelection.display.fastMode);
           return true;
         case 'composer.togglePlanMode':
           if (!planModeEntry) return false;
@@ -7645,7 +7769,7 @@ export function ChatInput({
     editor,
     ownsHardwareComposerActions,
     effectiveSourceId,
-    fastMode,
+    composerSelection.display.fastMode,
     handleClickSend,
     handleEffortChange,
     handleFastModeChange,
@@ -7707,6 +7831,15 @@ export function ChatInput({
       reconciledFast?: boolean,
     ) => {
       if (settingsLocked) return false;
+      if (sessionId && sessionAgentSwitchSupported && !remoteHostId && runtimeAgentKind &&
+          expectedAgentSwitchRevision === undefined) {
+        const intent = makerChatStore.getAgentSwitchIntent(sessionId);
+        return performAgentSwitch(intent?.target ?? runtimeAgentKind,
+          reconciledModelId ?? intent?.model ?? activeModel, newProviderId, {
+            effort: reconciledEffort,
+            fastMode: reconciledFast,
+          });
+      }
       const sourceSessionId = sessionId;
       const sourceRemoteDeviceId = sourceSessionId
         ? (deviceLinkDeviceId ?? getSessionDeviceId(sourceSessionId))
@@ -7752,6 +7885,7 @@ export function ChatInput({
           newProviderId,
           {
             ...(nextEffort ? { effort: nextEffort as Effort } : {}),
+            ...(reconciledFast !== undefined ? { fastMode: reconciledFast } : {}),
           },
         );
       }
@@ -7797,6 +7931,7 @@ export function ChatInput({
           model: targetModel,
           effort: targetEffort,
           providerId: newProviderId,
+          fastMode: restoredFast,
         });
         setRemoteSwitchInFlight(true);
         // deferred 语义同 handleModelChange 远程分支(被控端会话在跑 → pending、turn 结束生效)。
@@ -8014,7 +8149,7 @@ export function ChatInput({
             });
         }
         log.warn('provider change failed:', err);
-        toast.error(t(mapIpcErrorToI18nKey(err, { fallback: 'newChat.chatInput.switchFailed' })));
+        showModelSwitchFailure(err, newProviderId, reconciledModelId ?? activeModel);
         return false;
       }
     },
@@ -8044,7 +8179,11 @@ export function ChatInput({
       setModelWithFinalWindowConfirmation,
       performAgentSwitch,
       remoteAtomicModelSelectionSupported,
+      showModelSwitchFailure,
       settingsLocked,
+      sessionAgentSwitchSupported,
+      remoteHostId,
+      runtimeAgentKind,
     ],
   );
 
@@ -8083,14 +8222,22 @@ export function ChatInput({
 
   // performAgentSwitch 的"选回当前引擎"分支经 ref 调用(两 handler 声明在其后,TDZ)。
   sameEngineReselectRef.current = {
-    byProvider: (providerId, modelId, expectedRevision, effort) =>
-      handleProviderChange(providerId, modelId, effort, expectedRevision),
-    byModel: (modelId, expectedRevision) => handleModelChange(modelId, expectedRevision),
+    byProvider: (providerId, modelId, expectedRevision, effort, fastMode) =>
+      performProviderChange(providerId, modelId, effort, expectedRevision, fastMode),
+    byModel: (modelId, expectedRevision) => performModelChange(modelId, expectedRevision),
   };
 
   const handleNavigateToProviders = useCallback(() => {
     navigate('/settings?tab=providers');
   }, [navigate]);
+
+  const handleReconnectSource = useCallback(() => {
+    const params = new URLSearchParams({ tab: 'providers' });
+    if (activeProviderId) params.set('connect', activeProviderId);
+    if (activeModel) params.set('model', activeModel);
+    if (currentModelAgentKind) params.set('agent', currentModelAgentKind);
+    navigate(`/settings?${params.toString()}`);
+  }, [navigate, activeProviderId, activeModel, currentModelAgentKind]);
 
   const handlePermissionModeChange = useCallback(
     async (newMode: PermissionMode) => {
@@ -8191,13 +8338,17 @@ export function ChatInput({
   showRecommendationRef.current = showRecommendationOverlay;
   // 可见推荐本身就是一次可发送输入：按钮点击时会先把它同步写入正文，再走现有发送链。
   const canSend = hasComposerPayload || showRecommendationOverlay;
+  const makeNeedsNoModel = (noConnectedSource || selectedSourceDisconnected) && !!editor &&
+    !hasAttachments && classifyCindyMakeCommand(
+      serializeEditorContent(editor).text, slashCommandsReady ? mergedCommands : null,
+    ).kind === 'start';
   const [voiceReleaseToSendActive, setVoiceReleaseToSendActive] = useState(false);
   const sendButtonDisabled = Boolean(
     disabled ||
     // 空態:当前 agent 无已连接来源 → Send 禁用(设计 Q7NYAD「send 置灰」),引导用户先去连接来源。
-    noConnectedSource ||
+    (!makeNeedsNoModel && noConnectedSource) ||
     // 会话显式选中的来源已断开 → Send 禁用(trigger 同步显示「已断开」错误态说明原因)。
-    selectedSourceDisconnected ||
+    (!makeNeedsNoModel && selectedSourceDisconnected) ||
     // device-link 模型目录仍在读取或真实失败 → 禁止旧快照继续发送；旧端明确
     // unsupported 已由 remoteModelListStatus 归并为 ready，不会误伤兼容回退。
     remoteModelListBlocked ||
@@ -8667,7 +8818,7 @@ export function ChatInput({
                       type="button"
                       aria-label={`${t('newChat.chatInput.recommendationShortcut')}: ${recommendedPrompt ?? ''}`}
                       className={cn(
-                        'pointer-events-auto ml-1 inline-flex h-4 min-w-[22px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-current',
+                        'pointer-events-auto ml-1 inline-flex h-4 min-w-[22px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-current',
                         'bg-transparent px-0.5 text-11 font-normal leading-none text-inherit',
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
                       )}
@@ -8750,8 +8901,13 @@ export function ChatInput({
                 )}
                 {/* 「+」只负责合成打开统一建议面板；内容与输入 @ 完全共用。 */}
                 <ExtraDirsButton
-                  extraDirsCount={countUserExtraDirs(extraDirs ?? []) + countUserExtraDirs(writableDirs ?? [])}
-                  hasReferenceDirs={!settingsLocked && (onExtraDirsChange !== undefined || onWritableDirsChange !== undefined)}
+                  extraDirsCount={
+                    countUserExtraDirs(extraDirs ?? []) + countUserExtraDirs(writableDirs ?? [])
+                  }
+                  hasReferenceDirs={
+                    !settingsLocked &&
+                    (onExtraDirsChange !== undefined || onWritableDirsChange !== undefined)
+                  }
                   open={syntheticAtOpen}
                   onOpenChange={handleComposerSuggestionOpenChange}
                   autoFocusTarget={composerSuggestionFocusTarget}
@@ -8842,6 +8998,9 @@ export function ChatInput({
                   ) : (
                     <>{middleToolbarSlot}</>
                   ))}
+                {/* 伙伴的模型链在设置中统一管理，并由宿主自动 fallback。对话输入框不再
+                    暴露单次任务的模型切换，避免会话态覆盖伙伴长期配置。 */}
+                {!hideRuntimeControls ? (
                 <div className={useNarrowToolbar ? 'min-w-0 shrink' : undefined}>
                   <ModelSelector
                     // 选中态一律是会话 / 草稿持有的 **wire model id**(sessions.model 或
@@ -8852,11 +9011,8 @@ export function ChatInput({
                     effort={activeEffort}
                     onModelChange={handleModelChange}
                     onEffortChange={handleEffortChange}
-                    fastMode={
-                      agentSwitchIntent?.fastMode !== undefined
-                        ? agentSwitchIntent.fastMode
-                        : fastMode
-                    }
+                    fastMode={composerSelection.display.fastMode}
+                    currentSelection={sessionId && runtimeAgentKind ? composerSelection.current : undefined}
                     onFastModeChange={handleFastModeChange}
                     thinkingEnabled={
                       currentModelAgentKind && effectiveSourceId
@@ -8917,7 +9073,7 @@ export function ChatInput({
                       sessionId
                         ? resolveModelSelectorAgentIdentity(
                             runtimeAgentKind,
-                            agentSwitchIntent?.target,
+                            composerSelection.pending ? composerSelection.display.agentKind : null,
                           )
                         : undefined
                     }
@@ -8928,13 +9084,8 @@ export function ChatInput({
                     // 「模型名 + 引擎小标 + 思考深度」。会话内取已确认 / 意图中的引擎
                     // (agentIdentity 同一口径:身份没加载完就不画,不拿 vendorKey 的
                     // Claude Code 回退冒充);草稿直接取当前引擎。
-                    // original 形态不传:老 pill 仍写 harness 名字文本(agentIdentity),
-                    // 引擎小标是统一面板时代的形态,别把两代形态混在一颗 pill 上。
                     engineMarkVendor={unifiedPanelActive ? composerEngineMarkVendor : null}
                     unifiedPanel={unifiedPanelActive}
-                    // 统一面板「可用但未启用」(original 形态)时,老面板 footer 摆
-                    // 「尝试新选择器」入口 —— 可用性与启用态分开传,设置类入口两者皆无。
-                    unifiedPanelAvailable={unifiedPanelCapable}
                     // 联合列表只列**运行时已注册**的引擎(撤掉 AgentSelect 后接住它的
                     // hiddenVendors 门禁);未加载时不传 = 不隐藏任何引擎。会话内没有
                     // 跨引擎切换事务可走时锁定当前引擎(见 inSessionEngineLocked)。
@@ -9000,6 +9151,7 @@ export function ChatInput({
                       handleProviderChange(providerId, modelId, effort, undefined, fast)
                     }
                     onNavigateToProviders={handleNavigateToProviders}
+                    onReconnectSource={handleReconnectSource}
                     switching={remoteSwitchInFlight}
                     disabled={
                       disabled || settingsLocked || agentSendDispatchInFlight || agentSwitchInFlight
@@ -9013,6 +9165,7 @@ export function ChatInput({
                     restoreFocusTarget={composerSuggestionFocusTarget}
                   />
                 </div>
+                ) : null}
                 <div
                   className={
                     useNarrowToolbar
@@ -9140,6 +9293,13 @@ export function ChatInput({
               focusedIndex={slashFocus}
               onFocusedIndexChange={setSlashFocus}
               onSelect={(cmd) => insertSlashCommand(cmd)}
+              allowProjectSkillDetails={!!sessionId}
+              onOpenSkillDetails={!isRemoteSession && !deviceLinkDeviceId ? (cmd) => {
+                if (cmd.kind !== 'agent-skill' || cmd.source !== 'skill' || !cmd.path || cmd.origin === 'package') return;
+                if (!sessionId && cmd.scope !== 'global' && cmd.scope !== 'user') return;
+                draftSaveSchedulerRef.current?.flush();
+                navigate(buildLocalSkillPathRoute(cmd.path, { scope: cmd.scope, workingDir }), { state: { resetHistory: true } });
+              } : undefined}
               onClose={() => {
                 if (trigger.kind === 'slash') setSuppressedSlashAt(trigger.from);
               }}
