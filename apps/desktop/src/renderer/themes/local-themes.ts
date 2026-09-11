@@ -11,6 +11,9 @@ import { Emitter } from './event';
 import { normalizeLocalThemeColors } from './local-themes-normalize';
 import { exportThemeColors } from './theme-service';
 import type { Theme, ThemeType } from './types';
+import { cindyLight } from './builtin/cindy-light';
+import { cindyDark } from './builtin/cindy-dark';
+import { APPEARANCE_ASSET_KEYS } from '../../shared/appearanceMod';
 
 const log = createLogger('themes/local-themes');
 
@@ -19,6 +22,16 @@ let cachedSignature = '';
 const didChange = new Emitter<void>();
 
 function mapWireTheme(theme: LocalThemeWire): Theme {
+  if (theme.mod) {
+    const base = theme.type === 'dark' ? cindyDark : cindyLight;
+    const brand: NonNullable<Theme['brand']> = {};
+    for (const key of APPEARANCE_ASSET_KEYS) {
+      const src = theme.modAssets?.[key];
+      if (src?.startsWith('data:image/png;base64,')) brand[key] = { src };
+    }
+    const colors = { ...base.colors, ...theme.colors };
+    return { id: theme.id, family: theme.family, name: theme.name, type: theme.type, colors, brand, mod: theme.mod };
+  }
   const iconPath = theme.brand?.icon;
   const logoPath = theme.brand?.logo;
   const icon = iconPath
@@ -49,7 +62,7 @@ function mapWireTheme(theme: LocalThemeWire): Theme {
 
 function signatureOf(themes: Theme[]): string {
   return JSON.stringify(
-    themes.map((t) => [t.id, t.type, t.name, t.family, t.colors, t.brand]),
+    themes.map((t) => [t.id, t.type, t.name, t.family, t.colors, t.brand, t.mod]),
   );
 }
 

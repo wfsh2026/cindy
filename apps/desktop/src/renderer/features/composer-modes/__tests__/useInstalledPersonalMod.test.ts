@@ -28,12 +28,12 @@ afterEach(() => {
 });
 
 describe('installed Mod catalog', () => {
-  it('keeps the selected legacy mode but exposes no running mode or shortcut until a package exists', async () => {
+  it('provides the bundled battle without an imported package', async () => {
     const hook = renderHook(useComposerModePreference);
     const loaded = () => expect(api.get).toHaveBeenCalled();
     await waitFor(loaded);
-    expect(hook.result.current.mode).toBe('standard');
-    expect(hook.result.current.available).toBe(false);
+    expect(hook.result.current.mode).toBe('cartethyia-battle');
+    expect(hook.result.current.available).toBe(true);
     expect(hook.result.current.selectedMode).toBe('cartethyia-battle');
   });
 

@@ -1,4 +1,5 @@
 import { SubagentStatusStrip } from './SubagentStatusStrip';
+import { usePersonalAssistantAvatar } from '@/components/branding/PersonalAssistantAvatar';
 import { shouldShowFailedScheduleNotice } from '@cindy/maker-shared/schedule-model';
 /**
  * CCAgentSessionView
@@ -960,6 +961,7 @@ export function CCAgentSessionView({
     botIdentity && session?.source === 'bot' ? botIdentity : null;
   // assistant 气泡左侧的伙伴头像。节点在整场对话里是同一个,memo 住让 MessageItem
   // 的 memo 比较仍然成立(否则每帧新节点 = 全流重渲染)。
+  const personalAssistantAvatar = usePersonalAssistantAvatar();
   const botAssistantAvatar = useMemo(
     () => (botChatIdentity ? <BotAvatar bot={botChatIdentity} size="sm" /> : null),
     [botChatIdentity],
@@ -4477,7 +4479,7 @@ export function CCAgentSessionView({
       // a TS-narrowing fallback, never expected to fire at runtime.
       workingDir={session?.workingDir ?? ''}
       // 伙伴对话:assistant 气泡挂 TA 的头像(普通任务传 null,渲染完全不变)。
-      assistantAvatar={botAssistantAvatar}
+      assistantAvatar={botChatIdentity ? botAssistantAvatar : personalAssistantAvatar}
       simplifiedBotConversation={Boolean(botChatIdentity)}
       botUnreadBoundaryAt={botChatIdentity ? botUnreadBoundaryAt : null}
       messages={messages}

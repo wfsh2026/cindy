@@ -24,7 +24,7 @@ interface BrandLoadingMarkProps {
 
 export function BrandLoadingMark({ width = 120 }: BrandLoadingMarkProps) {
   const { t } = useTranslation();
-  const logo = useBrandLogo();
+  const logo = useBrandLogo('loading');
   const loadingLabel = t('chat.sessionLoading', '正在加载任务');
   const maskStyle = {
     maskImage: `url("${logo}")`,

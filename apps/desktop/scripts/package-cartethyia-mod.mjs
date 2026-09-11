@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDirectory = path.dirname(scriptPath);
-const sourceRoot = path.resolve(scriptDirectory, '../../../mods/cartethyia-battle');
+const args = process.argv.slice(2);
+const sourceOption = args.find(value => value.startsWith('--source='));
+const outputOption = args.find(value => value.startsWith('--output='));
+const positionalOutput = args.find(value => !value.startsWith('--'));
+const sourceValue = sourceOption?.slice('--source='.length);
+const sourceRoot = sourceValue ? path.resolve(sourceValue) : path.resolve(scriptDirectory, '../../../mods/cartethyia-battle');
 
 async function main() {
   const manifestPath = path.join(sourceRoot, 'manifest.json');
@@ -27,7 +32,8 @@ async function main() {
   const pack = { ...manifest, assets };
   const json = JSON.stringify(pack);
   const defaultOutput = path.resolve(scriptDirectory, `../release/mods/${manifest.id}-${manifest.version}.cindymod`);
-  const output = process.argv[2] ? path.resolve(process.argv[2]) : defaultOutput;
+  const outputValue = outputOption?.slice('--output='.length) ?? positionalOutput;
+  const output = outputValue ? path.resolve(outputValue) : defaultOutput;
   const outputDirectory = path.dirname(output);
   await mkdir(outputDirectory, { recursive: true });
   await writeFile(output, json);

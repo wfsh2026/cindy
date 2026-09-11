@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { ModDisplayOption, ModDisplayOptions, PersonalModId } from './types';
+import type { ModDisplayOption, ModDisplayOptions } from './types';
 
 const STORAGE_KEY = 'cartethyia.personalMods.v1';
 const listeners = new Set<() => void>();
@@ -8,10 +8,11 @@ let storageUnavailable = false;
 
 interface Overrides {
   enabled?: boolean;
-  mods?: Partial<Record<PersonalModId, Partial<ModDisplayOptions>>>;
+  source?: 'builtin';
+  mods?: Record<string, Partial<ModDisplayOptions>>;
 }
 
-export const DEFAULT_MOD_DISPLAY: Readonly<ModDisplayOptions> = { ground: true, damage: true, effects: true, idle: true };
+export const DEFAULT_MOD_DISPLAY: Readonly<ModDisplayOptions> = { character: true, battle: true, ground: true, damage: true, effects: true, idle: true };
 
 function readRaw(): string | null {
   if (storageUnavailable) return fallbackRaw;
@@ -29,14 +30,17 @@ function parseOverrides(raw: string | null): Overrides {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
     const result: Overrides = {};
     if (typeof value.enabled === 'boolean') result.enabled = value.enabled;
-    const stored = value.mods?.['cartethyia-battle'];
-    if (stored && typeof stored === 'object') {
+    if (value.source === 'builtin') result.source = 'builtin';
+    const entries = Object.entries(value.mods ?? {});
+    for (const [id, stored] of entries.slice(0, 64)) {
+      if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(id) || !stored || typeof stored !== 'object') continue;
       const options: Partial<ModDisplayOptions> = {};
       const keys = Object.keys(DEFAULT_MOD_DISPLAY) as ModDisplayOption[];
       for (const key of keys) {
-        if (typeof stored[key] === 'boolean') options[key] = stored[key];
+        const candidate = (stored as Partial<ModDisplayOptions>)[key];
+        if (typeof candidate === 'boolean') options[key] = candidate;
       }
-      result.mods = { 'cartethyia-battle': options };
+      result.mods = { ...result.mods, [id]: options };
     }
     return result;
   } catch {
@@ -88,7 +92,7 @@ export function setPersonalModsEnabled(enabled: boolean): void {
   writeOverrides(overrides);
 }
 
-export function setModDisplayOption(id: PersonalModId, option: ModDisplayOption, enabled: boolean): void {
+export function setModDisplayOption(id: string, option: ModDisplayOption, enabled: boolean): void {
   const raw = readRaw();
   const overrides = parseOverrides(raw);
   const options = { ...overrides.mods?.[id], [option]: enabled };
@@ -102,7 +106,7 @@ export function setModDisplayOption(id: PersonalModId, option: ModDisplayOption,
   writeOverrides(overrides);
 }
 
-export function resetModDisplayOptions(id: PersonalModId): void {
+export function resetModDisplayOptions(id: string): void {
   const raw = readRaw();
   const overrides = parseOverrides(raw);
   delete overrides.mods?.[id];
@@ -111,9 +115,16 @@ export function resetModDisplayOptions(id: PersonalModId): void {
   writeOverrides(overrides);
 }
 
-export function usePersonalModPreferences() {
+export function setCharacterSource(source: 'builtin' | 'imported'): void {
+  const raw = readRaw();
+  const overrides = parseOverrides(raw);
+  if (source === 'builtin') overrides.source = source; else delete overrides.source;
+  writeOverrides(overrides);
+}
+
+export function usePersonalModPreferences(id = 'cartethyia-battle') {
   const raw = useSyncExternalStore(subscribe, readRaw, readRaw);
   const overrides = parseOverrides(raw);
-  const display = { ...DEFAULT_MOD_DISPLAY, ...overrides.mods?.['cartethyia-battle'] };
-  return { enabled: overrides.enabled ?? true, display };
+  const display = { ...DEFAULT_MOD_DISPLAY, ...overrides.mods?.[id] };
+  return { enabled: overrides.enabled ?? true, display, source: overrides.source ?? 'imported' };
 }

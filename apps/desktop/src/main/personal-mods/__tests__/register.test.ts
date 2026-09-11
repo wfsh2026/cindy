@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('Personal Mod IPC boundaries', () => {
   it('rejects every operation from an untrusted renderer before opening files', async () => {
     context.trusted = false;
-    for (const channel of [PERSONAL_MOD_IPC.get, PERSONAL_MOD_IPC.import, PERSONAL_MOD_IPC.remove]) {
+    for (const channel of [PERSONAL_MOD_IPC.get, PERSONAL_MOD_IPC.import, PERSONAL_MOD_IPC.remove, PERSONAL_MOD_IPC.example, PERSONAL_MOD_IPC.directory, PERSONAL_MOD_IPC.importDirectory, 'personal-mod:identity-get', 'personal-mod:identity-set', 'personal-mod:theme-import']) {
       const request = invoke(channel);
       await expect(request).rejects.toThrow('untrusted');
     }

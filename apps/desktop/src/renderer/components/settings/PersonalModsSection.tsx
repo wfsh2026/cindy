@@ -1,157 +1,122 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft, ChevronRight, Palette, Swords } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Switch } from '@/components/ui/switch';
-import { composerModeDefinitions } from '@/features/composer-modes/registry';
+import { useTheme } from '@/hooks/useTheme';
 import { ModErrorBoundary } from '@/features/composer-modes/ModErrorBoundary';
+import { CartethyiaBattlePreview } from '@/features/composer-modes/cartethyia-battle/CartethyiaBattleStage';
+import { builtinBattleMod } from '@/features/composer-modes/builtinBattleMod';
 import { setComposerModePreference, useComposerModePreference } from '@/features/composer-modes/useComposerModePreference';
-import { resetModDisplayOptions, setModDisplayOption, setPersonalModsEnabled, usePersonalModPreferences } from '@/features/composer-modes/usePersonalModPreferences';
-import type { ComposerModeDefinition, ModDisplayOption } from '@/features/composer-modes/types';
+import { DEFAULT_MOD_DISPLAY, resetModDisplayOptions, setModDisplayOption, setPersonalModsEnabled, setCharacterSource, usePersonalModPreferences } from '@/features/composer-modes/usePersonalModPreferences';
 import { refreshPersonalMod, useInstalledPersonalMod } from '@/features/composer-modes/useInstalledPersonalMod';
+import { useAvailablePersonalMod } from '@/features/composer-modes/useAvailablePersonalMod';
+import type { ModDisplayOption } from '@/features/composer-modes/types';
 import type { InstalledPersonalMod } from '../../../shared/personalMod';
+import { ThemeModsSection } from './ThemeModsSection';
+import { ModListRow, ModRowActions, type ModAction } from './ModListRow';
 
-const CARD_CLASS = 'rounded-xl border border-[var(--settings-theme-card-border)] bg-[var(--settings-theme-card-bg)] p-5';
-
-function ModOption({ id, option }: { id: ComposerModeDefinition['id']; option: ModDisplayOption }) {
+function CharacterModRow({ mod, builtin, onRemove }: { mod: InstalledPersonalMod; builtin: boolean; onRemove?: () => void }) {
   const { t } = useTranslation();
-  const { display } = usePersonalModPreferences();
-  const labelKey = `settings.personalMods.options.${option}`;
-  const label = t(labelKey);
-  const change = (enabled: boolean) => setModDisplayOption(id, option, enabled);
-  return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <span className="text-13 text-[var(--text-primary)]">{label}</span>
-      <Switch checked={display[option]} onCheckedChange={change} aria-label={label} />
-    </div>
-  );
+  const available = useAvailablePersonalMod();
+  const { selectedMode } = useComposerModePreference();
+  const { enabled, display } = usePersonalModPreferences(mod.id);
+  const [preview, setPreview] = useState(false);
+  const [error, setError] = useState(false);
+  const selected = available.builtin === builtin && selectedMode === 'cartethyia-battle' && enabled;
+  const name = mod.name ?? t('settings.personalMods.cartethyiaName');
+  const sourceLabel = t(builtin ? 'settings.personalMods.builtin' : 'settings.personalMods.imported');
+  const detail = sourceLabel + ' · ' + mod.version;
+  const toggle = (next: boolean) => {
+    if (next) { setCharacterSource(builtin ? 'builtin' : 'imported'); setComposerModePreference('cartethyia-battle'); setPersonalModsEnabled(true); }
+    else if (selected) setComposerModePreference('standard');
+  };
+  const reset = () => resetModDisplayOptions(mod.id);
+  const togglePreview = () => setPreview(!preview);
+  const finishPreview = () => setPreview(false);
+  const copy = async () => {
+    try { const result = await window.electronAPI.personalMods.exportExample?.('battle'); setError(!result?.success); }
+    catch { setError(true); }
+  };
+  const actions: ModAction[] = [{ label: t('settings.personalMods.createExample'), run: copy }, { label: t('settings.personalMods.reload'), run: refreshPersonalMod }];
+  if (onRemove) actions.push({ label: t('settings.personalMods.remove'), run: onRemove });
+  const menu = <ModRowActions name={name} actions={actions} />;
+  const keys = Object.keys(DEFAULT_MOD_DISPLAY) as ModDisplayOption[];
+  const parts = keys.map(key => {
+    const change = (next: boolean) => setModDisplayOption(mod.id, key, next);
+    const labelKey = 'settings.personalMods.options.' + key;
+    const label = t(labelKey);
+    return <div key={key} className="flex items-center justify-between gap-4 py-2"><span className="text-13 text-[var(--text-primary)]">{label}</span><Switch checked={display[key]} onCheckedChange={change} aria-label={label} /></div>;
+  });
+  const empty = keys.every(key => !display[key]);
+  return <ModListRow name={name} detail={detail} icon={<Swords size={20} />} enabled={selected} empty={empty} builtin={builtin} onEnabledChange={toggle} actions={menu}>
+    {parts}
+    <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={togglePreview}>{t(preview ? 'settings.personalMods.stopPreview' : 'settings.personalMods.preview')}</Button><Button variant="secondary" onClick={reset}>{t('settings.personalMods.resetParts')}</Button></div>
+    {preview && <ModErrorBoundary><CartethyiaBattlePreview mod={mod} onComplete={finishPreview} /></ModErrorBoundary>}
+    {error && <p role="alert" className="text-12 text-[var(--error-fg)]">{t('settings.personalMods.errors.failed')}</p>}
+  </ModListRow>;
 }
 
-function PersonalModCard({ definition, mod, onRemove }: { definition: ComposerModeDefinition; mod: InstalledPersonalMod; onRemove: () => void }) {
+function CharacterModsList() {
   const { t } = useTranslation();
-  const { enabled } = usePersonalModPreferences();
-  const { selectedMode } = useComposerModePreference();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [previewing, setPreviewing] = useState(false);
-  const selected = selectedMode === definition.id;
-  const name = t(definition.nameKey);
-  const settingsId = `mod-settings-${definition.id}`;
-  const Preview = definition.preview;
-  const toggle = (next: boolean) => {
-    const mode = next ? definition.id : 'standard';
-    setComposerModePreference(mode);
+  const installed = useInstalledPersonalMod();
+  const available = useAvailablePersonalMod();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const errorKey = 'settings.personalMods.errors.' + error;
+  const [removal, setRemoval] = useState<string | null>(null);
+  const importMod = async (folder: boolean) => {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      const api = window.electronAPI.personalMods;
+      const result = folder ? await api.importDirectory?.() : await api.import();
+      if (!result?.ok) setError(result?.error ?? 'failed');
+      else if (!result.canceled) { setCharacterSource(available.builtin ? 'builtin' : 'imported'); await refreshPersonalMod(); }
+    } catch { setError('failed'); }
+    finally { setBusy(false); }
   };
-  const toggleSettings = () => {
-    const next = !settingsOpen;
-    setSettingsOpen(next);
+  const importFile = () => { void importMod(false); };
+  const importFolder = () => { void importMod(true); };
+  const requestRemove = () => { if (installed.mod) setRemoval(installed.mod.revision); };
+  const remove = async () => {
+    if (!removal || busy) return;
+    setBusy(true);
+    try {
+      const result = await window.electronAPI.personalMods.remove(removal);
+      if (!result.ok) setError(result.error); else { await refreshPersonalMod(); setRemoval(null); }
+    } catch { setError('failed'); }
+    finally { setBusy(false); }
   };
-  const togglePreview = () => {
-    const next = !previewing;
-    setPreviewing(next);
-  };
-  const finishPreview = () => setPreviewing(false);
-  const reset = () => resetModDisplayOptions(definition.id);
-  const statusKey = !selected ? 'disabled' : enabled ? 'enabled' : 'paused';
-  const statusLabelKey = `settings.personalMods.${statusKey}`;
-  const renderOption = (option: ModDisplayOption) => <ModOption key={option} id={definition.id} option={option} />;
-  const optionElements = definition.options.map(renderOption);
-
-  return (
-    <section className={CARD_CLASS} aria-label={name}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="text-14 font-medium text-[var(--text-primary)]">{name}</h3>
-          <p className="mt-1 text-12 text-[var(--text-secondary)]">{t(definition.descriptionKey)}</p>
-          <p className="mt-2 text-12 text-[var(--text-tertiary)]">
-            {t('settings.personalMods.imported')} · {t(definition.locationKey)} · {mod.version}
-          </p>
-          <p className="mt-1 text-12 text-[var(--text-secondary)]">{t(statusLabelKey)}</p>
-        </div>
-        <Switch checked={selected} onCheckedChange={toggle} aria-label={name} />
-      </div>
-      <div className="my-3 overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--surface)]">
-        {previewing ? <ModErrorBoundary><Preview onComplete={finishPreview} /></ModErrorBoundary>
-          : <img src={mod.assets.ground} alt="" className="h-24 w-full object-contain" />}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={togglePreview}>{t(previewing ? 'settings.personalMods.stopPreview' : 'settings.personalMods.preview')}</Button>
-        <Button variant="secondary" onClick={toggleSettings} aria-expanded={settingsOpen} aria-controls={settingsId}>
-          {t('settings.personalMods.configure')}
-        </Button>
-        <Button variant="secondary" onClick={onRemove}>{t('settings.personalMods.remove')}</Button>
-      </div>
-      {settingsOpen && (
-        <div id={settingsId} className="mt-4 border-t border-[var(--border-default)] pt-3">
-          {optionElements}
-          <Button variant="secondary" className="mt-3" onClick={reset}>{t('settings.defaults.restore')}</Button>
-        </div>
-      )}
-    </section>
-  );
+  return <div data-mod-category="character" className="flex flex-col gap-3">
+    <div className="flex flex-wrap gap-2"><Button onClick={importFile} disabled={busy}>{t('settings.personalMods.import')}</Button><Button variant="secondary" onClick={importFolder} disabled={busy}>{t('settings.personalMods.importDirectory')}</Button><Button variant="secondary" onClick={refreshPersonalMod}>{t('settings.personalMods.reload')}</Button></div>
+    {error && <p role="alert" className="text-13 text-[var(--error-fg)]">{t(errorKey)}</p>}
+    <CharacterModRow mod={builtinBattleMod} builtin />
+    {installed.mod && <CharacterModRow mod={installed.mod} builtin={false} onRemove={requestRemove} />}
+    <ConfirmDialog open={removal !== null} onOpenChange={open => { if (!open && !busy) setRemoval(null); }} title={t('settings.personalMods.remove')} description={t('settings.personalMods.removeHint')} confirmText={t('settings.personalMods.remove')} loading={busy} onConfirm={remove} />
+  </div>;
 }
 
 export function PersonalModsSection() {
   const { t } = useTranslation();
-  const { enabled } = usePersonalModPreferences();
-  const { mod, loading, error: loadError } = useInstalledPersonalMod();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [removeRevision, setRemoveRevision] = useState<string | null>(null);
-  const requestRemove = () => {
-    if (mod && !busy) setRemoveRevision(mod.revision);
-  };
-  const importPackage = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await window.electronAPI.personalMods.import();
-      if (!result.ok) setError(result.error);
-      else if (!result.canceled) await refreshPersonalMod();
-    } catch { setError('failed'); }
-    finally { setBusy(false); }
-  };
-  const removePackage = async () => {
-    if (!removeRevision || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await window.electronAPI.personalMods.remove(removeRevision);
-      if (!result.ok) setError(result.error);
-      else await refreshPersonalMod();
-    } catch { setError('failed'); }
-    finally {
-      setBusy(false);
-      setRemoveRevision(null);
-    }
-  };
-  const changeRemoveOpen = (open: boolean) => {
-    if (!open && !busy) setRemoveRevision(null);
-  };
-  const renderCard = (definition: ComposerModeDefinition) => mod && definition.id === mod.id
-    ? <PersonalModCard key={mod.revision} definition={definition} mod={mod} onRemove={requestRemove} /> : null;
-  const cards = composerModeDefinitions.map(renderCard);
-  const errorKey = `settings.personalMods.errors.${error ?? 'unavailable'}`;
-  return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-16 font-medium text-[var(--settings-section-title)]">{t('settings.tabs.personalMods')}</h2>
-      <p className="text-12 text-[var(--text-secondary)]">{t('settings.personalMods.importHint')}</p>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={importPackage} disabled={busy}>{t(busy ? 'settings.personalMods.working' : 'settings.personalMods.import')}</Button>
-        {loadError && <Button variant="secondary" onClick={refreshPersonalMod}>{t('settings.personalMods.reload')}</Button>}
-      </div>
-      {(error || loadError) && <p role="alert" className="text-13 text-[var(--text-secondary)]">{t(errorKey)}</p>}
-      <div className={CARD_CLASS}>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-13 font-medium text-[var(--text-primary)]">{t('settings.personalMods.master')}</span>
-          <Switch checked={enabled} onCheckedChange={setPersonalModsEnabled} aria-label={t('settings.personalMods.master')} />
-        </div>
-        <p className="mt-2 text-12 text-[var(--text-secondary)]">{t('settings.personalMods.hint')}</p>
-      </div>
-      {cards}
-      {!mod && <p role="status" className="text-13 text-[var(--text-secondary)]">{t(loading ? 'settings.personalMods.loading' : 'settings.personalMods.empty')}</p>}
-      <ConfirmDialog open={removeRevision !== null} onOpenChange={changeRemoveOpen} title={t('settings.personalMods.remove')}
-        description={t('settings.personalMods.removeHint')} confirmText={t('settings.personalMods.remove')} loading={busy} onConfirm={removePackage} />
-    </div>
-  );
+  const { familyId } = useTheme();
+  const { mode } = useComposerModePreference();
+  const [category, setCategory] = useState<'theme' | 'character' | null>(null);
+  const back = () => setCategory(null);
+  const categories = ['theme', 'character'] as const;
+  const entries = categories.map(value => {
+    const enter = () => setCategory(value);
+    const count = value === 'theme' ? Number(familyId !== 'cindy') : Number(mode !== 'standard');
+    const labelKey = 'settings.personalMods.categories.' + value;
+    const label = t(labelKey);
+    return <button key={value} type="button" onClick={enter} className="flex min-h-16 w-full items-center gap-4 rounded-xl border border-[var(--settings-theme-card-border)] bg-[var(--settings-theme-card-bg)] px-5 py-4 text-left hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" aria-label={label}>
+      {value === 'theme' ? <Palette size={22} className="text-[var(--text-secondary)]" /> : <Swords size={22} className="text-[var(--text-secondary)]" />}
+      <span className="flex-1 text-14 font-medium text-[var(--text-primary)]">{label}</span><span className="text-12 text-[var(--text-secondary)]">{t('settings.personalMods.enabledCount', { count })}</span><ChevronRight size={16} className="text-[var(--text-secondary)]" />
+    </button>;
+  });
+  return <div className="flex flex-col gap-4">
+    <div className="flex items-center gap-3">{category && <Button onClick={back} variant="secondary" aria-label={t('settings.personalMods.back')}><ArrowLeft size={16} /></Button>}<h2 className="text-16 font-medium text-[var(--settings-section-title)]">{t(category ? 'settings.personalMods.categories.' + category : 'settings.tabs.personalMods')}</h2></div>
+    {category === null ? entries : category === 'theme' ? <ThemeModsSection /> : <CharacterModsList />}
+  </div>;
 }

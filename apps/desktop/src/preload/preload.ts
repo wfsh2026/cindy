@@ -1477,6 +1477,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('ghosts:dev-runtime', 'call', id, { tool, args }),
   },
   personalMods: {
+    setAppearanceSelection: (selection) => ipcRenderer.invoke('personal-mod:appearance-selection', selection),
+    getIdentity: () => ipcRenderer.invoke('personal-mod:identity-get'),
+    setIdentity: (identity) => ipcRenderer.invoke('personal-mod:identity-set', identity),
+    exportExample: (kind: 'theme' | 'battle') => ipcRenderer.invoke(PERSONAL_MOD_IPC.example, kind),
+    manageDirectory: (request: { action: 'open' | 'uninstall' | 'restore' | 'copy'; directory: string }) => ipcRenderer.invoke(PERSONAL_MOD_IPC.directory, request),
+    importThemeDirectory: () => ipcRenderer.invoke('personal-mod:theme-import'),
+    importDirectory: () => ipcRenderer.invoke(PERSONAL_MOD_IPC.importDirectory),
     get: () => ipcRenderer.invoke(PERSONAL_MOD_IPC.get),
     import: () => ipcRenderer.invoke(PERSONAL_MOD_IPC.import),
     remove: (revision: string) => ipcRenderer.invoke(PERSONAL_MOD_IPC.remove, revision),

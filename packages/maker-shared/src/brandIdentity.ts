@@ -135,12 +135,12 @@ export interface BrandIdentity {
 }
 
 /**
- * 当前生效的身份档案(显示名 Cartethyia、系统标识 Cindy,2026-07-17 翻转)。
+ * 当前生效的身份档案(Cindy,2026-07-17 翻转)。
  * 旧 xdt-maker 值全部下沉 legacy 数组。
  *
  * 区域差异字段:appId、userDataDirName 按区域派生(cn/global 是两个可并存
  * 的系统身份,数据分库);executableName 自 2026-07-26 起 cn/global 同值
- * (显示名统一为 Cartethyia；文件层仍保留 Cindy，放弃文件层双装隔离,见 executableNameByRegion doc),
+ * (显示统一为 Cindy,放弃文件层双装隔离,见 executableNameByRegion doc),
  * 仅 dev 保持独立名;深链 scheme、展示名 BRAND_NAME、cdnPrefix、dbFilePrefix、
  * updaterName 两区共用(scheme 共用是 owner 决策:双装时后注册者赢,单装用户
  * 无感;cdnPrefix 共用因发布渠道靠不同 OSS bucket 区分;db 前缀因 userData

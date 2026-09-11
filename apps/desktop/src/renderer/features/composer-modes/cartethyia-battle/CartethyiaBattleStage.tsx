@@ -6,7 +6,7 @@ import { useAgentIslandActivity } from '@/state/agentIslandActivity';
 import type { ComposerModeRenderProps } from '../types';
 import type { ModDisplayOptions } from '../types';
 import { usePersonalModPreferences } from '../usePersonalModPreferences';
-import { useInstalledPersonalMod } from '../useInstalledPersonalMod';
+import { useAvailablePersonalMod } from '../useAvailablePersonalMod';
 import type { InstalledPersonalMod } from '../../../../shared/personalMod';
 import { calculateBattleSceneGeometry } from './battleSceneGeometry';
 import { createCartethyiaBattleState, reduceCartethyiaBattleState, requiredNormalHitsForRandom } from './battleStateMachine';
@@ -40,8 +40,8 @@ export function CartethyiaBattleStage(props: ComposerModeRenderProps) {
   const { sessionId } = props;
   const activitySessionId = sessionId ?? '__cartethyia-composer-mode__';
   const activity = useAgentIslandActivity(activitySessionId);
-  const { display } = usePersonalModPreferences();
-  const { mod } = useInstalledPersonalMod();
+  const { mod } = useAvailablePersonalMod();
+  const { display } = usePersonalModPreferences(mod.id);
   if (!mod) return null;
   return <CartethyiaBattleScene key={mod.revision} {...props} activity={activity} display={display} assets={mod.assets} />;
 }
@@ -55,9 +55,10 @@ interface BattleSceneProps extends ComposerModeRenderProps {
 
 const PREVIEW_ACTIVITY = { phase: 'running', startedAtMs: 1, currentActionSummary: null } as const;
 
-export function CartethyiaBattlePreview({ onComplete }: { onComplete: () => void }) {
-  const { display } = usePersonalModPreferences();
-  const { mod } = useInstalledPersonalMod();
+export function CartethyiaBattlePreview({ onComplete, mod: previewMod }: { onComplete: () => void; mod?: InstalledPersonalMod }) {
+  const available = useAvailablePersonalMod();
+  const mod = previewMod ?? available.mod;
+  const { display } = usePersonalModPreferences(mod.id);
   if (!mod) return null;
   return <CartethyiaBattleScene key={mod.revision} sessionId={null} active compact={false} stopGeneration={0} activity={PREVIEW_ACTIVITY} display={display} assets={mod.assets} onComplete={onComplete} />;
 }
@@ -71,11 +72,16 @@ function CartethyiaBattleScene({ active, compact, stopGeneration, activity, disp
   const previousStopGenerationRef = useRef(stopGeneration);
   const [arenaWidth, setArenaWidth] = useState(DEFAULT_ARENA_WIDTH);
   const motionEnabled = !reducedMotion;
-  const sceneVisible = display.idle || (battle.cue !== 'idle' && battle.cue !== 'sleep');
+  const characterEnabled = display.character !== false;
+  const battleEnabled = display.battle !== false;
+  const hasVisuals = characterEnabled || display.ground || (battleEnabled && (display.damage || display.effects));
+  const activeWork = activity?.phase === 'running' || activity?.phase === 'needs-interaction';
+  const timelineVisible = battleEnabled ? battle.cue !== 'idle' && battle.cue !== 'sleep' : activeWork;
+  const sceneVisible = hasVisuals && (display.idle || timelineVisible);
   const scenePlaying = active && documentVisible && sceneVisible;
   const waiting = battle.signal?.phase === 'needs-interaction' || battle.cue === 'waiting';
-  const sceneMotionPlaying = scenePlaying && !waiting;
-  const animationPlaying = sceneMotionPlaying && motionEnabled;
+  const sceneMotionPlaying = scenePlaying && !waiting && battleEnabled;
+  const animationPlaying = (battleEnabled ? sceneMotionPlaying : scenePlaying && display.idle) && motionEnabled;
   const geometry = calculateBattleSceneGeometry(arenaWidth, compact);
 
   const finishPreview = () => {
@@ -133,7 +139,7 @@ function CartethyiaBattleScene({ active, compact, stopGeneration, activity, disp
   useEffect(observeArena, [sceneVisible]);
 
   const scheduleSleep = () => {
-    if (!scenePlaying || battle.cue !== 'idle' || battle.signal) return;
+    if (!battleEnabled || !scenePlaying || battle.cue !== 'idle' || battle.signal) return;
     const epoch = battle.epoch;
     const completeSleep = () => {
       const event: CartethyiaBattleEvent = { type: 'sleep', epoch };
@@ -143,7 +149,7 @@ function CartethyiaBattleScene({ active, compact, stopGeneration, activity, disp
     const cancelSleep = () => window.clearTimeout(timeout);
     return cancelSleep;
   };
-  useEffect(scheduleSleep, [battle.cue, battle.epoch, battle.signal, scenePlaying]);
+  useEffect(scheduleSleep, [battle.cue, battle.epoch, battle.signal, scenePlaying, battleEnabled]);
 
   const clockOptions = { cue: battle.cue, epoch: battle.epoch, playing: sceneMotionPlaying, reducedMotion, dispatch, hitKind: battle.hitKind };
   useBattleSceneClock(clockOptions);
@@ -152,7 +158,7 @@ function CartethyiaBattleScene({ active, compact, stopGeneration, activity, disp
   const currentImpact = impact?.epoch === battle.epoch;
   const heroHitAtContact = currentImpact && impact.target === 'hero';
   const monsterHitAtContact = currentImpact && impact.target === 'monster';
-  const currentHeroMotion = heroHitAtContact ? 'hit' : heroMotion(battle.cue);
+  const currentHeroMotion = !battleEnabled ? 'idle' : heroHitAtContact ? 'hit' : heroMotion(battle.cue);
   const currentMonsterMotion = monsterHitAtContact ? 'hit' : monsterMotion(battle.cue);
   const hero = cartethyiaBattlePack.hero[currentHeroMotion];
   const monster = cartethyiaBattlePack.monster[currentMonsterMotion];
@@ -179,29 +185,29 @@ function CartethyiaBattleScene({ active, compact, stopGeneration, activity, disp
     '--cartethyia-damage-offset': `${damageOffset}px`,
     '--cartethyia-monster-effect-x': `${geometry.monsterEncounterX}px`,
   };
-  const monsterVisible = battle.cue !== 'idle' && battle.cue !== 'sleep' && battle.cue !== 'waiting'
+  const monsterVisible = characterEnabled && battleEnabled && battle.cue !== 'idle' && battle.cue !== 'sleep' && battle.cue !== 'waiting'
     && battle.cue !== 'hero-return' && battle.cue !== 'respawn-wait' && battle.cue !== 'victory';
 
   if (!sceneVisible) return null;
 
   return (
-    <div className={rootClassName} data-composer-mode="cartethyia-battle" data-battle-cue={battle.cue}
+    <div className={rootClassName} data-composer-mode="cartethyia-battle" data-battle-cue={battleEnabled ? battle.cue : 'idle'}
       data-encounter-id={battle.encounterId} data-normal-hits={battle.normalHitsTaken}
       data-required-normal-hits={battle.requiredNormalHits}
       data-impact-target={impact?.epoch === battle.epoch ? impact.target : undefined} aria-hidden="true">
       <div ref={arenaRef} className="cartethyia-battle__arena" style={arenaStyle}>
         {display.ground && <div className="cartethyia-battle__ground" />}
-        <div className={`cartethyia-battle__actor cartethyia-battle__hero-actor${pausedClassName}`}>
+        {characterEnabled && <div className={`cartethyia-battle__actor cartethyia-battle__hero-actor${pausedClassName}`}>
           <SpriteAnimator animation={hero} enabled={motionEnabled} playing={animationPlaying}
             once={heroOnce} finalFrame={reducedMotion && heroOnce} className="cartethyia-battle__hero" />
-        </div>
+        </div>}
         {monsterVisible && (
           <div className={`cartethyia-battle__actor cartethyia-battle__monster-actor${pausedClassName}`}>
             <SpriteAnimator animation={monster} enabled={motionEnabled} playing={animationPlaying}
               once={monsterOnce} finalFrame={reducedMotion && monsterOnce} className="cartethyia-battle__monster" />
           </div>
         )}
-        {impact && (display.damage || display.effects) && (
+        {battleEnabled && impact && (display.damage || display.effects) && (
           <div key={`impact-${impact.epoch}`} className={`cartethyia-battle__impact${pausedClassName}`}
             data-hit-kind={impact.kind} data-hit-target={impact.target}>
             {display.damage && <span className="cartethyia-battle__damage">−{impact.damage}</span>}
@@ -220,7 +226,7 @@ function CartethyiaBattleScene({ active, compact, stopGeneration, activity, disp
             )}
           </div>
         )}
-        {display.effects && battle.cue === 'monster-death' && (
+        {battleEnabled && display.effects && battle.cue === 'monster-death' && (
           <div key={`shards-${battle.epoch}`} className={`cartethyia-battle__death-effect${pausedClassName}`}>
             <SpriteAnimator animation={effects.shard} enabled={motionEnabled} playing={animationPlaying} once />
           </div>

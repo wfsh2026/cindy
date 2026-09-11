@@ -1,0 +1,50 @@
+{
+  "format": "cindy-personal-mod",
+  "schemaVersion": 2,
+  "category": "theme",
+  "template": "appearance-v1",
+  "id": "cartethyia-theme",
+  "name": "Cartethyia",
+  "version": "1.0.0",
+  "baseFamily": "cindy",
+  "identity": {
+    "appDisplayName": "Cartethyia",
+    "assistantName": "卡提西亚"
+  },
+  "colors": {
+    "light": "colors/light.json",
+    "dark": "colors/dark.json"
+  },
+  "assets": {
+    "light": {
+      "icon": "assets/head-image-light.png",
+      "logo": "assets/cindy-logo-light.png",
+      "avatar": "assets/head-image-light.png",
+      "loading": "assets/logo-light.png",
+      "loginHero": "assets/login/hero.png",
+      "loginHero2x": "assets/login/hero@2x.png",
+      "loginWordmark": "assets/login/wordmark.png",
+      "loginWordmark2x": "assets/login/wordmark@2x.png",
+      "statusSuccess": "assets/login/chibi/chibi-success.png",
+      "statusFailure": "assets/login/chibi/chibi-failure.png",
+      "statusNeutral": "assets/login/chibi/chibi-neutral.png",
+      "shareCharacter": "assets/cindy-share-character.png",
+      "wordmark": "assets/logo-light.png"
+    },
+    "dark": {
+      "icon": "assets/head-image-dark.png",
+      "logo": "assets/cindy-logo-dark.png",
+      "avatar": "assets/head-image-dark.png",
+      "loading": "assets/logo-dark.png",
+      "loginHero": "assets/login/hero.png",
+      "loginHero2x": "assets/login/hero@2x.png",
+      "loginWordmark": "assets/login/wordmark-dark.png",
+      "loginWordmark2x": "assets/login/wordmark-dark@2x.png",
+      "statusSuccess": "assets/login/chibi/chibi-success.png",
+      "statusFailure": "assets/login/chibi/chibi-failure.png",
+      "statusNeutral": "assets/login/chibi/chibi-neutral.png",
+      "shareCharacter": "assets/cindy-share-character.png",
+      "wordmark": "assets/logo-dark.png"
+    }
+  }
+}

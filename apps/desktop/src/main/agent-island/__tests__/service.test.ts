@@ -2072,7 +2072,7 @@ describe('AgentIslandService native publishing', () => {
       expect(mocks.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
         type: 'warning',
         title: 'macOS folder access denied',
-        message: 'Cartethyia cannot access your Desktop folder',
+        message: 'Cindy cannot access your Desktop folder',
         buttons: ['Open System Settings', 'Cancel'],
       }));
       expect(mocks.openExternal).not.toHaveBeenCalled();
@@ -2110,7 +2110,7 @@ describe('AgentIslandService native publishing', () => {
       ));
       expect(mocks.showMessageBox).toHaveBeenCalledWith(
         mainWindow,
-        expect.objectContaining({ message: 'Cartethyia cannot access your Documents folder' }),
+        expect.objectContaining({ message: 'Cindy cannot access your Documents folder' }),
       );
     } finally {
       platformSpy.mockRestore();

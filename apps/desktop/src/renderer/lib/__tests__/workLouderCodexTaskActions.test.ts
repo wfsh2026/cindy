@@ -88,7 +88,7 @@ describe('workLouderCodexTaskActions', () => {
     await copyCurrentTaskMarkdown('session-1', { navigate: vi.fn(), t: (key) => key });
 
     expect(writeText).toHaveBeenCalledWith(
-      expect.stringMatching(/^## User\n\nhello\n\n## Cartethyia\n\nworld[\s\S]*## Cartethyia\n\nlatest$/),
+      expect.stringMatching(/^## User\n\nhello\n\n## Cindy\n\nworld[\s\S]*## Cindy\n\nlatest$/),
     );
     expect(mocks.listMessagesFor).toHaveBeenCalledTimes(2);
     expect(mocks.toast.success).toHaveBeenCalled();

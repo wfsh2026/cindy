@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
-import { BATTLE_ASSET_IDS, BATTLE_ASSET_SIZES, PERSONAL_MOD_ID, PERSONAL_MOD_MAX_BYTES } from '../../shared/personalMod';
+import { BATTLE_ASSET_IDS, BATTLE_ASSET_SIZES, PERSONAL_MOD_MAX_BYTES } from '../../shared/personalMod';
 import type { BattleAssetId, PersonalModPackage } from '../../shared/personalMod';
 
 export class InvalidPersonalModError extends Error {
@@ -18,7 +18,7 @@ function hasOnlyKeys(value: object, expected: readonly string[]): boolean {
   return keys.every(known);
 }
 
-export async function decodePersonalMod(bytes: Buffer): Promise<{ version: string; assets: Record<BattleAssetId, Buffer> }> {
+export async function decodePersonalMod(bytes: Buffer): Promise<{ id: string; name?: string; version: string; assets: Record<BattleAssetId, Buffer> }> {
   requireValid(bytes.length > 0 && bytes.length <= PERSONAL_MOD_MAX_BYTES);
   let pack: PersonalModPackage;
   try {
@@ -26,9 +26,13 @@ export async function decodePersonalMod(bytes: Buffer): Promise<{ version: strin
     pack = JSON.parse(raw);
   } catch { throw new InvalidPersonalModError(); }
   requireValid(!!pack && typeof pack === 'object');
-  const exactKeys = hasOnlyKeys(pack, ['format', 'schemaVersion', 'template', 'id', 'version', 'assets']);
+  const keys = ['format', 'schemaVersion', 'template', 'id', 'version', 'assets'];
+  if (pack.name !== undefined) keys.push('name');
+  const exactKeys = hasOnlyKeys(pack, keys);
   requireValid(exactKeys);
-  requireValid(pack.format === 'cindy-personal-mod' && pack.schemaVersion === 1 && pack.template === 'composer-battle-v1' && pack.id === PERSONAL_MOD_ID);
+  requireValid(pack.format === 'cindy-personal-mod' && pack.schemaVersion === 1 && pack.template === 'composer-battle-v1');
+  requireValid(typeof pack.id === 'string' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(pack.id));
+  if (pack.name !== undefined) requireValid(typeof pack.name === 'string' && pack.name.trim().length > 0 && pack.name.length <= 80);
   requireValid(typeof pack.version === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(pack.version));
   requireValid(!!pack.assets && typeof pack.assets === 'object');
   const exactAssets = hasOnlyKeys(pack.assets, BATTLE_ASSET_IDS);
@@ -61,5 +65,5 @@ export async function decodePersonalMod(bytes: Buffer): Promise<{ version: strin
       assets[key] = await png.toBuffer();
     } catch { throw new InvalidPersonalModError(); }
   }
-  return { version: pack.version, assets };
+  return { id: pack.id, ...(pack.name ? { name: pack.name } : {}), version: pack.version, assets };
 }

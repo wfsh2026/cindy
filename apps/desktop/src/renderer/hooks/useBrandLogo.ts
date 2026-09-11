@@ -8,6 +8,9 @@
  */
 
 import { useIsDarkMode } from '@/components/markdown/useIsDarkMode';
+import { useSyncExternalStore } from 'react';
+import { themeService } from '@/themes/theme-service';
+import { themePartEnabled } from '../../shared/themeModParts';
 
 import logoLight from '@/assets/logo-light.png';
 import logoDark from '@/assets/logo-dark.png';
@@ -15,6 +18,20 @@ import logoDark from '@/assets/logo-dark.png';
 export { logoLight, logoDark };
 
 /** 返回当前主题下应显示的品牌 logo URL(可直接用于 <img src>)。 */
-export function useBrandLogo(): string {
-  return useIsDarkMode() ? logoDark : logoLight;
+function subscribeBrand(listener: () => void): () => void {
+  return themeService.onDidChangeTheme(listener);
+}
+
+function brandSnapshot() { return themeService.getCurrentTheme(); }
+
+export function useBrandLogo(slot: 'logo' | 'loading' | 'share' = 'logo'): string {
+  const theme = useSyncExternalStore(subscribeBrand, brandSnapshot, brandSnapshot);
+  const dark = useIsDarkMode();
+  const fallback = dark ? logoDark : logoLight;
+  if (!theme?.mod) return fallback;
+  const part = slot === 'share' ? 'share' : 'loading';
+  if (!themePartEnabled(theme.modOptions, part)) return fallback;
+  const brand = theme.modSourceBrand ?? theme.brand;
+  const selected = slot === 'loading' ? brand?.loading : brand?.wordmark;
+  return selected?.src ?? brand?.logo?.src ?? fallback;
 }

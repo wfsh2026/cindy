@@ -649,7 +649,7 @@ function signPackagedExes(buildPath: string): void {
 
 /**
  * macOS 打包显示名(与 win32metadata 同构):packaged 后把
- * .app 的 Info.plist 里 CFBundleDisplayName 改成 Cartethyia——Dock 名、Cmd+Tab、
+ * .app 的 Info.plist 里 CFBundleDisplayName 改成 Cindy——Dock 名、Cmd+Tab、
  * Finder、系统通知读的都是它(显示优先级 CFBundleDisplayName > CFBundleName)。
  *
  * ⚠️ 绝不能改 CFBundleName:Electron 启动时用主 app 的 CFBundleName 拼
@@ -659,7 +659,7 @@ function signPackagedExes(buildPath: string): void {
  * 与 Helper 目录不一致的值会让包启动即 FATAL "Unable to find helper app"
  * (SIGTRAP;2026-07-21 dev region smoke 实踩)。
  * 代价:菜单栏粗体标题取自 CFBundleName 且运行时改不了,dev 构建上显示
- * CindyDev 而非 Cartethyia——cn/global(packager 已写稳定的 Cindy 可执行名)不受影响,可接受。
+ * CindyDev 而非 Cindy——cn/global(packager 已写稳定的 Cindy 可执行名)不受影响,可接受。
  *
  * 为什么在 postPackage 改而不是 packagerConfig:electron-packager 在
  * updatePlistFiles 里先合并 extendInfo、后用 appName/executableName 覆写
@@ -671,7 +671,7 @@ function signPackagedExes(buildPath: string): void {
  * cn 构建的 packager 本身就会把 CFBundleName/CFBundleDisplayName 写成 Cindy,
  * 对 cn 是冗余兜底;2026-07-26 global exe 名与 cn 统一为 'Cindy' 后 global
  * 同样只是冗余兜底;dev 构建的 packager name 仍是 'CindyDev',本步骤把
- * Dock 名、Cmd+Tab、系统通知的**显示层**拉回 Cartethyia(BRAND_NAME 各区共用),
+ * Dock 名、Cmd+Tab、系统通知的**显示层**拉回 Cindy(BRAND_NAME 各区共用),
  * 对 dev 是显示名的唯一来源。正式签名/公证(外部发布流程)发生在
  * postPackage 之后,本改动会被签名一起封印,不存在破坏签名问题。
  */
@@ -760,6 +760,7 @@ function stageRipgrep(targetPlatform: string, targetArch: string): void {
 
 function extraResourcesForTarget(targetPlatform: string): string[] {
   const base = [
+    '../../mods',
     'resources/icon.png',
     'resources/tools',
     'drizzle',
@@ -1344,9 +1345,9 @@ if (isWin) {
         // 不设时回落 package.json 的 npm 包描述,UAC 提权弹窗、文件属性、
         // 快捷方式悬停提示上就会显示那段面向开发者的文本。
         //
-        // ⚠️ 取 displayName 而非 CINDY_EXE:展示名两区(含 dev)共用 'Cartethyia',
+        // ⚠️ 取 displayName 而非 CINDY_EXE:展示名两区(含 dev)共用 'Cindy',
         // 而 exe 名 dev 派生为 'CindyDev'。用后者会让 dev 包的安装器显示
-        // CindyDev、装完的主 exe 却显示 Cartethyia(win32metadata 同样取
+        // CindyDev、装完的主 exe 却显示 Cindy(win32metadata 同样取
         // displayName)——安装前后自相矛盾,正是本次要消除的那类不一致。
         // 文件名层的区分由 productName / shortcutName 承担,与展示层解耦。
         //
@@ -1402,7 +1403,7 @@ const config: ForgeConfig = {
     // 互覆已被 owner 接受)/ dev 'CindyDev'(显式设值防 packager 回落
     // package.json productName 让 dev 与正式包撞名)。mac 的 Dock/Cmd+Tab/
     // 通知**显示名**由 postPackage 的 applyMacPackagedDisplayName 经
-    // CFBundleDisplayName 统一拉回 Cartethyia(对 dev 是唯一显示名来源;
+    // CFBundleDisplayName 统一拉回 Cindy(对 dev 是唯一显示名来源;
     // CFBundleName 不可动,Electron 靠它找 Helper,见该函数注释)。
     name: CINDY_EXE,
     executableName: CINDY_EXE,
@@ -1410,7 +1411,7 @@ const config: ForgeConfig = {
     // 的系统身份,与 mobile 的 com.xd.cindycn / com.xd.cindy 同一套)。
     appBundleId: CINDY_APP_ID,
     // exe 资源元数据(任务管理器进程名、文件右键属性的显示层)。只影响展示,
-    // 与 exe 文件名 / AUMID / userData 等标识符解耦;显示层两区共用 Cartethyia
+    // 与 exe 文件名 / AUMID / userData 等标识符解耦;显示层两区共用 Cindy
     // (与 mac 显示名口径一致)。FileDescription 走 BRAND_IDENTITY.displayName,
     // 与 NSIS maker 的 extraMetadata.description 同一表达式——安装器/卸载器
     // 与主 exe 的「说明」字段必须同值,否则 dev 包会安装前后显示两个名字。
@@ -1429,8 +1430,8 @@ const config: ForgeConfig = {
       // 双 scheme 注册:cindy:// 主 + xdt-maker:// 永久兼容(存量分享链接不死)。
       { name: `${BRAND_IDENTITY.displayName} Deep Link`, schemes: [...allDeepLinkSchemes()] },
     ],
-    // macOS 文件夹右键 "打开方式 → Cartethyia" 入口:
-    //   声明 app 能接受 public.folder, Finder 自动把 Cartethyia 出现在 "打开方式" 列表。
+    // macOS 文件夹右键 "打开方式 → Cindy" 入口:
+    //   声明 app 能接受 public.folder, Finder 自动把 Cindy 出现在 "打开方式" 列表。
     //   LSHandlerRank=Alternate: 不抢 Finder 默认 handler, 仅作为可选项之一。
     //   CFBundleTypeRole=Editor: 用户对该类型有 "打开+操作" 能力 (而非 Viewer 只看)。
     //   触发后 macOS 通过 app.on('open-file') 事件把目录路径推给 main 进程,
@@ -1464,7 +1465,7 @@ const config: ForgeConfig = {
           LSHandlerRank: 'Alternate',
           LSItemContentTypes: ['public.folder'],
         },
-        // Cartethyia 卡带 (.cindy):Finder 双击 → open-file 事件 → 装入 + 停靠
+        // Cindy 卡带 (.cindy):Finder 双击 → open-file 事件 → 装入 + 停靠
         // (卡带系统;Windows 半边走注册表自注册,见 brain/fileAssociation.ts)。
         // LSItemContentTypes 指向下方 UTExportedTypeDeclarations 声明的自有 UTI
         // (UTI 里带扩展名 + MIME 映射);CFBundleTypeExtensions 保留作旧系统

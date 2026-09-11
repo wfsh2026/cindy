@@ -67,7 +67,7 @@ describe('useTheme 跨窗口主题同步(D2-3)', () => {
     localStorage.setItem('theme', 'dark');
     renderHook(() => useTheme(), { wrapper });
 
-    expect(applyVibrancyMock).toHaveBeenCalledWith('cindy', true, 'dark', true);
+    expect(applyVibrancyMock).toHaveBeenCalledWith('cartethyia', true, 'dark', true);
   });
 
   it('utility 窗口复用 ThemeProvider 时不写全局窗口材质快照', () => {
@@ -89,12 +89,12 @@ describe('useTheme 跨窗口主题同步(D2-3)', () => {
     expect(getInitialThemeVariant().theme.type).toBe('light');
 
     renderHook(() => useTheme(), { wrapper });
-    expect(applyVibrancyMock).toHaveBeenLastCalledWith('cindy', false, 'system', true);
+    expect(applyVibrancyMock).toHaveBeenLastCalledWith('cartethyia', false, 'system', true);
 
     act(() => {
       endLoginFirstLaunchLightGate();
     });
-    expect(applyVibrancyMock).toHaveBeenLastCalledWith('cindy', true, 'system', true);
+    expect(applyVibrancyMock).toHaveBeenLastCalledWith('cartethyia', true, 'system', true);
   });
 
   it('其他窗口切 theme → storage 事件 → 本窗口 theme state 跟随并重应用', () => {
@@ -107,9 +107,9 @@ describe('useTheme 跨窗口主题同步(D2-3)', () => {
     expect(themeService.applyTheme).toHaveBeenCalled();
   });
 
-  it('无存档时默认 cindy,其他窗口切 familyId=default 后本窗口跟随', () => {
+  it('无存档时默认 Cartethyia,其他窗口切 familyId=default 后本窗口跟随', () => {
     const { result } = renderHook(() => useTheme(), { wrapper });
-    expect(result.current.familyId).toBe('cindy');
+    expect(result.current.familyId).toBe('cartethyia');
     act(() => {
       dispatchStorage('theme.familyId', 'default');
     });

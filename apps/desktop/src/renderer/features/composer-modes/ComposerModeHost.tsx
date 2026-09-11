@@ -3,7 +3,7 @@ import { createContext, useContext } from 'react';
 import { getComposerModeDefinition } from './registry';
 import { usePersonalModPreferences } from './usePersonalModPreferences';
 import { ModErrorBoundary } from './ModErrorBoundary';
-import { useInstalledPersonalMod } from './useInstalledPersonalMod';
+import { useAvailablePersonalMod } from './useAvailablePersonalMod';
 import type { ComposerModeHostProps, ComposerModeId, ComposerModeRenderProps } from './types';
 
 const ComposerModeContext = createContext<ComposerModeId>('standard');
@@ -15,7 +15,7 @@ export function ComposerModeHost({ mode, children }: ComposerModeHostProps) {
 export function ComposerModeSlot(props: ComposerModeRenderProps) {
   const mode = useContext(ComposerModeContext);
   const { enabled } = usePersonalModPreferences();
-  const { mod } = useInstalledPersonalMod();
+  const { mod } = useAvailablePersonalMod();
   const definition = getComposerModeDefinition(mode);
   if (!definition || !enabled || !mod) return null;
   const ModeComponent = definition.component;

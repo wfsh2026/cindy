@@ -1,4 +1,5 @@
 import type { ImageVisibleBounds } from './imageVisibleBounds';
+import type { AppearanceAssetKey, AppearanceModMetadata } from './appearanceMod';
 
 export const LOCAL_THEME_SUFFIX = '-local';
 
@@ -24,6 +25,8 @@ export interface LocalThemeBrandRevisions {
 }
 
 export interface LocalThemeWire {
+  mod?: AppearanceModMetadata;
+  modAssets?: Partial<Record<AppearanceAssetKey, string>>;
   id: string;
   name: string;
   type: 'light' | 'dark';
@@ -48,6 +51,7 @@ export interface LocalThemeDiagnostic {
 }
 
 export interface LocalThemesPayload {
+  disabledPacks?: string[];
   success: true;
   themes: LocalThemeWire[];
   diagnostics: LocalThemeDiagnostic[];

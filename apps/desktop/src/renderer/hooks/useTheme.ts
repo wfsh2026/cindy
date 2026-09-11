@@ -7,9 +7,13 @@ import {
   resolveFamilyVariant,
   tryGetFamily,
 } from '../themes/families';
-import { onLocalThemesChange } from '../themes/local-themes';
+import { onLocalThemesChange, refreshLocalThemes } from '../themes/local-themes';
 import { themeService } from '../themes/theme-service';
 import type { ThemeType } from '../themes/types';
+import { useModPresentation } from '../features/composer-modes/useModIdentity';
+import i18n from 'i18next';
+import { getThemeModOptions, subscribeThemeModOptions, useThemeModOptions } from '../themes/mod-preferences';
+import { applyThemeModParts } from '../themes/mod-parts';
 
 export type Theme = 'system' | 'light' | 'dark';
 
@@ -79,6 +83,7 @@ export function getStoredFamilyId(): string {
   try {
     const stored = localStorage.getItem(FAMILY_KEY);
     if (stored && tryGetFamily(stored)) return stored;
+    if (stored) return 'cindy';
   } catch {
     // localStorage may be unavailable
   }
@@ -143,7 +148,10 @@ export function applyThemeClass(theme: Theme, force = false): void {
     disableTransitionsTemporarily();
   }
 
-  themeService.applyTheme(nextTheme);
+  const familyId = getStoredFamilyId();
+  const options = getThemeModOptions(familyId);
+  const effective = familyId === 'cindy' ? nextTheme : applyThemeModParts(nextTheme, options);
+  themeService.applyTheme(effective);
 }
 
 /** index.tsx bootstrap 用 —— 不依赖 React context。首启亮色门在此生效:
@@ -252,6 +260,31 @@ export function ThemeProvider({
 }) {
   const [theme, setThemeState] = useState<Theme>(getStoredTheme);
   const [familyId, setFamilyIdState] = useState<string>(getStoredFamilyId);
+  const modOptions = useThemeModOptions(familyId);
+  const windowFamilyId = modOptions.parts?.colors === false ? 'cindy' : familyId;
+  useEffect(() => {
+    if (!syncWindowVibrancy) return;
+    const publish = () => {
+      const current = themeService.getCurrentTheme();
+      const api = window.electronAPI?.personalMods;
+      if (!current || !api?.setAppearanceSelection) return;
+      const selectedFamily = getStoredFamilyId();
+      const selection = { familyId: selectedFamily, type: current.type, options: current.modOptions };
+      void api.setAppearanceSelection(selection).catch(() => undefined);
+    };
+    const unsubscribe = themeService.onDidChangeTheme(publish);
+    publish();
+    return unsubscribe;
+  }, [syncWindowVibrancy]);
+  const { appName } = useModPresentation();
+  useEffect(() => {
+    document.title = appName;
+    const variables = i18n.options?.interpolation?.defaultVariables;
+    if (variables && variables.appName !== appName) {
+      variables.appName = appName;
+      i18n.emit('languageChanged', i18n.language);
+    }
+  }, [appName]);
   // 跟踪系统色偏好, 让 fallbackFromType 在 OS theme 变化时也能正确刷新。
   const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() =>
     typeof window === 'undefined' || typeof window.matchMedia !== 'function'
@@ -261,11 +294,19 @@ export function ThemeProvider({
   // Invalidate memos that depend on family membership when local themes change.
   // Read latest values from storage to avoid closure staleness races.
   const [localThemeRev, bumpLocalThemeRev] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    const refresh = () => { const mode = getStoredTheme(); applyThemeClass(mode, true); };
+    return subscribeThemeModOptions(refresh);
+  }, []);
+  useEffect(() => {
+    const refresh = () => { void refreshLocalThemes().catch(() => undefined); };
+    return window.electronAPI?.personalMods?.onChanged(refresh);
+  }, []);
   useEffect(() => onLocalThemesChange(() => {
     let rawFamily: string | null = null;
     try { rawFamily = localStorage.getItem(FAMILY_KEY); } catch { /* ok */ }
     if (rawFamily && !tryGetFamily(rawFamily)) {
-      const fallback = DEFAULT_FAMILY_ID;
+      const fallback = 'cindy';
       setFamilyIdState(fallback);
       try { localStorage.setItem(FAMILY_KEY, fallback); } catch { /* ok */ }
     }
@@ -357,12 +398,12 @@ export function ThemeProvider({
   useEffect(() => {
     if (!syncWindowVibrancy) return;
     window.electronAPI?.theme?.applyVibrancy?.(
-      familyId,
+      windowFamilyId,
       resolveSessionIsDark(theme),
       theme,
       systemModeFollowsSystem(familyId),
     );
-  }, [familyId, localThemeRev, syncWindowVibrancy, theme, systemPrefersDark]);
+  }, [familyId, windowFamilyId, localThemeRev, syncWindowVibrancy, theme, systemPrefersDark]);
 
   const fallbackFromType = useMemo<ThemeType | null>(() => {
     void localThemeRev;

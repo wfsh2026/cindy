@@ -68,7 +68,7 @@ export function resolveVibrancyConfig(
   platform: string,
   options?: ResolveVibrancyConfigOptions,
 ): VibrancyConfig {
-  const isCindy = familyId === 'cindy';
+  const isCindy = familyId === 'cindy' || familyId === 'cartethyia';
   const opaqueBg = isDark ? '#1f1f1e' : '#f8f8f6';
   if (platform === 'darwin') {
     // 材质 A/B 旋钮(dev 调参用):XDT_VIBRANCY_MATERIAL=sidebar|hud|under-window|fullscreen-ui|

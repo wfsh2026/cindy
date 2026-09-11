@@ -9,6 +9,7 @@ import { oneDarkPro } from './builtin/one-dark-pro';
 import { solarizedLight } from './builtin/solarized-light';
 import { cindyDark } from './builtin/cindy-dark';
 import { cindyLight } from './builtin/cindy-light';
+import { cartethyiaLight, cartethyiaDark } from './builtin/cartethyia';
 import { getLocalThemes } from './local-themes';
 import {
   ATOM_ONE_LIGHT_ID,
@@ -37,6 +38,8 @@ export const builtinThemes: Record<string, Theme> = {
   [githubDark.id]: githubDark,
   [monokaiPro.id]: monokaiPro,
   [materialOceanHC.id]: materialOceanHC,
+  [cartethyiaLight.id]: cartethyiaLight,
+  [cartethyiaDark.id]: cartethyiaDark,
 };
 
 // 历史 theme id → 当前 id 的迁移表。读 localStorage 时透明替换,让用户

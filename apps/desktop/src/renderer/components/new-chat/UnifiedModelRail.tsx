@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { LayoutGrid, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { ProviderView } from '@cindy/model-providers';
 
 import { cn } from '@/lib/utils';
+import { modelProviderStyle, useModelProviderColors } from '@/lib/modelProviderAppearance';
 import { Tip } from '@/components/ui/tooltip';
 
 import { useProviderWeeklyQuota } from './useProviderWeeklyQuota';
@@ -44,6 +45,7 @@ export function UnifiedModelRail({
   localProviderUsage?: boolean;
 }) {
   const { t } = useTranslation();
+  const providerColors = useModelProviderColors();
   // rail 常驻,不做「项数少就整条隐藏」——设计稿的分类栏在单来源时也在(★/全部/来源),
   // 隐藏会让收藏与快速切换不可发现(Chris 2026-08-13 实测反馈)。
   const activeKey = railItemKey(active);
@@ -53,6 +55,8 @@ export function UnifiedModelRail({
       {items.map((item) => {
         const key = railItemKey(item);
         const isActive = activeKey === key;
+        const coloredProvider = providerColors && item.kind === 'provider';
+        const providerStyle = coloredProvider ? modelProviderStyle(item.providerId) : undefined;
         // 设计稿 .rail-sep:「★/同引擎」与「全部/来源」两段之间的 22px 细线。
         const separatorBefore = item.kind === 'all';
         const engineOption =
@@ -76,6 +80,7 @@ export function UnifiedModelRail({
               />
             )}
             <RailButton
+              providerStyle={providerStyle}
               label={label}
               isActive={isActive}
               itemKey={key}
@@ -109,6 +114,7 @@ export function UnifiedModelRail({
 }
 
 interface RailButtonProps {
+  providerStyle?: CSSProperties;
   label: string;
   isActive: boolean;
   itemKey: string;
@@ -133,6 +139,7 @@ function ProviderQuotaButton(props: RailButtonProps & { provider: ProviderView }
 }
 
 function RailButtonView({
+  providerStyle,
   label,
   isActive,
   itemKey,
@@ -174,11 +181,16 @@ function RailButtonView({
         aria-description={quotaLabel ?? undefined}
         aria-pressed={isActive}
         data-rail-item={itemKey}
+        style={providerStyle}
         className={cn(
           'relative flex h-[38px] w-[34px] shrink-0 flex-col items-center justify-center rounded-[9px] transition-colors',
-          isActive
-            ? 'bg-[var(--accent-cta-bg)] text-[var(--accent-pure-cta-fg)] shadow-[var(--shadow-menu)]'
-            : 'text-[var(--text-tertiary)] hover:bg-[var(--model-item-hover)] hover:text-[var(--text-secondary)]',
+          providerStyle
+            ? isActive
+              ? 'bg-[color-mix(in_srgb,var(--model-provider-color)_16%,transparent)] text-[var(--model-provider-color)] ring-1 ring-inset ring-[var(--model-provider-color)]'
+              : 'text-[var(--model-provider-color)] hover:bg-[var(--model-item-hover)]'
+            : isActive
+              ? 'bg-[var(--accent-cta-bg)] text-[var(--accent-pure-cta-fg)] shadow-[var(--shadow-menu)]'
+              : 'text-[var(--text-tertiary)] hover:bg-[var(--model-item-hover)] hover:text-[var(--text-secondary)]',
           disabled && 'cursor-not-allowed opacity-50',
         )}
       >

@@ -4,7 +4,7 @@ title: Plugins (extending what the agents can do)
 summary: What plugins are, how to browse / install / enable / disable them, per-working-directory control, the permission model, and invoking one with a $command.
 tab: ghosts
 ---
-Plugins (internally "意识" / Ghost) extend what the agents can do — they add AI-callable tools, dockable UI panels, and "ask Cartethyia to make it" media generation. Each plugin is a self-contained `.cindy` capability pack that runs in its own isolated sandbox.
+Plugins (internally "意识" / Ghost) extend what the agents can do — they add AI-callable tools, dockable UI panels, and "ask Cindy to make it" media generation. Each plugin is a self-contained `.cindy` capability pack that runs in its own isolated sandbox.
 
 **The Plugins page:**
 
@@ -29,7 +29,7 @@ Plugins (internally "意识" / Ghost) extend what the agents can do — they add
 
 - Install from the marketplace, or add a `.cindy` file manually (drag it in / pick it from disk).
 - Choosing Install, dragging a package, or picking one from disk installs and enables the selected plugin directly. Installation does not add a permission or version-confirmation step; review its declared capabilities on the plugin detail page.
-- The server selects the release appropriate for this Cartethyia version before marketplace delivery. Desktop does not apply a second `minCindyVersion` gate; custom marketplaces and local `.cindy` packages follow the same install policy.
+- The server selects the release appropriate for this Cindy version before marketplace delivery. Desktop does not apply a second `minCindyVersion` gate; custom marketplaces and local `.cindy` packages follow the same install policy.
 - Updates from stable marketplace sources are applied automatically when the plugin is idle. Failed attempts retry later; you can still click Update to retry immediately.
 
 **Using a plugin with `$command`:**

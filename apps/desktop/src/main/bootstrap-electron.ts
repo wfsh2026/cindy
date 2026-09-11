@@ -6018,7 +6018,7 @@ const registerIpcHandlers = () => {
 
   // Environment check IPC handler — 顺序检查 claude → codex → pi 三个 vendor binary。
   // 提前 peekNeedsDownload 决定 (x/y) 标签：两个及以上需要下载时给 step/totalSteps，
-  // 否则不带标签（splash 显示单一 "唤醒 Cartethyia 中..." 文案）。
+  // 否则不带标签（splash 显示单一 "唤醒 Cindy 中..." 文案）。
   // pi 是可选实验 agent:清单无资产 / 下载失败都不算环境检查失败(失败不广播
   // failed payload),本次不注册 pi。
   ipcMain.handle('check-environment', async () => {

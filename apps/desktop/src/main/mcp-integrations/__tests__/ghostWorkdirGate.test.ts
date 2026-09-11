@@ -26,8 +26,7 @@ import { t } from '../../i18n';
 const tmpUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-workdir-gate-'));
 const prefsFile = () => path.join(tmpUserData, 'ghost-workdir-prefs.json');
 const outsideDir = path.join(tmpUserData, 'outside');
-const logWarnMock = vi.fn();
-const logInfoMock = vi.fn();
+const { logWarnMock, logInfoMock, appSessionBoundaryPendingMock } = vi.hoisted(() => ({ logWarnMock: vi.fn(), logInfoMock: vi.fn(), appSessionBoundaryPendingMock: vi.fn(() => false) }));
 const grantAttachmentsMock = vi.fn();
 const { packGhostDirMock, scaffoldGhostDirMock, forgeInstallPackageMock } = vi.hoisted(() => ({
   packGhostDirMock: vi.fn(),
@@ -60,7 +59,6 @@ const {
   })),
 }));
 const releaseMutationMock = vi.fn();
-const appSessionBoundaryPendingMock = vi.fn(() => false);
 const appVersionMock = vi.fn(() => '2.3.4');
 const captureMutationOwnerMock = vi.fn(() => ({
   mode: 'local' as const,
@@ -940,7 +938,7 @@ describe('花名册 / ghost_list 过滤', () => {
     await expect(makeDeps().getAwakeGhost('account')).resolves.toEqual({
       ok: false,
       errorCode: 'GHOST_NOT_FOUND',
-      message: '该插件需要 Cartethyia 账号，未登录状态不可用；不要重试，改用本地可用方式。',
+      message: '该插件需要 Cindy 账号，未登录状态不可用；不要重试，改用本地可用方式。',
     });
   });
 
@@ -1019,7 +1017,7 @@ describe('ghost_call 兜底拒绝', () => {
     ).resolves.toEqual({
       ok: false,
       errorCode: 'GHOST_NOT_FOUND',
-      message: '该插件需要 Cartethyia 账号，未登录状态不可用；不要重试，改用本地可用方式。',
+      message: '该插件需要 Cindy 账号，未登录状态不可用；不要重试，改用本地可用方式。',
     });
     expect(dispatchMock).not.toHaveBeenCalled();
   });

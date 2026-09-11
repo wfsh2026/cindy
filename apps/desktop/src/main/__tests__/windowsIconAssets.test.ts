@@ -86,9 +86,17 @@ describe('Windows icon assets', () => {
       ]);
 
       const mainIco = fs.readFileSync(mainIcoPath);
-      expect(mainIco).toEqual(fs.readFileSync(generatedIcoPath));
-      expect(mainIco).toEqual(fs.readFileSync(updaterIcoPath));
-      expect(fs.readFileSync(mainPngPath)).toEqual(fs.readFileSync(updaterPngPath));
+      const generatedIco = fs.readFileSync(generatedIcoPath);
+      const updaterIco = fs.readFileSync(updaterIcoPath);
+      const mainPng = fs.readFileSync(mainPngPath);
+      const updaterPng = fs.readFileSync(updaterPngPath);
+      const generatedMatches = mainIco.equals(generatedIco);
+      const updaterIcoMatches = mainIco.equals(updaterIco);
+      const updaterPngMatches = mainPng.equals(updaterPng);
+      // Byte-for-byte checks avoid formatting hundreds of thousands of differing bytes.
+      expect(generatedMatches, 'main ICO must match generated ICO bytes').toBe(true);
+      expect(updaterIcoMatches, 'updater ICO must match main ICO bytes').toBe(true);
+      expect(updaterPngMatches, 'updater PNG must match main PNG bytes').toBe(true);
 
       const entries = decodeIcoEntries(mainIco);
       expect(entries.map(({ size }) => size)).toEqual([16, 24, 32, 48, 64, 128, 256]);

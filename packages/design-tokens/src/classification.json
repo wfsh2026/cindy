@@ -1,12 +1,12 @@
 {
   "source": "apps/desktop/src/renderer/themes/colors.ts",
   "generatedBy": "packages/design-tokens/src/classify.ts",
-  "snapshotCount": 553,
+  "snapshotCount": 565,
   "categories": {
     "literal": 273,
     "alias": 242,
     "hsl-triplet": 6,
-    "runtime-derived-or-protected": 32
+    "runtime-derived-or-protected": 44
   },
   "entries": [
     {
@@ -5490,6 +5490,102 @@
       "destination": "register-only",
       "lightKind": "color-mix",
       "darkKind": "color-mix",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-item-selected-bg",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-item-selected-border",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-xd",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-openai",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-anthropic",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-google",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-custom-1",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-custom-2",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-custom-3",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-custom-4",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-custom-5",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "model-provider-custom-6",
+      "category": "runtime-derived-or-protected",
+      "destination": "register-only",
+      "lightKind": "null",
+      "darkKind": "null",
       "modeledAsSemantic": false
     }
   ]

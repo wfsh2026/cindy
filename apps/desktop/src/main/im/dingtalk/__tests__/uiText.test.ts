@@ -15,7 +15,7 @@ describe('DingTalk UI text pack', () => {
     expect(ui.slash.help).not.toContain('/permission');
     expect(ui.slash.help).not.toContain('/ctr');
     expect(ui.slash.help).not.toContain('/session');
-    expect(ui.slash.interactiveCommandUnsupported?.('/model')).toContain('Cartethyia 桌面端');
+    expect(ui.slash.interactiveCommandUnsupported?.('/model')).toContain('Cindy 桌面端');
   });
 
   it('relabels inherited Telegram copy for DingTalk', () => {

@@ -10,7 +10,7 @@ export const composerModeDefinitions: readonly ComposerModeDefinition[] = [
     nameKey: 'settings.personalMods.cartethyiaName',
     descriptionKey: 'settings.personalMods.cartethyiaDescription',
     locationKey: 'settings.personalMods.aboveComposer',
-    options: ['ground', 'damage', 'effects', 'idle'],
+    options: ['character', 'battle', 'ground', 'damage', 'effects', 'idle'],
   },
 ];
 

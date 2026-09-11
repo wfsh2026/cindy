@@ -2470,3 +2470,15 @@ registerColor('button-cta-pressed', {
   light: 'color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg))',
   dark: 'color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg))',
 }, 'DS-4 button/cta pressed — 自 cta hover 朝 CTA 前景再推 10%');
+
+// Cartethyia model picker palette, approved 2026-09-10. Opt-in: existing themes keep their UI.
+const modelProviderPaletteTokens = [
+  'model-item-selected-bg', 'model-item-selected-border',
+  'model-provider-xd', 'model-provider-openai', 'model-provider-anthropic', 'model-provider-google',
+  'model-provider-custom-1', 'model-provider-custom-2', 'model-provider-custom-3',
+  'model-provider-custom-4', 'model-provider-custom-5', 'model-provider-custom-6',
+];
+for (const token of modelProviderPaletteTokens) {
+  const defaults = { light: null, dark: null };
+  registerColor(token, defaults, 'Optional model picker provider identity / selected state');
+}

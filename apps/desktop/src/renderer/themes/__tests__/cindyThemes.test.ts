@@ -350,14 +350,14 @@ describe('CINDY · ⑥ family(cindy 默认且置顶 / Classic 文案 / 9 主题�
     const families = getThemeFamilies();
     const fam = families.find((f) => f.id === 'cindy');
     expect(fam, 'cindy family 未注册').toBeTruthy();
-    expect(fam?.name).toBe('Cartethyia');
+    expect(fam?.name).toBe('Cindy');
     expect(fam?.light?.id).toBe('cindy-light');
     expect(fam?.dark?.id).toBe('cindy-dark');
-    expect(families[0]?.id).toBe('cindy');
+    expect(families[0]?.id).toBe('cartethyia');
   });
 
-  it('新用户默认选择 cindy,原 default 家族展示为 Classic', () => {
-    expect(DEFAULT_FAMILY_ID).toBe('cindy');
+  it('新用户默认选择 Cartethyia,原 default 家族展示为 Classic', () => {
+    expect(DEFAULT_FAMILY_ID).toBe('cartethyia');
     expect(getThemeFamilies().find((f) => f.id === 'default')?.name).toBe('Classic');
   });
 
@@ -366,6 +366,8 @@ describe('CINDY · ⑥ family(cindy 默认且置顶 / Classic 文案 / 9 主题�
     expect(ids).toEqual(
       [
         'atom-one-light',
+        'cartethyia-light',
+        'cartethyia-dark',
         'cindy-dark',
         'cindy-light',
         'default-dark',

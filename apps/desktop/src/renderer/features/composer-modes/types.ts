@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 
 export type ComposerModeId = 'standard' | 'cartethyia-battle';
 export type PersonalModId = Exclude<ComposerModeId, 'standard'>;
-export type ModDisplayOption = 'ground' | 'damage' | 'effects' | 'idle';
+export type ModDisplayOption = 'character' | 'battle' | 'ground' | 'damage' | 'effects' | 'idle';
 export type ModDisplayOptions = Record<ModDisplayOption, boolean>;
 
 export interface ComposerModeHostProps {
@@ -24,5 +24,5 @@ export interface ComposerModeDefinition {
   descriptionKey: string;
   locationKey: string;
   options: readonly ModDisplayOption[];
-  preview: ComponentType<{ onComplete: () => void }>;
+  preview: ComponentType<{ onComplete: () => void; mod?: import('../../../shared/personalMod').InstalledPersonalMod }>;
 }

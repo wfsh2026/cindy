@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { ComposerModeId } from './types';
 import { setPersonalModsEnabled, usePersonalModPreferences } from './usePersonalModPreferences';
-import { useInstalledPersonalMod } from './useInstalledPersonalMod';
+import { useAvailablePersonalMod } from './useAvailablePersonalMod';
 
 const STORAGE_KEY = 'cartethyia.composerMode.v1';
 const listeners = new Set<() => void>();
@@ -79,7 +79,7 @@ export function useComposerModePreference(): {
 } {
   const [mode, setModeState] = useState<ComposerModeId>(getComposerModePreference);
   const { enabled } = usePersonalModPreferences();
-  const { mod } = useInstalledPersonalMod();
+  const { mod } = useAvailablePersonalMod();
   const updateMode = (next: ComposerModeId) => {
     setComposerModePreference(next);
     if (next === 'cartethyia-battle') setPersonalModsEnabled(true);

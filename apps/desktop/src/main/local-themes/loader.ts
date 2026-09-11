@@ -15,6 +15,7 @@ import {
 import { findVisibleAlphaBounds } from '../../shared/imageVisibleBounds';
 import type { ImageVisibleBounds } from '../../shared/imageVisibleBounds';
 import { createLogger } from '../logger';
+import { loadAppearancePacks } from './appearancePacks';
 
 const log = createLogger('local-themes');
 
@@ -293,7 +294,10 @@ export async function loadLocalThemes(): Promise<LocalThemesResult> {
         }
       }),
     );
-    return processEntries(entries);
+    const result = processEntries(entries);
+    const packs = loadAppearancePacks(dir);
+    if (result.success) { result.themes.push(...packs.themes); result.diagnostics.push(...packs.diagnostics); result.disabledPacks = packs.disabledPacks; }
+    return result;
   } catch (error) {
     return topLevelFailure(error);
   }
@@ -312,7 +316,10 @@ export function loadLocalThemesSync(): LocalThemesResult {
         return { file, error: normalizeError(error) };
       }
     });
-    return processEntries(entries);
+    const result = processEntries(entries);
+    const packs = loadAppearancePacks(dir);
+    if (result.success) { result.themes.push(...packs.themes); result.diagnostics.push(...packs.diagnostics); result.disabledPacks = packs.disabledPacks; }
+    return result;
   } catch (error) {
     return topLevelFailure(error);
   }

@@ -8,6 +8,8 @@ import type { ProviderView, UnifiedModelEntry } from '@cindy/model-providers';
 
 import type { AgentKind } from '@/hooks/useAgentCapabilities';
 import { cn } from '@/lib/utils';
+import { modelProviderStyle, useModelProviderColors } from '@/lib/modelProviderAppearance';
+import { providerDisplayName } from '@/lib/providerDisplayName';
 import type { Effort } from '@/lib/userPreferences.types';
 
 import { PriceFreeBadge, PriceTierMarks, type UnifiedRowPriceDisplay } from './priceTierMarks';
@@ -78,6 +80,9 @@ export function UnifiedModelRow({
   const displayName = localizedModelName(entry.displayName, t);
   const description = localizedModelDescription({ id: entry.modelId, group: entry.group }, t);
   const provider = providers.find((item) => item.id === entry.providerId);
+  const providerColors = useModelProviderColors();
+  const providerStyle = providerColors ? modelProviderStyle(entry.providerId) : undefined;
+  const sourceLabel = provider ? providerDisplayName(provider, t) : entry.providerId;
   const priceSymbol = priceDisplay?.symbol ?? '$';
   const engineOption = agentOptionOf(config.engine);
   const openConfig = (element: HTMLElement, toggle = false) => {
@@ -210,10 +215,14 @@ export function UnifiedModelRow({
   return (
     <div
       {...rowRootProps}
+      data-model-provider={entry.providerId}
+      style={providerStyle}
       className={cn(
         '[&+[data-unified-anchor]]:mt-1 group/row flex w-full cursor-pointer flex-col rounded-[10px] px-2.5 py-2 transition-colors duration-100',
         'hover:bg-[var(--model-item-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
-        (selected || active) && 'bg-[var(--model-item-hover)]',
+        selected && providerColors
+          ? 'bg-[var(--model-item-selected-bg)] hover:bg-[var(--model-item-selected-bg)] ring-1 ring-inset ring-[var(--model-item-selected-border)]'
+          : (selected || active) && 'bg-[var(--model-item-hover)]',
         (interactionDisabled || paymentRequired) && 'cursor-not-allowed opacity-50',
       )}
     >
@@ -227,7 +236,7 @@ export function UnifiedModelRow({
             {...(provider?.name !== undefined ? { name: provider.name } : {})}
             {...(provider?.routing !== undefined ? { routing: provider.routing } : {})}
             {...(provider?.logoKind !== undefined ? { logoKind: provider.logoKind } : {})}
-            colorClass="text-[var(--text-secondary)]"
+            colorClass={providerColors ? 'text-[var(--model-provider-color)]' : 'text-[var(--text-secondary)]'}
             withMargin={false}
           />
         </span>
@@ -284,15 +293,18 @@ export function UnifiedModelRow({
         {/* 行尾不放 ✅(Chris 2026-08-13 裁决:选中已有整行底色,再加勾是重复信号,
             还平白吃掉一列宽度);选中态语义由 aria-selected 承载。 */}
       </div>
-      {description && (
+      {providerColors ? (
         // 单行截断 + title 全文;宽度上限收紧到约等于最长模型名的量级(~30ch)——
         // 描述是辅助信息,不该比模型名更长地占据视线(2026-08-13 实测反馈)。
-        // 颜色按旧选择器恢复用 --text-secondary(同日裁决:tertiary 太淡看不清;
-        // 与名字的区分靠名字的 14px/medium,不靠把描述压淡)。
-        <div
-          title={description}
-          className="min-w-0 max-w-[30ch] truncate pl-[26px] pt-px text-12 leading-[1.4] text-[var(--text-secondary)]"
-        >
+        // The optional provider capsule makes same-name models distinguishable without color alone.
+        <div className="flex min-w-0 items-center gap-1.5 pl-[26px] pt-px text-12 leading-[1.4]">
+          <span data-model-provider-label title={sourceLabel} className="max-w-[100px] shrink-0 truncate rounded-full bg-[color-mix(in_srgb,var(--model-provider-color)_12%,transparent)] px-1.5 text-11 text-[var(--model-provider-color)]">
+            {sourceLabel}
+          </span>
+          <span title={description} className="min-w-0 max-w-[30ch] truncate text-[var(--model-item-desc)]">{description}</span>
+        </div>
+      ) : description && (
+        <div title={description} className="min-w-0 max-w-[30ch] truncate pl-[26px] pt-px text-12 leading-[1.4] text-[var(--text-secondary)]">
           {description}
         </div>
       )}

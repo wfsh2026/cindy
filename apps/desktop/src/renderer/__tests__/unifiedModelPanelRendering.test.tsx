@@ -209,8 +209,45 @@ import {
 } from '@/state/modelFavorites';
 import { setModelEngineOverride } from '@/state/modelEnginePrefs';
 import { PRICE_TIER_COLORS } from '@/themes/effortTierColors';
+import { cartethyiaDark, cartethyiaLight } from '@/themes/builtin/cartethyia';
+import { cindyDark } from '@/themes/builtin/cindy-dark';
+import { themeService } from '@/themes/theme-service';
+import { applyThemeModParts } from '@/themes/mod-parts';
 
 const onProviderChange = vi.fn();
+
+describe('Cartethyia provider identity colors', () => {
+  afterEach(() => {
+    act(() => { themeService.applyTheme(cindyDark); });
+  });
+
+  it.each([cartethyiaLight, cartethyiaDark])('$id keeps source colors consistent and restores the Core presentation when colors are disabled', (theme) => {
+    themeService.applyTheme(theme);
+    const view = renderPanel();
+    const row = view.container.querySelector('[role="option"][data-model-provider="anthropic"]') as HTMLElement;
+    const rail = view.container.querySelector('[data-rail-item="provider:anthropic"]') as HTMLElement;
+    const rowColor = row.style.getPropertyValue('--model-provider-color');
+    expect(rowColor).toBe('var(--model-provider-anthropic)');
+    expect(rail).not.toBeNull();
+    const railColor = rail.style.getPropertyValue('--model-provider-color');
+    expect(railColor).toBe(rowColor);
+    const source = row.querySelector('[data-model-provider-label]');
+    expect(source?.textContent).toBe('Anthropic');
+    expect(row.className).toContain('model-item-selected-border');
+    const other = view.container.querySelector('[role="option"][data-model-provider="openai"]') as HTMLElement;
+    const otherColor = other.style.getPropertyValue('--model-provider-color');
+    expect(otherColor).toBe('var(--model-provider-openai)');
+    expect(otherColor).not.toBe(rowColor);
+    const disabledPalette = applyThemeModParts(theme, { parts: { colors: false } });
+    act(() => { themeService.applyTheme(disabledPalette); });
+    const restoredLabels = view.container.querySelectorAll('[data-model-provider-label]');
+    expect(restoredLabels.length).toBe(0);
+    const restoredColor = row.style.getPropertyValue('--model-provider-color');
+    expect(restoredColor).toBe('');
+    expect(row.className).not.toContain('model-item-selected-border');
+    view.unmount();
+  });
+});
 
 function renderPanel(
   props: Partial<React.ComponentProps<typeof ModelSelectorContent>> = {},

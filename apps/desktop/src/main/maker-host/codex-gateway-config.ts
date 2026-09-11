@@ -10,7 +10,7 @@
  * 等价的 config.toml:
  *   model_provider = "cindy_gateway"
  *   [model_providers.cindy_gateway]
- *   name     = "Cartethyia Gateway"
+ *   name     = "Cindy Gateway"
  *   base_url = "<网关 endpoint>/v1"   # 登录随凭据下发,非硬编码
  *   wire_api = "responses"
  *   env_key  = "XDT_CODEX_API_KEY"

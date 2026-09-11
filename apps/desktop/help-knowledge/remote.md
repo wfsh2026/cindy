@@ -16,7 +16,7 @@ Settings > **Remote & device control** has two parts: **SSH remote workspaces** 
 
 **My Devices (controlling this desktop from another device):**
 
-- **No manual pairing** — any device signed into the **same Cartethyia account** is discovered automatically and appears in the list (this is how the phone app connects to your desktop).
+- **No manual pairing** — any device signed into the **same Cindy account** is discovered automatically and appears in the list (this is how the phone app connects to your desktop).
 - The **top card is this machine**: rename it, see its relay-connection status, and toggle the master switch **"allow other devices to control this machine"**.
 - Each **other device** has two independent switches: **you control it** (outbound) and **allow it to control this machine** (inbound). You can rename devices, and delete ones that are offline.
 

@@ -73,6 +73,7 @@ import { useGatewayModelPricing, useReferenceModelPricing } from '@/hooks/useMod
 import { useModelAccessStatus } from '@/hooks/useModelAccessStatus';
 import { useProviders } from '@/hooks/useProviders';
 import { providerDisplayName as sharedProviderDisplayName } from '@/lib/providerDisplayName';
+import { modelProviderStyle, useModelProviderColors } from '@/lib/modelProviderAppearance';
 import {
   evictDeviceProviders,
   prefetchDeviceProviders,
@@ -3522,6 +3523,9 @@ export function ModelSelector({
   // 支持性按「当前生效来源」现查 per-provider 条目;无法解析来源(flat / device-link 退化)时
   // 回退拍平值,避免误隐藏闪电。
   const triggerActiveProvider = triggerProvider;
+  const providerColors = useModelProviderColors();
+  const providerStyle = providerColors && activeSourceId ? modelProviderStyle(activeSourceId) : undefined;
+  const triggerSourceLabel = triggerActiveProvider ? providerDisplayName(triggerActiveProvider, t) : activeSourceId;
   // trigger 图标的统一规则:当前 (来源, 模型) 条目的 icon(AI Gateway / 目录设定)优先,
   // 缺省回落来源供应商标 —— 与列表行、手机版同一套口径(ModelIconMark)。
   const triggerModelIcon =
@@ -3672,6 +3676,8 @@ export function ModelSelector({
       aria-expanded={open && !disabled}
       aria-haspopup="listbox"
       title={triggerTitle}
+      data-model-provider={activeSourceId ?? undefined}
+      style={providerStyle}
       className={cn(
         'flex min-w-0 max-w-full items-center gap-1 transition-colors',
         isFieldTrigger
@@ -3697,6 +3703,7 @@ export function ModelSelector({
             ),
         // device-link 远程切换 in-flight:置灰 + 禁用点击(复用本文件 disabled 行的 opacity-50 习惯)。
         (switching || disabled) && 'pointer-events-none opacity-50',
+        providerColors && open && 'border-[var(--model-item-selected-border)] hover:border-[var(--model-item-selected-border)]',
       )}
       aria-label={ariaLabel}
     >
@@ -3805,7 +3812,7 @@ export function ModelSelector({
               routing={triggerActiveProvider?.routing}
               logoKind={triggerActiveProvider?.logoKind}
               colorClass={
-                isCreateAgentVariant ? 'text-[var(--create-agent-control-icon)]' : undefined
+                providerColors ? 'text-[var(--model-provider-color)]' : isCreateAgentVariant ? 'text-[var(--create-agent-control-icon)]' : undefined
               }
             />
           ) : null}
@@ -3832,6 +3839,11 @@ export function ModelSelector({
           >
             {displayLabel}
           </span>
+          {providerColors && triggerSourceLabel && !isCompactToolbar && (
+            <span data-model-provider-label title={triggerSourceLabel} className="max-w-[88px] shrink-0 truncate rounded-full bg-[color-mix(in_srgb,var(--model-provider-color)_12%,transparent)] px-1.5 text-11 text-[var(--model-provider-color)]">
+              {triggerSourceLabel}
+            </span>
+          )}
           {/* 引擎小标 + 深度 = pill 的收尾身份组(新形态,见 engineMarkVendor)。
               旧形态没有 mark,深度前保留「·」分隔;有 mark 时图标本身就是分隔,再加点
               会读成「模型 · 引擎 · 深度」三段。 */}

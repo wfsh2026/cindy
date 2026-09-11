@@ -1,10 +1,11 @@
+import { ThemeProvider } from '@/hooks/useTheme';
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PersonalModsSection } from '../PersonalModsSection';
 import { ComposerModeHost, ComposerModeSlot } from '@/features/composer-modes/ComposerModeHost';
 import { __resetComposerModePreferenceForTest, useComposerModePreference } from '@/features/composer-modes/useComposerModePreference';
-import { usePersonalModPreferences } from '@/features/composer-modes/usePersonalModPreferences';
+import { usePersonalModPreferences, setPersonalModsEnabled } from '@/features/composer-modes/usePersonalModPreferences';
 import { ModErrorBoundary } from '@/features/composer-modes/ModErrorBoundary';
 
 const context = vi.hoisted(() => ({ activity: null as null | { phase: 'running'; startedAtMs: number; currentActionSummary: null } }));
@@ -16,13 +17,26 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => k
 const modeKey = 'cartethyia.composerMode.v1';
 const modsKey = 'cartethyia.personalMods.v1';
 
+function openCharacterList(): void {
+  const entry = screen.queryByRole('button', { name: 'settings.personalMods.categories.character' });
+  if (entry) fireEvent.click(entry);
+}
+function characterQueries() {
+  const region = document.querySelector('[data-mod-source="imported"]');
+  return region ? within(region as HTMLElement) : screen;
+}
 function click(label: string): void {
-  const control = screen.getByRole('button', { name: label });
+  openCharacterList();
+  const queries = characterQueries();
+  const actual = label === 'settings.personalMods.configure' ? 'settings.personalMods.cartethyiaName' : label === 'settings.defaults.restore' ? 'settings.personalMods.resetParts' : label;
+  const control = queries.getByRole('button', { name: actual });
   fireEvent.click(control);
 }
-
 function toggle(label: string): void {
-  const control = screen.getByRole('switch', { name: label });
+  openCharacterList();
+  const queries = characterQueries();
+  const actual = label === 'settings.personalMods.master' ? 'settings.personalMods.cartethyiaName' : label;
+  const control = queries.getByRole('switch', { name: actual });
   fireEvent.click(control);
 }
 
@@ -58,9 +72,11 @@ describe('Personal Mods', () => {
 
   it('preserves the legacy disabled choice, resets display overrides without enabling the Mod', () => {
     localStorage.setItem(modeKey, 'standard');
-    const element = <PersonalModsSection />;
+    const element = <ThemeProvider><PersonalModsSection /></ThemeProvider>;
     render(element);
-    const enabled = screen.getByRole('switch', { name: 'settings.personalMods.cartethyiaName' });
+    openCharacterList();
+    const queries = characterQueries();
+    const enabled = queries.getByRole('switch', { name: 'settings.personalMods.cartethyiaName' });
     const checked = enabled.getAttribute('aria-checked');
     expect(checked).toBe('false');
     click('settings.personalMods.configure');
@@ -76,8 +92,9 @@ describe('Personal Mods', () => {
 
   it('unmounts the live stage on master off and lets the shortcut turn it back on', () => {
     context.activity = { phase: 'running', startedAtMs: 1, currentActionSummary: null };
-    const element = <><PersonalModsSection /><LiveStage /></>;
+    const element = <><ThemeProvider><PersonalModsSection /></ThemeProvider><LiveStage /></>;
     const view = render(element);
+    openCharacterList();
     const before = view.container.querySelector('[data-battle-cue]');
     expect(before).not.toBeNull();
     toggle('settings.personalMods.master');
@@ -89,7 +106,7 @@ describe('Personal Mods', () => {
     expect(timers).toBe(0);
     const hook = renderHook(useComposerModePreference);
     expect(hook.result.current.mode).toBe('standard');
-    expect(hook.result.current.selectedMode).toBe('cartethyia-battle');
+    expect(hook.result.current.selectedMode).toBe('standard');
     const enableShortcut = () => hook.result.current.setMode('cartethyia-battle');
     act(enableShortcut);
     const restored = view.container.querySelector('[data-battle-cue]');
@@ -98,9 +115,11 @@ describe('Personal Mods', () => {
 
   it('previews a full battle with switches off, applies display choices, then stops without task activity', () => {
     localStorage.setItem(modeKey, 'standard');
-    const element = <PersonalModsSection />;
+    const element = <ThemeProvider><PersonalModsSection /></ThemeProvider>;
     const view = render(element);
-    toggle('settings.personalMods.master');
+    openCharacterList();
+    const disable = () => setPersonalModsEnabled(false);
+    act(disable);
     click('settings.personalMods.configure');
     toggle('settings.personalMods.options.ground');
     toggle('settings.personalMods.options.damage');
@@ -133,8 +152,9 @@ describe('Personal Mods', () => {
   });
 
   it('hides the idle stage and its sleep timer, then shows it when a task runs', () => {
-    const element = <><PersonalModsSection /><LiveStage /></>;
+    const element = <><ThemeProvider><PersonalModsSection /></ThemeProvider><LiveStage /></>;
     const view = render(element);
+    openCharacterList();
     click('settings.personalMods.configure');
     toggle('settings.personalMods.options.idle');
     const hidden = view.container.querySelector('[data-battle-cue]');
@@ -143,7 +163,7 @@ describe('Personal Mods', () => {
     const timers = vi.getTimerCount();
     expect(timers).toBe(0);
     context.activity = { phase: 'running', startedAtMs: 1, currentActionSummary: null };
-    const next = <><PersonalModsSection /><LiveStage /></>;
+    const next = <><ThemeProvider><PersonalModsSection /></ThemeProvider><LiveStage /></>;
     view.rerender(next);
     const running = view.container.querySelector('[data-battle-cue="hero-approach"]');
     expect(running).not.toBeNull();
@@ -180,6 +200,7 @@ describe('Personal Mods', () => {
     error.mockImplementation(() => undefined);
     const element = <><div data-testid="composer" /><ModErrorBoundary><BrokenMod /></ModErrorBoundary></>;
     render(element);
+    openCharacterList();
     const composer = screen.getByTestId('composer');
     expect(composer).not.toBeNull();
     broken = false;

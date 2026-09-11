@@ -6,6 +6,8 @@ import headImageLight from '@/assets/head-image-light.png';
 import { logoDark, logoLight } from '@/hooks/useBrandLogo';
 import { cn } from '@/lib/utils';
 import type { Theme, ThemeBrandAsset } from '@/themes/types';
+import { useModIdentity } from '@/features/composer-modes/useModIdentity';
+import { resolveThemeModNames } from '../../../shared/themeModParts';
 
 /**
  * ThemeBrandLockup — 新建对话页与设置预览共用的品牌锁定组件。
@@ -85,6 +87,9 @@ export interface ThemeBrandLockupProps {
 }
 
 export function ThemeBrandLockup({ theme, className, testId }: ThemeBrandLockupProps) {
+  const identity = useModIdentity();
+  const resolved = resolveThemeModNames(identity, theme?.mod, theme?.modOptions);
+  const displayName = resolved.appName ?? BRAND_NAME;
   const dark = isDarkTheme(theme);
   const defaultIcon: ThemeBrandAsset = { src: dark ? headImageDark : headImageLight };
   const defaultLogo: ThemeBrandAsset = { src: dark ? logoDark : logoLight };
@@ -128,7 +133,7 @@ export function ThemeBrandLockup({ theme, className, testId }: ThemeBrandLockupP
           boxWidth={BRAND_LOGO_WIDTH}
           boxHeight={BRAND_LOGO_HEIGHT}
           fit="contain"
-          alt={BRAND_NAME}
+          alt={displayName}
           onError={() => setLogoFailed(true)}
         />
       </span>

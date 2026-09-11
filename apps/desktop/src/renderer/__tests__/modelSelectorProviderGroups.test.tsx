@@ -13,7 +13,7 @@
 
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-i18next')>()),
@@ -264,6 +264,9 @@ vi.mock('@/state/deviceLinkModelMirror', () => ({
 }));
 
 import { ModelSelector } from '@/components/new-chat/ModelSelector';
+import { cartethyiaDark, cartethyiaLight } from '@/themes/builtin/cartethyia';
+import { cindyDark } from '@/themes/builtin/cindy-dark';
+import { themeService } from '@/themes/theme-service';
 
 const requestProviderModelsAutoRefresh = vi.fn(async () => ({ ok: true as const }));
 
@@ -300,6 +303,28 @@ function renderSelector(props: Partial<React.ComponentProps<typeof ModelSelector
     }),
   );
 }
+
+describe('Cartethyia current model provider', () => {
+  afterEach(() => {
+    act(() => { themeService.applyTheme(cindyDark); });
+  });
+
+  it.each([cartethyiaLight, cartethyiaDark])('$id shows the provider in the trigger and removes it when changing themes', (theme) => {
+    themeService.applyTheme(theme);
+    const view = renderSelector();
+    const trigger = screen.getByRole('button', { name: /Select model/ });
+    const color = trigger.style.getPropertyValue('--model-provider-color');
+    expect(color).toBe('var(--model-provider-anthropic)');
+    const label = trigger.querySelector('[data-model-provider-label]');
+    expect(label?.textContent).toBe('Anthropic');
+    act(() => { themeService.applyTheme(cindyDark); });
+    const restored = trigger.querySelector('[data-model-provider-label]');
+    expect(restored).toBeNull();
+    const restoredColor = trigger.style.getPropertyValue('--model-provider-color');
+    expect(restoredColor).toBe('');
+    view.unmount();
+  });
+});
 
 async function openDropdown(): Promise<void> {
   await act(async () => {

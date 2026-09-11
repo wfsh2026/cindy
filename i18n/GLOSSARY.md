@@ -337,7 +337,7 @@ WebAuthn 可发现凭证的用户可见名称，采用 Apple、Google 与 Micros
 
 ### Personal Mods
 
-设置中管理桌面角色动画与场景装饰的标签，与提供 Agent 工具能力的插件区分。
+设置中统一管理应用主题、展示身份和角色装饰的标签，与为 Agent 提供工具能力的插件区分。
 
 ### Personal WeChat
 

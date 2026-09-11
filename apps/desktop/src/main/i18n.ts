@@ -14,6 +14,7 @@
  */
 import { app } from 'electron';
 import { BRAND_NAME } from '@cindy/maker-shared/branding';
+import { resolvedModIdentity } from './personal-mods/identity';
 
 import {
   DEFAULT_LOCALE,
@@ -119,7 +120,9 @@ export function t(key: string): string {
     if (raw !== null) break;
   }
   raw ??= lookup(resources[DEFAULT_LOCALE], key) ?? key;
-  return raw.replaceAll('{{appName}}', BRAND_NAME);
+  const identity = resolvedModIdentity();
+  const appName = identity.appName ?? BRAND_NAME;
+  return raw.replaceAll('{{appName}}', appName);
 }
 
 /**

@@ -1,6 +1,6 @@
 {
   "source": "apps/desktop/src/renderer/themes/colors.ts",
-  "count": 553,
+  "count": 565,
   "colors": [
     {
       "id": "subagent-identity-1",
@@ -2766,6 +2766,66 @@
       "id": "button-cta-pressed",
       "light": "color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg))",
       "dark": "color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg))"
+    },
+    {
+      "id": "model-item-selected-bg",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-item-selected-border",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-xd",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-openai",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-anthropic",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-google",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-custom-1",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-custom-2",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-custom-3",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-custom-4",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-custom-5",
+      "light": null,
+      "dark": null
+    },
+    {
+      "id": "model-provider-custom-6",
+      "light": null,
+      "dark": null
     }
   ]
 }

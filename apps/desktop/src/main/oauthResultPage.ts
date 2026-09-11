@@ -6,6 +6,8 @@
 
 import { DEEP_LINK_URL_PREFIX } from '../shared/deepLinkSchemes';
 import { LOGIN_CALLBACK_CHIBI } from './assets/loginCallbackAssets';
+import { activeAppearanceAsset } from './personal-mods/appearance';
+import { resolvedModIdentity } from './personal-mods/identity';
 import { BRAND_NAME } from '@cindy/maker-shared/branding';
 
 export type OAuthResultPageLang = 'zh' | 'zh-TW' | 'en' | 'ja' | 'ko';
@@ -383,6 +385,12 @@ function renderBrandLoginCallbackPage(
   input: OAuthResultPageInput,
   visual: OAuthResultVisualKind,
 ): string {
+  const slots = { success: 'statusSuccess', failure: 'statusFailure', neutral: 'statusNeutral' } as const;
+  const slot = slots[visual];
+  const visualSource = activeAppearanceAsset(slot) ?? LOGIN_CALLBACK_CHIBI[visual];
+  const identity = resolvedModIdentity();
+  const appName = identity.appName ?? BRAND_NAME;
+  const escapedAppName = escapeHtml(appName);
   const isSuccess = input.variant === 'success';
   const title = escapeHtml(input.title);
   const body = escapeHtml(input.body);
@@ -410,7 +418,7 @@ function renderBrandLoginCallbackPage(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>${title} · ${BRAND_NAME}</title>
+<title>${title} · ${escapedAppName}</title>
 <style>
 :root{color-scheme:light;--page:#eeeeee;--card:#fbfbfb;--card-border:#d4d4d4;--title:#252222;--body:#6f6f6f;--detail:#a3a3a3;--cta:#2a2828;--cta-border:#434343;--cta-text:#d4d4d4;--cta-hover:rgba(255,255,255,.08);--cta-active:rgba(0,0,0,.5)}
 :root[data-theme="dark"]{color-scheme:dark;--page:#2a2828;--card:#312f2f;--card-border:#434343;--title:#d4d4d4;--body:#6f6f6f;--detail:#737373;--cta:#eeeeee;--cta-border:#ffffff;--cta-text:#2a2828;--cta-hover:rgba(0,0,0,.05);--cta-active:rgba(0,0,0,.1)}
@@ -439,7 +447,7 @@ h1{position:absolute;left:42px;top:352px;width:598px;height:38px;margin:0;font-s
 <body data-cindy-oauth-result="${input.variant}" data-cindy-oauth-visual="${visual}"${layoutAttr}${copyAttr}>
 <div class="stage" id="stage" data-card-width="${cardWidth}" data-card-height="${cardHeight}">
 <main class="${cardClass}" id="card">
-<img class="visual" src="${LOGIN_CALLBACK_CHIBI[visual]}" alt="" onerror="this.style.visibility='hidden'">
+<img class="visual" src="${visualSource}" alt="" onerror="this.style.visibility='hidden'">
 <div class="content">
 <h1>${title}</h1>
 <p class="body">${body}</p>

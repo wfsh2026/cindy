@@ -26,8 +26,8 @@ describe('Bot 对话的判定条件', () => {
     expect(sessionView).toContain("botIdentity && session?.source === 'bot' ? botIdentity : null");
   });
 
-  it('气泡头像只在 Bot 对话下传给消息流', () => {
-    expect(sessionView).toContain('assistantAvatar={botAssistantAvatar}');
+  it('Bot 对话优先使用伙伴头像，普通任务才使用个性化头像', () => {
+    expect(sessionView).toContain('assistantAvatar={botChatIdentity ? botAssistantAvatar : personalAssistantAvatar}');
     expect(sessionView).toContain('<BotAvatar bot={botChatIdentity} size="sm" />');
   });
 

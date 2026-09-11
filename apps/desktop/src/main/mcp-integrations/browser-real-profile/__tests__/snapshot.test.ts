@@ -118,7 +118,7 @@ describe('lastUsedProfileName', () => {
 });
 
 describe('rewriteLocalStateForManagedDefault', () => {
-  it('points every selection field at Default and stamps the chip name Cartethyia', () => {
+  it('points every selection field at Default and stamps the chip name Cindy', () => {
     const rewritten = JSON.parse(
       rewriteLocalStateForManagedDefault(
         JSON.stringify({
@@ -153,9 +153,9 @@ describe('rewriteLocalStateForManagedDefault', () => {
     expect(rewritten.profile.show_picker_on_startup).toBe(false);
     expect(Object.keys(rewritten.profile.info_cache)).toEqual(['Default']);
     expect(rewritten.profile.info_cache.Default).toMatchObject({
-      name: 'Cartethyia',
-      shortcut_name: 'Cartethyia',
-      user_name: 'Cartethyia',
+      name: 'Cindy',
+      shortcut_name: 'Cindy',
+      user_name: 'Cindy',
     });
   });
 
@@ -206,7 +206,7 @@ describe('snapshotRealProfile', () => {
     expect(destLocalState.os_crypt.keep).toBe(true);
     expect(destLocalState.profile.last_used).toBe('Default');
     expect(destLocalState.profile.last_active_profiles).toEqual(['Default']);
-    expect(destLocalState.profile.info_cache.Default.name).toBe('Cartethyia');
+    expect(destLocalState.profile.info_cache.Default.name).toBe('Cindy');
     expect(destLocalState.profile.info_cache['Profile 6']).toBeUndefined();
   });
 

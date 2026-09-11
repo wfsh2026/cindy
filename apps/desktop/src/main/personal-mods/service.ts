@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BATTLE_ASSET_IDS, PERSONAL_MOD_ID, isInstalledPersonalMod } from '../../shared/personalMod';
+import { BATTLE_ASSET_IDS, isInstalledPersonalMod } from '../../shared/personalMod';
 import type { InstalledPersonalMod } from '../../shared/personalMod';
 import { decodePersonalMod } from './package';
 
@@ -56,7 +56,7 @@ export class PersonalModService {
         assets[key] = await this.ports.ingest(decoded.assets[key], revision);
       }
       this.ports.assertCurrent();
-      const installed: InstalledPersonalMod = { id: PERSONAL_MOD_ID, version: decoded.version, revision, assets };
+      const installed: InstalledPersonalMod = { id: decoded.id, ...(decoded.name ? { name: decoded.name } : {}), version: decoded.version, revision, assets };
       const keepPending = (entry: string) => entry !== revision;
       const pending = state.pending.filter(keepPending);
       if (state.installed) pending.push(state.installed.revision);

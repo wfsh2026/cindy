@@ -1,4 +1,6 @@
 import type { ImageVisibleBounds } from '../../shared/imageVisibleBounds';
+import type { AppearanceAssetKey, AppearanceModMetadata } from '../../shared/appearanceMod';
+import type { ThemeModOptions } from '../../shared/themeModParts';
 
 export type ColorIdentifier = string;
 export type ColorValue = string;
@@ -22,12 +24,13 @@ export interface ThemeBrandAsset {
   visibleBounds?: ImageVisibleBounds;
 }
 
-export interface ThemeBrand {
-  icon?: ThemeBrandAsset;
-  logo?: ThemeBrandAsset;
-}
+export type ThemeBrand = Partial<Record<AppearanceAssetKey, ThemeBrandAsset>>;
+
+export type ThemeModMetadata = AppearanceModMetadata;
 
 export interface Theme {
+  modOptions?: ThemeModOptions;
+  modSourceBrand?: ThemeBrand;
   id: string;
   name: string;
   type: ThemeType;
@@ -39,4 +42,5 @@ export interface Theme {
   colors: Partial<Record<ColorIdentifier, ColorValue>>;
   /** 新建对话页的方形 icon + 横向 logo；两项缺省时分别回退打包默认素材。 */
   brand?: ThemeBrand;
+  mod?: ThemeModMetadata;
 }

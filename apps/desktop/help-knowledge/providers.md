@@ -1,25 +1,25 @@
 ---
 id: providers
-title: Model providers and Cartethyia AI
-summary: Cartethyia AI is auto-provisioned after sign-in for pay-per-token model access; manage it (and custom providers) in Settings > Model Providers.
+title: Model providers and Cindy AI
+summary: Cindy AI is auto-provisioned after sign-in for pay-per-token model access; manage it (and custom providers) in Settings > Model Providers.
 tab: providers
 ---
-Claude Code, Codex, and lightweight utility models can use **Cartethyia AI** for pay-per-token model access. Voice input is included for signed-in Cartethyia users and uses the separate voice service; it does not require or receive a Cartethyia AI key.
+Claude Code, Codex, and lightweight utility models can use **Cindy AI** for pay-per-token model access. Voice input is included for signed-in Cindy users and uses the separate voice service; it does not require or receive a Cindy AI key.
 
-**Cartethyia AI:**
+**Cindy AI:**
 
-- Open **Settings > Model Providers** (the tab is labeled "Providers"). Cartethyia AI is pinned at the top.
+- Open **Settings > Model Providers** (the tab is labeled "Providers"). Cindy AI is pinned at the top.
 - You don't paste a key — it's **provisioned automatically after you sign in**. The page fetches its credentials for you ("Fetching credentials…" while it does).
-- Controls: **Refresh credentials**, **Rotate key**, and **Disconnect** (which clears the Cartethyia AI key saved locally). Because it's tied to your account, it's available on each device you sign into.
+- Controls: **Refresh credentials**, **Rotate key**, and **Disconnect** (which clears the Cindy AI key saved locally). Because it's tied to your account, it's available on each device you sign into.
 
 **Status badges:**
 
-- **Connected** — this device has usable Cartethyia AI credentials.
+- **Connected** — this device has usable Cindy AI credentials.
 - If it's still fetching or disconnected, use Refresh credentials / sign in.
 
 **Custom providers:**
 
-- You can also add your own provider (a base URL + key) — that's the flow with a paste-a-key dialog. Cartethyia AI itself never uses that dialog.
+- You can also add your own provider (a base URL + key) — that's the flow with a paste-a-key dialog. Cindy AI itself never uses that dialog.
 
 **Notes:**
 

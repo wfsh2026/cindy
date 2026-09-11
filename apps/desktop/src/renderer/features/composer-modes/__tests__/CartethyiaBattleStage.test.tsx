@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setModDisplayOption, DEFAULT_MOD_DISPLAY } from '../usePersonalModPreferences';
+import type { ModDisplayOption } from '../types';
 
 import { installedModFixture } from './personalModFixture';
 import { CartethyiaBattleStage } from '../cartethyia-battle/CartethyiaBattleStage';
@@ -32,6 +34,7 @@ function cue(container: HTMLElement): string | undefined {
 
 describe('Cartethyia battle playback', () => {
   beforeEach(() => {
+    localStorage.clear();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
     const random = vi.spyOn(Math, 'random');
     random.mockReturnValue(0);
@@ -42,8 +45,31 @@ describe('Cartethyia battle playback', () => {
 
   afterEach(() => {
     cleanup();
+    localStorage.clear();
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it('turns off battle movement while retaining the character and ground', () => {
+    setModDisplayOption('cartethyia-battle', 'battle', false);
+    const element = stage(); const view = render(element);
+    advance(5000);
+    const current = cue(view.container);
+    expect(current).toBe('idle');
+    const hero = view.container.querySelector('.cartethyia-battle__hero');
+    const monster = view.container.querySelector('.cartethyia-battle__monster');
+    const damage = view.container.querySelector('.cartethyia-battle__damage');
+    expect(hero).not.toBeNull(); expect(monster).toBeNull(); expect(damage).toBeNull();
+  });
+
+  it('removes all visual content and timers when every part is off', () => {
+    const keys = Object.keys(DEFAULT_MOD_DISPLAY) as ModDisplayOption[];
+    for (const key of keys) setModDisplayOption('cartethyia-battle', key, false);
+    const element = stage(); const view = render(element);
+    const arena = view.container.querySelector('[data-composer-mode]');
+    expect(arena).toBeNull();
+    advance(0);
+    const timers = vi.getTimerCount(); expect(timers).toBe(0);
   });
 
   it('双方同时开始接近，到位后攻击，命中帧才出现伤害且暂停后精确续播', () => {

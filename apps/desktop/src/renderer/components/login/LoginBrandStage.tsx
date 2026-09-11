@@ -1,5 +1,6 @@
 import { useCallback, useRef, type CSSProperties } from 'react';
-import { BRAND_NAME } from '@cindy/maker-shared/branding';
+import { useModPresentation } from '@/features/composer-modes/useModIdentity';
+import { useThemeBrand } from '@/hooks/useThemeBrand';
 
 import { LOGIN_HANDOFF_TIMINGS, useLoginHandoff } from '@/contexts/LoginHandoffContext';
 import { useIsDarkMode } from '@/components/markdown/useIsDarkMode';
@@ -57,8 +58,16 @@ export function LoginBrandStage() {
   // 暗色画布用白字版字标/SLOGAN(figma 532:585 CINDY_Standard_White / SLOGAN #FBFBFB;
   // 深浅判定同 useBrandLogo:跟随 theme-service 挂的 dark class)。立绘两模式同资产。
   const isDark = useIsDarkMode();
-  const wordmarkSrc = isDark ? wordmarkDarkPng : wordmarkPng;
-  const wordmarkSrcSet = isDark
+  const brand = useThemeBrand();
+  const { appName } = useModPresentation();
+  const heroSrc = brand?.loginHero?.src ?? heroPng;
+  const heroSrcSet = brand?.loginHero
+    ? (brand.loginHero2x ? `${heroSrc} 1x, ${brand.loginHero2x.src} 2x` : undefined)
+    : `${heroPng} 1x, ${heroPng2x} 2x`;
+  const wordmarkSrc = brand?.loginWordmark?.src ?? (isDark ? wordmarkDarkPng : wordmarkPng);
+  const wordmarkSrcSet = brand?.loginWordmark
+    ? (brand.loginWordmark2x ? `${wordmarkSrc} 1x, ${brand.loginWordmark2x.src} 2x` : undefined)
+    : isDark
     ? `${wordmarkDarkPng} 1x, ${wordmarkDarkPng2x} 2x`
     : `${wordmarkPng} 1x, ${wordmarkPng2x} 2x`;
   const sloganSrc = isDark ? sloganDarkPng : sloganPng;
@@ -158,8 +167,8 @@ export function LoginBrandStage() {
             onLoad={() => handleAssetSettled('hero')}
             onError={() => handleAssetSettled('hero')}
             className="pointer-events-none absolute select-none object-cover"
-            src={heroPng}
-            srcSet={`${heroPng} 1x, ${heroPng2x} 2x`}
+            src={heroSrc}
+            srcSet={heroSrcSet}
             style={{
               left: HERO.x,
               top: HERO.y,
@@ -182,7 +191,7 @@ export function LoginBrandStage() {
             }}
           />
           <img
-            alt={BRAND_NAME}
+            alt={appName}
             draggable={false}
             data-testid="login-brand-wordmark"
             ref={assetRef('wordmark')}
