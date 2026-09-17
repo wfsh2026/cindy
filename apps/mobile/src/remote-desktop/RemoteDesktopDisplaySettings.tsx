@@ -1,13 +1,20 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import SegmentedControl from "@expo/ui/community/segmented-control";
-import { Check, ChevronDown } from "lucide-react-native";
+import { Check, ChevronDown, Maximize, RotateCcw } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import type {
   RemoteDesktopDisplayMode,
   RemoteDesktopVideoSettings,
 } from "@cindy/device-link";
 import { Text } from "@/components/AppText";
+import { RemoteDesktopActionButton } from "./RemoteDesktopActionButton";
 import {
   NativePullDownMenu,
   usesNativePullDownMenu,
@@ -18,6 +25,7 @@ import {
   typeScale,
   iconSize,
   fontWeight,
+  lineHeight,
   useTheme,
 } from "@/theme";
 
@@ -27,7 +35,11 @@ type Props = {
     settings: RemoteDesktopVideoSettings;
     busy: boolean;
     modesSupported: boolean;
-    onChange(settings: RemoteDesktopVideoSettings): void;
+    displayGeometry?: string;
+    viewerDisplaySupported?: boolean;
+    viewerDisplayMatched?: boolean;
+    onFitDisplay?(): void;
+    onChange(settings: Partial<RemoteDesktopVideoSettings>): void;
     readModes(): Promise<RemoteDesktopDisplayMode[]>;
     onResolution(id: string): Promise<void>;
   };
@@ -67,10 +79,14 @@ export function RemoteDesktopDisplaySettings({
     return () => {
       active = false;
     };
-  }, [connected, video.modesSupported, reload]);
-  const disabled = !connected || !video.supported || video.busy;
+  }, [connected, video.modesSupported, video.displayGeometry, reload]);
+  const disabled = !connected || !video.supported;
   const title = { color: colors.textPrimary, fontSize: typeScale.body };
-  const hint = { color: colors.textTertiary, fontSize: typeScale.caption };
+  const hint = {
+    color: colors.textPrimary,
+    fontSize: typeScale.caption,
+    lineHeight: lineHeight.caption,
+  };
   const segment = (label: string, selected: boolean, onPress: () => void) => (
     <Pressable
       key={label}
@@ -108,22 +124,32 @@ export function RemoteDesktopDisplaySettings({
     backgroundColor: colors.surfaceChip,
   };
   const segmented = (
+    name: "frameRate" | "quality",
     values: string[],
     selectedIndex: number,
     onSelect: (index: number) => void,
   ) =>
     Platform.OS === "ios" ? (
-      <SegmentedControl
-        values={values}
-        selectedIndex={selectedIndex}
-        enabled={!disabled}
-        appearance={colorScheme}
-        style={{ minHeight: 44 }}
-        onChange={({ nativeEvent }) => {
-          const index = nativeEvent.selectedSegmentIndex;
-          if (!disabled && index >= 0 && index < values.length) onSelect(index);
-        }}
-      />
+      <View
+        testID={`remoteDesktop.${name}Control`}
+        pointerEvents={disabled ? "none" : "auto"}
+        accessible={disabled}
+        accessibilityLabel={t(`remoteDesktop.${name}`)}
+        accessibilityState={{ disabled }}
+      >
+        <SegmentedControl
+          values={values}
+          selectedIndex={selectedIndex}
+          enabled={!disabled}
+          appearance={colorScheme}
+          style={{ height: 44 }}
+          onChange={({ nativeEvent }) => {
+            const index = nativeEvent.selectedSegmentIndex;
+            if (!disabled && index >= 0 && index < values.length)
+              onSelect(index);
+          }}
+        />
+      </View>
     ) : (
       <View style={segments}>
         {values.map((label, index) =>
@@ -162,96 +188,194 @@ export function RemoteDesktopDisplaySettings({
       style={styles.row}
       accessibilityRole="button"
       accessibilityState={{ expanded: nativeMenu ? undefined : expanded }}
+      accessibilityLabel={
+        failure
+          ? t("remoteDesktop.retrySettings")
+          : t("remoteDesktop.resolution")
+      }
     >
       <View style={{ flex: 1, gap: spacing.xs }}>
         <Text style={title}>{t("remoteDesktop.resolution")}</Text>
-        <Text style={hint}>
+        <Text style={hint} numberOfLines={1}>
           {!video.modesSupported
             ? t("remoteDesktop.settingUnsupported")
-            : loading
-              ? t("remoteDesktop.loadingSettings")
-              : failure
-                ? t("remoteDesktop.retrySettings")
-                : current
-                  ? modeLabel(current)
-                  : t("remoteDesktop.followComputer")}
+            : current
+              ? modeLabel(current)
+              : t("remoteDesktop.followComputer")}
         </Text>
       </View>
-      <ChevronDown size={iconSize.md} color={colors.textTertiary} />
+      <View
+        style={{
+          width: 24,
+          height: 24,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {loading || video.busy ? (
+          <ActivityIndicator
+            size="small"
+            color={colors.textTertiary}
+            accessibilityLabel={t("remoteDesktop.loadingSettings")}
+          />
+        ) : (
+          <ChevronDown size={iconSize.md} color={colors.textTertiary} />
+        )}
+      </View>
     </Pressable>
   );
   return (
-    <View style={{ gap: spacing.md }}>
-      <Text style={hint}>{t("remoteDesktop.frameRate")}</Text>
-      {segmented(
-        fpsValues.map((fps) => t("remoteDesktop.fps", { count: fps })),
-        fpsValues.indexOf(video.settings.fps),
-        (index) => video.onChange({ ...video.settings, fps: fpsValues[index] }),
-      )}
-      <Text style={hint}>{t("remoteDesktop.quality")}</Text>
-      {segmented(
-        ["automatic", "clear", "highDefinition", "original"].map((key) =>
-          t(`remoteDesktop.${key}`),
-        ),
-        qualityValues.indexOf(video.settings.bitrate),
-        (index) =>
-          video.onChange({ ...video.settings, bitrate: qualityValues[index] }),
-      )}
-      <Text style={hint}>{t("remoteDesktop.qualityHint")}</Text>
-      <View
-        style={{
-          backgroundColor: colors.surfaceChip,
-          borderRadius: radius.container,
-          padding: spacing.md,
-          gap: spacing.sm,
-        }}
-      >
-        {displayControl}
+    <View style={{ gap: spacing.xl }}>
+      <View style={{ gap: spacing.sm }}>
+        <Text style={[title, { fontWeight: fontWeight.medium }]}>
+          {t("remoteDesktop.frameRate")}
+        </Text>
+        {segmented(
+          "frameRate",
+          fpsValues.map((fps) => t("remoteDesktop.fps", { count: fps })),
+          fpsValues.indexOf(video.settings.fps),
+          (index) => video.onChange({ fps: fpsValues[index] }),
+        )}
+      </View>
+      <View style={{ gap: spacing.sm }}>
+        <Text style={[title, { fontWeight: fontWeight.medium }]}>
+          {t("remoteDesktop.quality")}
+        </Text>
+        {segmented(
+          "quality",
+          ["automatic", "clear", "highDefinition", "original"].map((key) =>
+            t(`remoteDesktop.${key}`),
+          ),
+          qualityValues.indexOf(video.settings.bitrate),
+          (index) => video.onChange({ bitrate: qualityValues[index] }),
+        )}
+        <Text style={hint}>{t("remoteDesktop.qualityHint")}</Text>
+      </View>
+      <View style={{ gap: spacing.sm }}>
         <View
           style={{
-            height: StyleSheet.hairlineWidth,
-            backgroundColor: colors.border,
+            backgroundColor: colors.surfaceTranslucent,
+            borderRadius: radius.container,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.sheetActionBorder,
+            padding: spacing.lg,
+            gap: spacing.lg,
           }}
-        />
-        {nativeMenu ? (
-          <NativePullDownMenu
-            actions={modes.map((mode) => ({
-              id: mode.id,
-              title: modeLabel(mode),
-              state: mode.current ? "on" : "off",
-              disabled: !controlling || mode.current,
-            }))}
-            onAction={chooseMode}
-          >
-            {resolutionTrigger}
-          </NativePullDownMenu>
-        ) : (
-          resolutionTrigger
-        )}
-        <Text style={hint}>{t("remoteDesktop.resolutionHint")}</Text>
-        {!controlling && (
-          <Text style={hint}>{t("remoteDesktop.resolutionControlHint")}</Text>
-        )}
-        {!nativeMenu &&
-          expanded &&
-          modes.map((mode) => (
-            <Pressable
-              key={mode.id}
-              disabled={!controlling || video.busy || mode.current}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: mode.current }}
-              onPress={() => chooseMode(mode.id)}
-              style={({ pressed }) => [
-                styles.row,
-                { opacity: pressed ? 0.6 : !controlling ? 0.4 : 1 },
-              ]}
+        >
+          <View style={{ marginHorizontal: -spacing.md }}>
+            {displayControl}
+          </View>
+          {video.viewerDisplaySupported && (
+            <View style={{ gap: spacing.sm }}>
+              <RemoteDesktopActionButton
+                variant="glass"
+                systemImage={
+                  video.viewerDisplayMatched
+                    ? "arrow.uturn.backward"
+                    : "arrow.up.left.and.arrow.down.right"
+                }
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  video.viewerDisplayMatched
+                    ? "remoteDesktop.restoreViewerDisplay"
+                    : "remoteDesktop.fitViewerDisplay",
+                )}
+                disabled={!connected || !controlling || video.busy}
+                onPress={() => video.onFitDisplay?.()}
+                style={[
+                  styles.row,
+                  {
+                    backgroundColor:
+                      Platform.OS === "ios" ? "transparent" : colors.surface,
+                    borderColor: colors.border,
+                    borderWidth:
+                      Platform.OS === "ios" ? 0 : StyleSheet.hairlineWidth,
+                    borderRadius: radius.pill,
+                    padding: spacing.md,
+                    justifyContent: "center",
+                    opacity: !connected || !controlling || video.busy ? 0.6 : 1,
+                  },
+                ]}
+              >
+                {video.busy ? (
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                ) : video.viewerDisplayMatched ? (
+                  <RotateCcw size={iconSize.md} color={colors.textPrimary} />
+                ) : (
+                  <Maximize size={iconSize.md} color={colors.textPrimary} />
+                )}
+                <Text
+                  style={[
+                    title,
+                    { fontWeight: fontWeight.medium, flexShrink: 1 },
+                  ]}
+                >
+                  {t(
+                    video.viewerDisplayMatched
+                      ? "remoteDesktop.restoreViewerDisplay"
+                      : "remoteDesktop.fitViewerDisplay",
+                  )}
+                </Text>
+              </RemoteDesktopActionButton>
+              <Text style={hint}>
+                {t("remoteDesktop.fitViewerDisplayHint")}
+              </Text>
+            </View>
+          )}
+          <View
+            style={{
+              height: StyleSheet.hairlineWidth,
+              backgroundColor: colors.border,
+            }}
+          />
+          {nativeMenu ? (
+            <NativePullDownMenu
+              actions={modes.map((mode) => ({
+                id: mode.id,
+                title: modeLabel(mode),
+                state: mode.current ? "on" : "off",
+                disabled: !controlling || mode.current,
+              }))}
+              onAction={chooseMode}
             >
-              <Text style={[title, { flex: 1 }]}>{modeLabel(mode)}</Text>
-              {mode.current && (
-                <Check size={iconSize.md} color={colors.textPrimary} />
-              )}
-            </Pressable>
-          ))}
+              {resolutionTrigger}
+            </NativePullDownMenu>
+          ) : (
+            resolutionTrigger
+          )}
+          {!nativeMenu &&
+            expanded &&
+            modes.map((mode) => (
+              <Pressable
+                key={mode.id}
+                disabled={!controlling || video.busy || mode.current}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: mode.current }}
+                onPress={() => chooseMode(mode.id)}
+                style={({ pressed }) => [
+                  styles.row,
+                  { opacity: pressed ? 0.6 : !controlling ? 0.4 : 1 },
+                ]}
+              >
+                <Text style={[title, { flex: 1 }]}>{modeLabel(mode)}</Text>
+                {mode.current && (
+                  <Check size={iconSize.md} color={colors.textPrimary} />
+                )}
+              </Pressable>
+            ))}
+          {failure && (
+            <Text style={hint} accessibilityRole="alert">
+              {t("remoteDesktop.retrySettings")}
+            </Text>
+          )}
+        </View>
+        <Text style={[hint, { paddingHorizontal: spacing.xs }]}>
+          {t(
+            controlling
+              ? "remoteDesktop.resolutionHint"
+              : "remoteDesktop.resolutionControlHint",
+          )}
+        </Text>
       </View>
       {!video.supported && (
         <Text style={hint}>{t("remoteDesktop.settingUnsupported")}</Text>

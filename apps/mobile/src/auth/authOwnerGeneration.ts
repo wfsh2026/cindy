@@ -6,6 +6,13 @@ export interface MobileAuthOwnerGeneration {
   /** Canonical realm-qualified key for new account-scoped storage. */
   readonly accountKey: string;
   readonly generation: number;
+  /** Temporary empty owner during reversible account-switch cleanup. */
+  readonly switching?: true;
+}
+
+const listeners = new Set<() => void>();
+export function subscribeMobileAuthOwner(listener: () => void): () => void {
+  listeners.add(listener); return () => { listeners.delete(listener); };
 }
 
 let current: MobileAuthOwnerGeneration = {
@@ -19,14 +26,29 @@ export function setMobileAuthOwner(
   accountId: string | null | undefined,
   realm: AuthRegion = 'global',
 ): void {
+  publishMobileAuthOwner(accountId, realm, false);
+}
+
+/** Keep the existing cancellation fence, without declaring a committed logout. */
+export function invalidateMobileAuthOwnerForSwitch(): void {
+  publishMobileAuthOwner(null, 'global', true);
+}
+
+function publishMobileAuthOwner(
+  accountId: string | null | undefined,
+  realm: AuthRegion,
+  switching: boolean,
+): void {
   const normalized = accountId?.trim() ?? '';
   const accountKey = normalized ? accountVaultKey(realm, normalized) : '';
-  if (current.accountKey === accountKey) return;
+  if (current.accountKey === accountKey && !!current.switching === switching) return;
   current = {
     accountId: normalized,
     accountKey,
     generation: current.generation + 1,
+    ...(switching ? { switching: true as const } : {}),
   };
+  for (const listener of listeners) listener();
 }
 
 export function getMobileAuthOwner(): MobileAuthOwnerGeneration {

@@ -264,7 +264,7 @@ vi.mock('@/state/deviceLinkModelMirror', () => ({
 }));
 
 import { ModelSelector } from '@/components/new-chat/ModelSelector';
-import { cartethyiaDark, cartethyiaLight } from '@/themes/builtin/cartethyia';
+import { cartethyiaDark, cartethyiaLight } from '@/themes/cartethyia';
 import { cindyDark } from '@/themes/builtin/cindy-dark';
 import { themeService } from '@/themes/theme-service';
 

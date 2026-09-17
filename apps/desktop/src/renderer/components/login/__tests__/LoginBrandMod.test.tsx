@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoginBrandStage } from '../LoginBrandStage';
 import { cindyLight } from '@/themes/builtin/cindy-light';
 import { cindyDark } from '@/themes/builtin/cindy-dark';
-import { cartethyiaLight, cartethyiaDark } from '@/themes/builtin/cartethyia';
+import { cartethyiaLight, cartethyiaDark } from '@/themes/cartethyia';
 import { themeService } from '@/themes/theme-service';
 
 vi.mock('@/contexts/LoginHandoffContext', () => ({ LOGIN_HANDOFF_TIMINGS: {}, useLoginHandoff: () => ({ brandLayout: 'login', brandStageMounted: true, reportBrandAssetsReady: () => undefined }) }));

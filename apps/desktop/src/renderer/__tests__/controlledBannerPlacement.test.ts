@@ -20,7 +20,7 @@ describe('controlled banner placement', () => {
     expect(sessionViewSource).toContain('showControlledBanner?: boolean;');
     expect(sessionViewSource).toContain('showControlledBanner = false');
     expect(sessionViewSource).toContain(
-      'const showComposerControlledBanner = ownsRoute || showControlledBanner;',
+      'const showComposerControlledBanner = viewVisible && (ownsRoute || showControlledBanner);',
     );
     expect(sessionViewSource).toContain(
       'const hasControlledBanner = showComposerControlledBanner && controlledBy.length > 0;',
@@ -29,7 +29,7 @@ describe('controlled banner placement', () => {
       'const controlledBannerCollapsed = useComposerCollapsed(sessionId ?? null);',
     );
     expect(sessionViewSource).toContain(
-      'const showExpandedControlledBanner = hasControlledBanner && !controlledBannerCollapsed;',
+      'hasControlledBanner && (!controlledBannerCollapsed || Boolean(botChatIdentity));',
     );
     expect(sessionViewSource).toContain('placement="composer"');
     expect(sessionViewSource).toContain('sessionId={sessionId ?? null}');
@@ -42,7 +42,7 @@ describe('controlled banner placement', () => {
     expect(sessionViewSource).toContain(
       'const isHidden = suppressContent || (!showContent && !visible);',
     );
-    expect(sessionViewSource).toContain('{showExpandedControlledBanner && (');
+    expect(sessionViewSource).toContain('{showCenteredControlledBanner && (');
     expect(sessionViewSource).toContain('rightLeadingSlot?: ReactNode;');
     expect(sessionViewSource).toContain('{rightLeadingSlot}');
     expect(sessionViewSource).toContain('data-running-status-meta="true"');
@@ -54,7 +54,9 @@ describe('controlled banner placement', () => {
     expect(sessionViewSource).toContain(
       'const controlledBannerMaxWidth = `min(${inputHalfWidth}, ${CONTROLLED_BANNER_MAX_WIDTH}px)`;',
     );
-    expect(sessionViewSource).toContain('if (isHidden && !rightLeadingSlot) return null;');
+    expect(sessionViewSource).toContain(
+      'if (!rightLeadingSlot && (suppressContent || (isHidden && !ratePanelPinned))) return null;',
+    );
     expect(controlledBannerSource).toContain("placement?: 'floating' | 'inline' | 'composer';");
     expect(controlledBannerSource).toContain(
       'className="pointer-events-auto flex min-w-0 max-w-full shrink justify-end"',
@@ -128,7 +130,7 @@ describe('controlled banner placement', () => {
 
   it('opts in only route-owned chat views, not Worker panes or embedded doc rails', () => {
     expect(sessionViewSource).toContain(
-      'const showComposerControlledBanner = ownsRoute || showControlledBanner;',
+      'const showComposerControlledBanner = viewVisible && (ownsRoute || showControlledBanner);',
     );
     expect(routeSource).not.toContain('<CCAgentSessionView');
     expect(routeSource).not.toContain('showControlledBanner');
@@ -139,13 +141,8 @@ describe('controlled banner placement', () => {
     expect(workerPanelSource).not.toContain('showControlledBanner');
   });
 
-  it('suppresses the global floating fallback on legacy Orca redirect pages', () => {
-    expect(mainLayoutSource).toContain(
-      'function hasInlineControlledBannerPath(pathname: string): boolean',
-    );
-    expect(mainLayoutSource).toContain(
-      "return parts.length === 3 && parts[1] === 'orca' && parts[2] !== 'new';",
-    );
-    expect(mainLayoutSource).toContain('{!hasInlineControlledBanner && <ControlledBanner />}');
+  it('always mounts the global fallback so loading and unavailable routes retain a control notice', () => {
+    expect(mainLayoutSource).toContain('<ControlledBanner />');
+    expect(mainLayoutSource).not.toContain('hasInlineControlledBannerPath');
   });
 });

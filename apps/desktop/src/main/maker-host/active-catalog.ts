@@ -56,7 +56,7 @@ import {
   type CatalogXdMediaKind,
   type CatalogModel,
   type CustomProviderConfig,
-  type PiModelApi,
+  type PiModelApi as NativePiModelApi,
   type Provider,
   type ProviderWireProtocol,
 } from '@cindy/model-providers';
@@ -159,6 +159,9 @@ const discoveredMediaByProvider = new Map<
     videoModels?: NonNullable<Provider['videoModels']>;
   }
 >();
+/** Gateway supports only its portable HTTP APIs, not native cloud credential APIs. */
+type PiModelApi = Extract<NativePiModelApi, 'anthropic-messages' | 'openai-responses' | 'openai-completions' | 'google-generative-ai'>;
+
 /** 单 tab 能力覆盖块(shared/modelAccess ModelAccessAgentOverride 同形)。 */
 export interface XdGatewayAgentOverride {
   contextWindow?: number;
@@ -357,7 +360,7 @@ function preserveNonGrok46DiscoveryEfforts(
   models: readonly CatalogModel[],
   discovered: readonly XaiDiscoveredModel[],
 ): CatalogModel[] {
-  if ((base ?? BUNDLED_CATALOG).modelRegistry?.schemaVersion === 4) return [...models];
+  if (((base ?? BUNDLED_CATALOG).modelRegistry?.schemaVersion ?? 0) >= 4) return [...models];
   const byId = new Map(discovered.map((entry) => [entry.id, entry]));
   return models.map((model) => {
     const entry = byId.get(model.id) ?? byId.get(`xai/${model.id}`);
@@ -394,7 +397,7 @@ function resolveXdPiGatewayServerModelApi(
   const declared = piGatewayAuthorityCatalog
     ? resolveCatalogPiGatewayModelApi(piGatewayAuthorityCatalog, model.id)
     : undefined;
-  if (declared !== undefined) return declared;
+  if (declared !== undefined) return declared === null || isPiModelApi(declared) ? declared : null;
   // Explicit unknowns can keep an independently declared execution route, but that route
   // must never be presented as canonical. Missing metadata was already filled locally above.
   if ((base?.modelRegistry?.schemaVersion ?? 0) >= 3 || nativeApi === null) {
@@ -437,7 +440,7 @@ function resolveXdPiGatewayModelApi(model: XdGatewayModelInfo): PiModelApi | nul
   const catalogApi = resolveXdPiGatewayServerModelApi(model);
   if (catalogApi !== undefined) return catalogApi;
   const localApi = resolveBundledPiGatewayModelProfile(model.id)?.api;
-  if (localApi !== undefined) return localApi;
+  if (localApi !== undefined) return isPiModelApi(localApi) ? localApi : null;
   return resolveXdPiGatewayHintModelApi(model);
 }
 
@@ -836,7 +839,7 @@ function assembleRoot(
     });
   }
   const registry = (base ?? BUNDLED_CATALOG).modelRegistry;
-  if (registry?.schemaVersion === 4) {
+  if ((registry?.schemaVersion ?? 0) >= 4) {
     const live = new Map(models.map((model) => [model.id, model]));
     out = out.map((model) => {
       const upstream = live.get(model.id);
@@ -874,7 +877,7 @@ function applyLayeredConsumer(
 ): CatalogModel {
   const overlaid = applyRegistryConsumerOverlay(model, providerId, agent, model.id, plan);
   const registry = (base ?? BUNDLED_CATALOG).modelRegistry;
-  return registry?.schemaVersion === 4
+  return (registry?.schemaVersion ?? 0) >= 4
     ? applyModelMetadata(
         overlaid,
         resolveModelMetadata(
@@ -1131,7 +1134,29 @@ function computeMerged(): Catalog {
 
   // 自定义供应商先追加、再做通用发现 augment——顺序反了的话,自定义 OAuth 供应商
   // 的发现模型永远合不进目录(map 只扫过内置列表)。
-  if (custom.length > 0) providers = [...providers, ...custom];
+  if (custom.length > 0) {
+    // Bind the public image definition before applying any account discovery or overrides.
+    // Copying the final builtin connection would leak its Platform-key membership/preferences.
+    const openaiDefinition = providerSources.find((provider) => provider.id === 'openai');
+    const accounts = custom.map((provider) => {
+      if (!isOpenAiSubscriptionProvider(provider)) return provider;
+      const bindId = (id: string): string => id.replace(/^openai\//, `${provider.id}/`);
+      const defaults = openaiDefinition?.imageDefaults;
+      return {
+        ...provider,
+        imageModels: openaiDefinition?.imageModels?.map((model) => ({
+          ...model,
+          id: bindId(model.id),
+        })),
+        imageDefaults: defaults ? {
+          standard: bindId(defaults.standard),
+          ...(defaults.draft ? { draft: bindId(defaults.draft) } : {}),
+          ...(defaults.best ? { best: bindId(defaults.best) } : {}),
+        } : undefined,
+      };
+    });
+    providers = [...providers, ...accounts];
+  }
 
   // 通用 OAuth 供应商的发现模型(additions-only,per provider × agent;内置与自定义同待遇)。
   if (discoveredByProvider.size > 0) {
@@ -1188,7 +1213,7 @@ function computeMerged(): Catalog {
             ...(model.contextWindowMax !== undefined
               ? { contextWindowMax: model.contextWindowMax }
               : {}),
-            ...((base ?? BUNDLED_CATALOG).modelRegistry?.schemaVersion !== 4 &&
+            ...(((base ?? BUNDLED_CATALOG).modelRegistry?.schemaVersion ?? 0) < 4 &&
             model.supportsFastMode === false
               ? { supportsFastMode: false }
               : {}),
@@ -1374,7 +1399,7 @@ function computeMerged(): Catalog {
         ]);
         const registryDefault = registryEntry ? modelDefaultEffort(registryEntry) : undefined;
         const intent =
-          b.modelRegistry?.schemaVersion === 4
+          (b.modelRegistry?.schemaVersion ?? 0) >= 4
             ? (ov.defaultEffort ?? gm.defaultEffort ?? defaultEffortForCapabilities(efforts))
             : registryDefault !== undefined
               ? registryDefault
@@ -1495,7 +1520,7 @@ function computeMerged(): Catalog {
                 )?.entry
               : undefined;
           const intent =
-            b.modelRegistry?.schemaVersion !== 4 && entry ? modelDefaultEffort(entry) : undefined;
+            (b.modelRegistry?.schemaVersion ?? 0) < 4 && entry ? modelDefaultEffort(entry) : undefined;
           const defaultEffort =
             intent !== undefined
               ? model.efforts.length === 0
@@ -1582,7 +1607,7 @@ function computeMerged(): Catalog {
           let next = model;
           const metadataProviderId = providerCatalogId(provider);
           if (
-            b.modelRegistry?.schemaVersion === 4 &&
+            (b.modelRegistry?.schemaVersion ?? 0) >= 4 &&
             (provider.source !== 'user' || !!provider.auth.native) &&
             (provider.id === 'xd' || agent === 'pi')
           ) {

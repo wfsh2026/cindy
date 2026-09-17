@@ -108,6 +108,7 @@ import {
 import { getDesktopProviderService } from '../maker-host/createDesktopProviderService.js';
 import { beginHeadlessGhostSetupTurn } from '../mcp-integrations/ghostSetupInteractionSurface.js';
 import { observeHookTurn, type HookTurnObserver } from './turnObserver.js';
+import { bindRuntimeRecoveryNotice } from '../im/shared/runtimeRecoveryNotice.js';
 import { beginGroupHistoryAccess } from '../im/shared/groupHistoryAccess.js';
 
 import type {
@@ -545,9 +546,9 @@ export function createMakerHookSessionRunner(deps: {
         rowProviderId = row?.providerId ?? null;
       }
 
-      const fail = (msg: string): HookRunOutcome => ({
+      const fail = (msg: string, finalText = ''): HookRunOutcome => ({
         status: 'error',
-        finalText: '',
+        finalText,
         errorMessage: msg,
         durationMs: Date.now() - startedAt,
       });
@@ -1185,6 +1186,10 @@ export function createMakerHookSessionRunner(deps: {
             }
           },
           beforeProviderStart: () => {
+            if (req.onRuntimeRecovery) bindRuntimeRecoveryNotice(session, async (text) => {
+              if (getMaker().getSession(session.id) !== session) return false;
+              return req.onRuntimeRecovery!(text);
+            }, log);
             if (req.groupHistoryAccess) {
               releaseGroupHistoryAccess = beginGroupHistoryAccess({
                 sessionId: session.id,
@@ -1227,7 +1232,19 @@ export function createMakerHookSessionRunner(deps: {
               clientId: turnChangeAnchorClientId,
               role: 'user',
               content: userMessageContent,
-              agentMeta: { origin, ...(req.source ? { hookSource: req.source } : {}) },
+              agentMeta: {
+                origin,
+                ...(req.source
+                  ? {
+                      hookSource: {
+                        ...req.source,
+                        // New messages only persist producer-supplied context.
+                        // Legacy prompt projection belongs to the read path.
+                        contextSnapshot: req.contextSnapshot ?? {},
+                      },
+                    }
+                  : {}),
+              },
             });
             await beginTurnChangeSetAtDispatch(session, turnChangeAnchorClientId);
             turnChangeSetStarted = true;
@@ -1280,7 +1297,12 @@ export function createMakerHookSessionRunner(deps: {
         await observer.finished;
       } catch (err) {
         observer.stop();
-        return fail(err instanceof Error ? err.message : String(err));
+        return fail(
+          err instanceof Error ? err.message : String(err),
+          observer.errorReason === 'output-limit'
+            ? stripInternalWebCitations(observer.finalText())
+            : '',
+        );
       } finally {
         // 无论正常收口还是超时/错误,未决交互都按默认收口并释放中央 route
         finalizeInteractions();
@@ -1396,10 +1418,12 @@ function beginContinuationWatch(
       return;
     }
     if (errorMessage !== null) {
-      // 与 run() 的失败收口同形(finalText 空, 错误交给渠道渲染)。
+      // 与 run() 一致：只有确定的输出上限失败携带已累计正文。
       req.onEnd({
         status: 'error',
-        finalText: '',
+        finalText: observer.errorReason === 'output-limit'
+          ? stripInternalWebCitations(observer.finalText())
+          : '',
         errorMessage,
         durationMs: Date.now() - startedAt,
       });

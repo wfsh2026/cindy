@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyThemeModParts, availableThemeParts } from '../mod-parts';
-import { cartethyiaDark } from '../builtin/cartethyia';
+import { cartethyiaDark } from '../cartethyia';
 import { cindyDark } from '../builtin/cindy-dark';
 import { THEME_MOD_PARTS } from '../../../shared/themeModParts';
 

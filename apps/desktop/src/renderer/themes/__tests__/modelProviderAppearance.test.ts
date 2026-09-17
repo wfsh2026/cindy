@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { modelProviderColor } from '@/lib/modelProviderAppearance';
 import { contrastRatio, parseCssColor, type Rgb } from '../../../shared/theme-import/color';
-import { cartethyiaDark, cartethyiaLight } from '../builtin/cartethyia';
+import { cartethyiaDark, cartethyiaLight } from '../cartethyia';
 import { cindyDark } from '../builtin/cindy-dark';
 import { cindyLight } from '../builtin/cindy-light';
 import { exportThemeColors } from '../theme-service';

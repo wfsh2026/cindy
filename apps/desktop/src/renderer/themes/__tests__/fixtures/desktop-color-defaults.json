@@ -1,6 +1,6 @@
 {
   "source": "apps/desktop/src/renderer/themes/colors.ts",
-  "count": 565,
+  "count": 566,
   "colors": [
     {
       "id": "subagent-identity-1",
@@ -2453,21 +2453,6 @@
       "dark": "#7f1d1d"
     },
     {
-      "id": "cartethyia-damage-color",
-      "light": "#D5A9FF",
-      "dark": "#D5A9FF"
-    },
-    {
-      "id": "cartethyia-damage-outline",
-      "light": "#30204F",
-      "dark": "#30204F"
-    },
-    {
-      "id": "cartethyia-skill-damage-color",
-      "light": "#F0DFFF",
-      "dark": "#F0DFFF"
-    },
-    {
       "id": "error-fg",
       "light": "#dc2626",
       "dark": "#f87171"
@@ -2486,6 +2471,21 @@
       "id": "warning-fg",
       "light": "#F3A115",
       "dark": "#F3A115"
+    },
+    {
+      "id": "cartethyia-damage-color",
+      "light": "#D5A9FF",
+      "dark": "#D5A9FF"
+    },
+    {
+      "id": "cartethyia-damage-outline",
+      "light": "#30204F",
+      "dark": "#30204F"
+    },
+    {
+      "id": "cartethyia-skill-damage-color",
+      "light": "#F0DFFF",
+      "dark": "#F0DFFF"
     },
     {
       "id": "text-danger",
@@ -2688,31 +2688,6 @@
       "dark": "#6F6F6F"
     },
     {
-      "id": "sidebar-project-name",
-      "light": "var(--sidebar-list-muted)",
-      "dark": "var(--sidebar-list-muted)"
-    },
-    {
-      "id": "sidebar-project-icon",
-      "light": "var(--sidebar-list-muted)",
-      "dark": "var(--sidebar-list-muted)"
-    },
-    {
-      "id": "sidebar-project-current-bg",
-      "light": "transparent",
-      "dark": "transparent"
-    },
-    {
-      "id": "sidebar-project-font-weight",
-      "light": "400",
-      "dark": "400"
-    },
-    {
-      "id": "sidebar-project-icon-size",
-      "light": "15px",
-      "dark": "15px"
-    },
-    {
       "id": "sidebar-user-card-bg",
       "light": "rgba(255, 255, 255, 0.20)",
       "dark": "rgba(255, 255, 255, 0.05)"
@@ -2736,6 +2711,31 @@
       "id": "caret-accent",
       "light": "var(--accent-cta-bg)",
       "dark": "var(--accent-cta-bg)"
+    },
+    {
+      "id": "sidebar-project-name",
+      "light": "var(--sidebar-list-muted)",
+      "dark": "var(--sidebar-list-muted)"
+    },
+    {
+      "id": "sidebar-project-icon",
+      "light": "var(--sidebar-list-muted)",
+      "dark": "var(--sidebar-list-muted)"
+    },
+    {
+      "id": "sidebar-project-current-bg",
+      "light": "transparent",
+      "dark": "transparent"
+    },
+    {
+      "id": "sidebar-project-font-weight",
+      "light": "400",
+      "dark": "400"
+    },
+    {
+      "id": "sidebar-project-icon-size",
+      "light": "15px",
+      "dark": "15px"
     },
     {
       "id": "button-primary-hover",
@@ -2766,6 +2766,11 @@
       "id": "button-cta-pressed",
       "light": "color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg))",
       "dark": "color-mix(in srgb, var(--button-cta-hover) 90%, var(--accent-pure-cta-fg))"
+    },
+    {
+      "id": "form-field-hint",
+      "light": "var(--text-secondary-mid)",
+      "dark": "var(--text-secondary-mid)"
     },
     {
       "id": "model-item-selected-bg",

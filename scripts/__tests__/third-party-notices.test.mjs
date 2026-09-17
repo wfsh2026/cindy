@@ -24,6 +24,12 @@ function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
+test("Windows input helper dependencies participate in Cargo license collection", () => {
+  const source = read("scripts/generate-third-party-notices.mjs");
+  assert.ok(source.includes('"windows-gamepad-helper"'));
+  assert.ok(source.includes('"windows-micro-helper"'));
+});
+
 test("generated artifact notices are platform-scoped and disclose restricted components separately", () => {
   const windows = read("docs/legal/notices/desktop-win.txt");
   const macos = read("docs/legal/notices/desktop-macos.txt");
@@ -262,4 +268,23 @@ test("desktop resources include both open-source and restricted disclosures", ()
       path.join(repoRoot, "apps/desktop/cindy-updater/src-tauri/Cargo.lock"),
     ),
   );
+});
+
+test("all shipped desktop notices contain the complete pinned OpenCodex license", () => {
+  const upstream = JSON.parse(read("packages/model-compat/UPSTREAM.json"));
+  const license = read("packages/model-compat/LICENSE.opencodex").replace(/\r\n/g, "\n").trim();
+  for (const artifact of ["desktop-win", "desktop-macos", "desktop-linux"]) {
+    const notice = read(`docs/legal/notices/${artifact}.txt`).replace(/\r\n/g, "\n");
+    assert.ok(notice.includes(license), `${artifact} includes the full MIT text`);
+    const sbom = JSON.parse(read(`docs/legal/notices/sbom/${artifact}.spdx.json`));
+    const component = sbom.packages.find(pkg => pkg.name === "OpenCodex compatibility sources (vendored)");
+    assert.ok(component, `${artifact} inventories OpenCodex`);
+    assert.equal(component.versionInfo, upstream.commit);
+    assert.equal(component.licenseDeclared, "MIT");
+  }
+  for (const file of ["apps/desktop/resources/THIRD-PARTY-NOTICES.txt", "docs/legal/notices/THIRD-PARTY-NOTICES.txt"]) {
+    const notice = read(file).replace(/\r\n/g, "\n");
+    assert.ok(notice.includes(license), `${file} includes the full MIT text`);
+    assert.ok(notice.includes(`${upstream.repository}/tree/${upstream.commit}`));
+  }
 });

@@ -77,7 +77,7 @@ import {
   type MainListEntry,
   type ViewedPriorityHoldState,
 } from '../../lib/mainListModel';
-import type { BotGroupNode } from '../../lib/projectGrouping';
+import { projectKeyComparisonKey, type BotGroupNode } from '../../lib/projectGrouping';
 import { buildSessionSourceLabelMap } from '../../lib/sessionSourceLabel';
 import { useSessionAttentionKinds } from '@/lib/sessionAttentionStore';
 import { useSessionAttentionUrgencySet } from '../../contexts/SessionAttentionUrgencyContext';
@@ -89,6 +89,7 @@ import {
 import { absorbSessionStarting } from '@/lib/sessionStartingStore';
 import type { DialogueDeviceTarget } from '../../lib/dialogueCreateTarget';
 import { MainListScopeHeader } from '../MainListScopeHeader';
+import { DeviceSectionHeader } from '../DeviceSectionHeader';
 import { SectionCollapse } from '../SectionCollapse';
 import { SessionEntryList, SessionEntryRows } from '../SessionEntryList';
 import { useCollapsibleShowAll } from '../hooks/useCollapsibleShowAll';
@@ -291,6 +292,11 @@ export function ProjectsSection({
   isCreateDialogueDisabled = false,
 }: ProjectsSectionProps) {
   const { t } = useTranslation();
+  const localPlatform = window.electronAPI.platform;
+  const projectComparisonKey = useCallback(
+    (projectKey: string) => projectKeyComparisonKey(projectKey, localPlatform) ?? projectKey,
+    [localPlatform],
+  );
   const reducedMotion = useReducedMotion();
   const selectedMachineForOrder = useEffectiveSelectedMachineId();
   const localHostProjectOrder = useLocalHostProjectOrder();
@@ -343,8 +349,8 @@ export function ProjectsSection({
           ? remoteHostProjectOrders.orders.get(scope.deviceId)
           : undefined;
       const persistViewer = (order: readonly string[]) => {
-        const fullOrder = normalizeManualProjectOrder(filter.manualProjectOrder, projectKeysForOrderBaseline);
-        const merged = mergeVisibleReorder(fullOrder, order);
+        const fullOrder = normalizeManualProjectOrder(filter.manualProjectOrder, projectKeysForOrderBaseline, localPlatform);
+        const merged = mergeVisibleReorder(fullOrder, order, projectComparisonKey);
         filter.setManualProjectOrder(merged, projectKeysForOrderBaseline);
         if (filter.projectOrder !== 'custom') filter.setProjectOrder('custom');
       };
@@ -353,8 +359,9 @@ export function ProjectsSection({
         const fullOrder = normalizeManualProjectOrder(
           localHostProjectOrder.snapshot.manualProjectOrder,
           localKeys,
+          localPlatform,
         );
-        const next = mergeVisibleReorder(fullOrder, visibleNewOrder);
+        const next = mergeVisibleReorder(fullOrder, visibleNewOrder, projectComparisonKey);
         void localHostProjectOrder.apply({
           manualProjectOrder: next,
           projectOrder: 'custom',
@@ -370,8 +377,8 @@ export function ProjectsSection({
           deviceId,
           remoteHostProjectOrders.orders.get(deviceId),
         ) ?? [];
-        const fullOrder = normalizeManualProjectOrder(current, remoteKeys);
-        const next = mergeVisibleReorder(fullOrder, visibleNewOrder);
+        const fullOrder = normalizeManualProjectOrder(current, remoteKeys, localPlatform);
+        const next = mergeVisibleReorder(fullOrder, visibleNewOrder, projectComparisonKey);
         void remoteHostProjectOrders.apply(deviceId, {
           manualProjectOrder: next,
           projectOrder: 'custom',
@@ -388,6 +395,8 @@ export function ProjectsSection({
       projectKeysForOrderBaseline,
       remoteHostProjectOrders,
       selectedMachineForOrder,
+      localPlatform,
+      projectComparisonKey,
     ],
   );
 
@@ -422,7 +431,7 @@ export function ProjectsSection({
         notifications,
         attentionKinds,
         urgentSessionIds: urgentSet,
-        remotePhaseOf: (sessionId) => getRemoteSessionActivity(sessionId)?.phase,
+        remotePhaseOf: (sessionId, deviceId) => getRemoteSessionActivity(sessionId, deviceId)?.phase,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- remoteActivityRevision 代表 getRemoteSessionActivity 读到的整表内容
     [runningSessionIds, notifications, attentionKinds, urgentSet, remoteActivityRevision],
@@ -437,7 +446,7 @@ export function ProjectsSection({
       if (kind === 'awaiting' || kind === 'error') waiting.add(sessionId);
     }
     const considerRemote = (session: Session) => {
-      const activity = getRemoteSessionActivity(session.id);
+      const activity = getRemoteSessionActivity(session.id, session.deviceLinkDeviceId);
       if (!activity) return; // 本地会话 / 无活动条目:一次 Map 查找即返回
       if (activity.phase === 'running') {
         running.add(session.id);
@@ -488,7 +497,7 @@ export function ProjectsSection({
   useEffect(() => {
     const settled = new Set<string>();
     const considerRemote = (session: Session) => {
-      if (isRemoteSessionActivityActive(getRemoteSessionActivity(session.id))) {
+      if (isRemoteSessionActivityActive(getRemoteSessionActivity(session.id, session.deviceLinkDeviceId))) {
         settled.add(session.id);
       }
     };
@@ -612,10 +621,10 @@ export function ProjectsSection({
     const keys = preCustomVisualKeysRef.current;
     if (keys.length === 0) return;
     filter.setManualProjectOrder(
-      snapshotManualProjectOrder(keys, projectKeysForOrderBaseline),
+      snapshotManualProjectOrder(keys, projectKeysForOrderBaseline, localPlatform),
       projectKeysForOrderBaseline,
     );
-  }, [filter, projectKeysForOrderBaseline]);
+  }, [filter, projectKeysForOrderBaseline, localPlatform]);
 
   const deviceSections = useMemo<MainListDeviceSection[]>(() => {
     if (!deviceGroupingActive) return [{ deviceId: null, entries: [...visibleMixedEntries] }];
@@ -1050,42 +1059,44 @@ export function ProjectsSection({
               return (
                 <div key={key} className="flex flex-col gap-1">
                   {/* 设备分组头:可折叠。在线设备不画状态点;离线设备保留灰点与文字提示。 */}
-                  <button
-                    type="button"
-                    onClick={() => toggleDeviceSection(key)}
-                    aria-expanded={!sectionCollapsed}
-                    aria-label={
-                      sectionCollapsed
-                        ? t('ccAgent.sidebar.deviceGroup.expand')
-                        : t('ccAgent.sidebar.deviceGroup.collapse')
-                    }
-                    className={cn(
-                      'flex h-6 w-full items-center gap-1.5 rounded-md px-1.5',
-                      'text-[var(--sidebar-list-muted)] transition-colors hover:text-[var(--sidebar-nav-text)]',
-                    )}
-                  >
-                    {sectionCollapsed ? (
-                      <ChevronRight size={12} strokeWidth={2} className="shrink-0" />
-                    ) : (
-                      <ChevronDown size={12} strokeWidth={2} className="shrink-0" />
-                    )}
-                    <MonitorSmartphone size={13} strokeWidth={2} className="shrink-0" />
-                    <span className="min-w-0 truncate text-xs font-medium">{name}</span>
-                    {!online && (
-                      <span
-                        aria-hidden
-                        className="size-1.5 shrink-0 rounded-full bg-[var(--text-tertiary)]"
-                      />
-                    )}
-                    {/* 条数已去掉(2026-08-12 用户裁决):它数的是顶层条目
-                          (项目行 + 散排对话 + 对话组),不是任务数,读起来只会误导;
-                          段展开后内容本身就是答案。「离线」接手 ml-auto 保持靠右。 */}
-                    {!online && (
-                      <span className="ml-auto shrink-0 text-xs text-[var(--cmd-palette-item-meta)]">
-                        {t('ccAgent.sidebar.deviceGroup.offline')}
-                      </span>
-                    )}
-                  </button>
+                  <DeviceSectionHeader deviceId={section.deviceId} name={name}>
+                    <button
+                      type="button"
+                      onClick={() => toggleDeviceSection(key)}
+                      aria-expanded={!sectionCollapsed}
+                      aria-label={
+                        sectionCollapsed
+                          ? t('ccAgent.sidebar.deviceGroup.expand')
+                          : t('ccAgent.sidebar.deviceGroup.collapse')
+                      }
+                      className={cn(
+                        'flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded-full px-1.5',
+                        'text-[var(--sidebar-list-muted)] transition-colors hover:text-[var(--sidebar-nav-text)]',
+                      )}
+                    >
+                      {sectionCollapsed ? (
+                        <ChevronRight size={12} strokeWidth={2} className="shrink-0" />
+                      ) : (
+                        <ChevronDown size={12} strokeWidth={2} className="shrink-0" />
+                      )}
+                      <MonitorSmartphone size={13} strokeWidth={2} className="shrink-0" />
+                      <span className="min-w-0 truncate text-xs font-medium">{name}</span>
+                      {!online && (
+                        <span
+                          aria-hidden
+                          className="size-1.5 shrink-0 rounded-full bg-[var(--text-tertiary)]"
+                        />
+                      )}
+                      {/* 条数已去掉(2026-08-12 用户裁决):它数的是顶层条目
+                            (项目行 + 散排对话 + 对话组),不是任务数,读起来只会误导;
+                            段展开后内容本身就是答案。「离线」接手 ml-auto 保持靠右。 */}
+                      {!online && (
+                        <span className="ml-auto shrink-0 text-xs text-[var(--cmd-palette-item-meta)]">
+                          {t('ccAgent.sidebar.deviceGroup.offline')}
+                        </span>
+                      )}
+                    </button>
+                  </DeviceSectionHeader>
                   <SectionCollapse collapsed={sectionCollapsed}>
                     <div className="flex flex-col gap-1 pl-2">
                       {/* 折叠上限每段独立应用(切段在前,见 deviceSections 注释);

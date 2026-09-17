@@ -165,7 +165,7 @@ describe('native environment-check entry', () => {
     },
   );
 
-  it('passes home preferences only to task creation and returns its navigation target', async () => {
+  it('passes home preferences only to task creation and starts a persistent timeline card', async () => {
     h.ensureTask.mockResolvedValue('home-task');
     const createOptions = {
       workspaceKind: 'dialogue',
@@ -184,6 +184,7 @@ describe('native environment-check entry', () => {
     expect(h.ensureTask).toHaveBeenCalledWith({
       sessionId: undefined,
       createOptions,
+      title: 'fix scrolling',
       isCurrent: expect.any(Function),
     });
     expect(h.start).toHaveBeenCalledWith('home-task', {

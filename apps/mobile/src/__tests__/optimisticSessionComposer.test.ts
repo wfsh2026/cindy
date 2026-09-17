@@ -31,7 +31,9 @@ describe('mobile optimistic composer while session is not ready', () => {
     expect(source).toContain('remoteUnavailableReason: composerRemoteUnavailableReason,');
     expect(source).toContain('describeRemoteComposerBlockingError(connectionError)');
     // 会话尚未在被控端建成时,队列行(取消 / 编辑 / 插队)仍然只读。
-    expect(source).toContain('const queueInlineReadOnlyReason = collaborationReadOnlyReason\n    ?? cacheSeededReason\n    ?? pendingCreationReason');
+    expect(source).toContain('const queueAvailabilityReason = cacheSeededReason\n    ?? pendingCreationReason');
+    expect(source).toContain('const queueInlineReadOnlyReason = collaborationReadOnlyReason ?? queueAvailabilityReason');
+    expect(source).toContain('const errorRecoveryReadOnlyReason = composerReadOnlyReason ?? queueAvailabilityReason');
   });
 
   it('matches Desktop control behavior during a transient disconnect', () => {
@@ -389,7 +391,8 @@ describe('mobile optimistic composer while session is not ready', () => {
     expect(memo).toContain('locallyRemovedClientIds: locallyRemovedQueueClientIds,');
     // 依赖 ⊇ 输入。
     const deps = memo.slice(memo.indexOf('}),') + 3);
-    for (const dep of ['settlingBaseline', 'locallyRemovedQueueClientIds', 'queueHiddenClientIds']) {
+    expect(memo).toContain('hiddenClientIds: confirmedUserClientIds,');
+    for (const dep of ['settlingBaseline', 'locallyRemovedQueueClientIds', 'confirmedUserClientIds']) {
       expect(deps).toContain(dep);
     }
     // 自激防护:基线已是本帧 projection 时 layout effect 直接返回,否则 setState 会让

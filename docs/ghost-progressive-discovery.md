@@ -51,6 +51,12 @@ frontmatter `name + description` 的召回作用；`manual.items` 只是插件�
   单条；未命中或需要全量实时回查时用 `ghost_list`。两者都返回完整 `CindyGhostInfo`
   （id/name/command/recall/setup/tools/manual），不存在 `ghost_list → ghost_info` 的
   固定补查链。
+- **Manual-only 插件也可被发现。** 非空 `manual.items` 不依赖 `tools`；这类插件的
+  `tools` 返回空数组，通过 `ghost_manual` 按需读取，不启动插件运行时，也不因此取得
+  `ghost_call` 能力。读取仍按插件存在、账号可用、工作目录停用、启用状态依次检查；
+  未声明手册时返回 `GHOST_NOT_FOUND`。无工具且无手册的插件仍隐藏。
+  实现与回归见 [ghost.ts](../apps/desktop/src/main/mcp-integrations/ghost.ts) 和
+  [ghostWorkdirGate.test.ts](../apps/desktop/src/main/mcp-integrations/__tests__/ghostWorkdirGate.test.ts)。
 - **取得完整 info 后有两条并行路径。** `ghost_manual` 展开根索引、`MANUAL.md` 和任意
   深度 Markdown；二级分派插件则通过
   `ghost_call({ ghost_id, tool: "list_tools", args: { category } })` 调用自己声明的顶层
@@ -73,7 +79,7 @@ frontmatter `name + description` 的召回作用；`manual.items` 只是插件�
 - 序列化前逐字段折叠空白（`replace(/\s+/g, " ")` + trim）并防御截断
   （name ≤ 64、command ≤ 32、recall ≤ 300）；条目按 id 排序；最多 16 条、
   总预算 8000 字符。
-- 进入花名册的过滤条件：已启用 + 账号可用 + 有工具 + 当前工作目录未停用
+- 进入花名册的过滤条件：已启用的 chip 插件 + 账号可用 +（有工具或非空 `manual.items`）+ 当前工作目录未停用
   （`visibleChipGhosts`，`apps/desktop/src/main/mcp-integrations/ghost.ts`）。
 
 ### 3.2 注入位置（vendor-neutral，一份 formatter 两处消费）
@@ -94,6 +100,15 @@ frontmatter `name + description` 的召回作用；`manual.items` 只是插件�
 伙伴仅保留插件发现网关，不默认注入全量花名册；按需调用 `ghost_list` / `ghost_info`
 复用同账号已有插件。伙伴内置工具集的冻结名单不适用于插件 ID，插件仍由 §4 的实时可见性与
 调用授权守门。
+
+已安装插件无法满足请求时，伙伴经 `ghost_market_search` 查询 Cindy 服务端市场与用户配置的
+自定义市场；不以 Skill/MCP 搜索或模型供应商 Apps 市场代替。搜索只发现目录，不触发默认
+安装、更新、移除或账本修复。结果区分已装状态、实时可用性和来源不可用，失败不能解释为
+能力不存在。选定缺失插件后，`ghost_market_install` 绑定真实 plugin/release，复用现有
+安装事务与当前 Agent 操作授权；既有安装不重装、不启用、不换源。安装不等于登录，仍须
+经 `ghost_info` 与现有 `connect_account` / setup 链路连接，再续接原请求。宿主没有市场
+工具时如实说明并引导可信桌面插件页。实现见 `plugin-market/agentTools.ts`，回归覆盖
+`agentTools.test.ts`、市场 service 测试与 `ghostWorkdirGate.test.ts`。
 
 ### 3.3 快照语义
 

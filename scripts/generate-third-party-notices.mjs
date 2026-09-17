@@ -33,6 +33,9 @@ const MOBILE_DIR = path.join(REPO_ROOT, "apps", "mobile");
 const NOTICES_DIR = path.join(REPO_ROOT, "docs", "legal", "notices");
 const SBOM_DIR = path.join(NOTICES_DIR, "sbom");
 const CARGO_MANIFESTS = [
+  path.join(DESKTOP_DIR, "native", "windows-taskbar", "Cargo.toml"),
+  path.join(DESKTOP_DIR, "native", "xbox-gamepad", "windows-gamepad-helper", "Cargo.toml"),
+  path.join(DESKTOP_DIR, "native", "worklouder", "windows-micro-helper", "Cargo.toml"),
   path.join(DESKTOP_DIR, "native", "remote-desktop", "windows-input", "Cargo.toml"),
   path.join(DESKTOP_DIR, "native", "remote-desktop", "windows-host", "Cargo.toml"),
   path.join(DESKTOP_DIR, "cindy-updater", "src-tauri", "Cargo.toml"),
@@ -869,6 +872,19 @@ function buildDesktopCommonEntries(apacheText, sharpPackageNames) {
     }),
   );
 
+  // Workspace packages are skipped by npm closure discovery. The vendored
+  // OpenCodex helpers are also bundled into Desktop main, not only the SSH proxy.
+  const opencodex = readJson(path.join(REPO_ROOT, "packages/model-compat/UPSTREAM.json"));
+  entries.push(
+    bundledComponent({
+      name: "OpenCodex compatibility sources (vendored)",
+      version: opencodex.commit,
+      license: "MIT",
+      url: `${opencodex.repository}/tree/${opencodex.commit}`,
+      licenseText: readBundledLicense("packages/model-compat/LICENSE.opencodex"),
+    }),
+  );
+
   // Tencent's public iLink client is the pinned protocol reference for the
   // Cindy-owned, host-agnostic implementation under packages/wechat-ilink.
   entries.push(
@@ -889,8 +905,19 @@ function buildDesktopCommonEntries(apacheText, sharpPackageNames) {
   return entries;
 }
 
+function remoteCredentialSwiftEntry() {
+  return bundledComponent({
+    name: "JOSESwift",
+    version: "3.0.0",
+    license: "Apache-2.0",
+    url: "https://github.com/airsidemobile/JOSESwift/tree/3.0.0",
+    licenseText: readBundledLicense("packages/remote-credentials-native/LICENSE.JOSESwift"),
+  });
+}
+
 function buildMacEntries() {
   return [
+    remoteCredentialSwiftEntry(),
     // agent-island Swift helper 中的 NotchShape 轮廓与 SpriteMascotConfig 皮肤
     // 参数改编自 Code Island(见 macos-agent-island-helper.swift 内注释)。
     bundledComponent({
@@ -932,6 +959,7 @@ function buildMobileEntries(apacheText, platform) {
   ];
   if (platform === "ios") {
     entries.push(
+      remoteCredentialSwiftEntry(),
       bundledComponent({
         name: "TapTapSDK/Core",
         version: "4.10.5",
@@ -942,6 +970,20 @@ function buildMobileEntries(apacheText, platform) {
     );
   } else {
     entries.push(
+      bundledComponent({
+        name: "com.nimbusds:nimbus-jose-jwt",
+        version: "10.9.1",
+        license: "Apache-2.0",
+        url: "https://bitbucket.org/connect2id/nimbus-jose-jwt",
+        licenseText: apacheText,
+      }),
+      bundledComponent({
+        name: "androidx.biometric:biometric",
+        version: "1.1.0",
+        license: "Apache-2.0",
+        url: "https://developer.android.com/jetpack/androidx/releases/biometric",
+        licenseText: apacheText,
+      }),
       bundledComponent({
         name: "com.taptap.sdk:tap-core and declared TapTap modules",
         version: "4.10.5",

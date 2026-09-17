@@ -1,5 +1,4 @@
 import {
-  app,
   desktopCapturer,
   ipcMain,
   nativeImage,
@@ -14,6 +13,7 @@ import {
 } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { loadDesktopIceServers } from './iceConfig';
+import { remoteCredentialHost } from './credentialHost';
 import {
   isDesktopPermission,
   REMOTE_DESKTOP_OFFER_BUDGET,
@@ -34,6 +34,12 @@ import { denyAppDesktopCapture } from './capturePermissions';
 import { readDeviceLinkSettings, writeDeviceLinkSetting } from '../device-link/settings-store';
 import { throwIpcError } from '../utils/ipcValidate';
 import { RemoteDesktopController } from './controller';
+import { onQuit } from '../lifecycle';
+import {
+  createViewerDisplay,
+  viewerDisplaySupported,
+  waitForDisplayRestore,
+} from './viewerDisplay';
 import { desktopCaptureSource, enumerateDesktopSources } from './captureSource';
 import { encodeDesktopFrame, encodeNativeRelayFrame } from './frame';
 import { transferDesktopClipboard, transferDesktopClipboardContent } from './clipboard';
@@ -44,6 +50,8 @@ import {
   readDesktopDisplayModes,
   setDesktopDisplayMode,
   readDesktopInputPermission,
+  readDesktopLockState,
+  lockDesktopScreen,
   requestDesktopInputPermission,
 } from './inputHost';
 import { getDeepLinkMainWindow } from '../deepLink';
@@ -64,10 +72,11 @@ const permissions = new RemoteDesktopPermissionsService({
     if (permission === 'accessibility') await requestDesktopInputPermission(isCurrent, signal);
     else
       await enumerateDesktopSources(
-        () => desktopCapturer.getSources({
-          types: ['screen'],
-          thumbnailSize: { width: 0, height: 0 },
-        }),
+        () =>
+          desktopCapturer.getSources({
+            types: ['screen'],
+            thumbnailSize: { width: 0, height: 0 },
+          }),
         REMOTE_DESKTOP_OFFER_BUDGET.sourcesMs,
       );
   },
@@ -118,7 +127,9 @@ let pending: {
   reject(error: Error): void;
   timer: ReturnType<typeof setTimeout>;
 } | null = null;
-const input = new DesktopInputHost(() => remoteDesktop.stop());
+// A dead input helper or a refused injection is an input failure, not a session
+// failure: release control and keep the lease, capture and media running.
+const input = new DesktopInputHost(() => remoteDesktop.releaseControl());
 function stopVideo(): void {
   offerGeneration++;
   videoAttempt = undefined;
@@ -178,7 +189,10 @@ async function offer(
       nativeAvailable ||=
         process.platform === 'win32' && (await readWindowsDesktopSupport()) === 'ready';
       try {
-        const available = await sources(false, nativeAvailable ? 2000 : REMOTE_DESKTOP_OFFER_BUDGET.sourcesMs);
+        const available = await sources(
+          false,
+          nativeAvailable ? 2000 : REMOTE_DESKTOP_OFFER_BUDGET.sourcesMs,
+        );
         source = desktopCaptureSource(available, lease.display.id, screen.getAllDisplays());
       } catch (error) {
         // A locked macOS session can reject Chromium's source enumeration even
@@ -276,6 +290,46 @@ async function ice(request: RemoteDesktopIceRequest): Promise<RemoteDesktopIceRe
   return parseDesktopIceReply(result);
 }
 
+export async function requestRemoteDesktop(peer: string, value: unknown): Promise<unknown> {
+  const settings = readDeviceLinkSettings();
+  if (
+    !settings.remoteControlEnabled ||
+    !settings.remoteDesktopEnabled ||
+    settings.revokedControllers.includes(peer)
+  )
+    throw new Error('DESKTOP_UNAVAILABLE');
+  if (
+    process.platform === 'darwin' &&
+    value !== null &&
+    typeof value === 'object' &&
+    'op' in value &&
+    value.op === 'credential' &&
+    'version' in value &&
+    value.version === 1 &&
+    'kind' in value
+  ) {
+    if (value.kind === 'status') return { version: 1, state: await readDesktopLockState() };
+    if (value.kind === 'prepare') {
+      const credentials = remoteCredentialHost.currentToken?.();
+      if (!credentials) throw new Error('CREDENTIAL_INVALID_IDENTITY');
+      const descriptor = await remoteCredentialHost.configure(
+        credentials.realm,
+        credentials.membership,
+        credentials.authDevice,
+        credentials.token,
+      );
+      return { version: 1, ready: true, descriptor };
+    }
+  }
+  return process.platform === 'darwin' &&
+    value !== null &&
+    typeof value === 'object' &&
+    'op' in value &&
+    value.op === 'credential'
+    ? remoteCredentialHost.request(peer, value, (body) => remoteDesktop.request(peer, body))
+    : remoteDesktop.request(peer, value);
+}
+
 export const remoteDesktop = new RemoteDesktopController({
   authorized: (peer) => {
     const settings = readDeviceLinkSettings();
@@ -289,9 +343,11 @@ export const remoteDesktop = new RemoteDesktopController({
     windowsAvailable = (await readWindowsDesktopSupport()) === 'ready';
     const settings = readDeviceLinkSettings();
     const enabled = settings.remoteDesktopEnabled && settings.remoteControlEnabled;
+    const viewerDisplay = enabled && (await viewerDisplaySupported());
     return {
       version: 1,
       cursorOverlay: process.platform === 'darwin',
+      lockOnExit: process.platform === 'darwin',
       clipboardContent: process.platform === 'darwin' || process.platform === 'win32',
       clipboardText: process.platform === 'darwin' || process.platform === 'win32',
       videoSettings: true,
@@ -299,6 +355,8 @@ export const remoteDesktop = new RemoteDesktopController({
       backgroundViewing: true,
       systemAudio: supportsSystemAudio,
       displayModes: process.platform === 'darwin',
+      viewerDisplay,
+      viewerDisplayRestore: viewerDisplay,
       enabled,
       canControl: process.platform === 'darwin' || process.platform === 'win32',
       platform: process.platform,
@@ -344,10 +402,45 @@ export const remoteDesktop = new RemoteDesktopController({
   clipboardContent: (action, content, isCurrent) =>
     transferDesktopClipboardContent(action, content, isCurrent, (events) => input.input(events)),
   displayModes: readDesktopDisplayModes,
-  resolution: setDesktopDisplayMode,
+  displayPresent: (displayId) =>
+    screen.getAllDisplays().some((display) => String(display.id) === displayId),
+  resolution: async (displayId, modeId, beforeChange, expected) => {
+    await setDesktopDisplayMode(displayId, modeId, beforeChange);
+    if (expected)
+      await waitForDisplayRestore(displayId, expected, beforeChange, (displays) =>
+        // Restoration may retire an unplugged monitor; selection must not
+        // publish usable geometry for a monitor that no longer exists.
+        displays.some((display) => String(display.id) === displayId),
+      );
+  },
+  restoreResolution: async (displayId, modeId, beforeChange, expected) => {
+    await setDesktopDisplayMode(displayId, modeId, beforeChange, true);
+    await waitForDisplayRestore(displayId, expected, beforeChange);
+  },
+  createViewerDisplay,
   startInput: (displayId) => input.start(displayId),
-  input: (events) => input.input(events),
+  input: (events) => {
+    try {
+      input.input(events);
+    } catch (error) {
+      // The input host refused before injecting anything (helper gone, or this
+      // lease's display is unavailable). Release control so the host and the
+      // viewer agree, and so taking control again genuinely restarts the
+      // helper instead of being skipped as "already controlling".
+      remoteDesktop.releaseControl();
+      throw error;
+    }
+  },
   stopInput: () => input.stop(),
+  releaseInput: () => input.release(),
+  ...(process.platform === 'darwin'
+    ? {
+        lockScreen: async (isCurrent: () => boolean, signal: AbortSignal) => {
+          await input.release();
+          await lockDesktopScreen(isCurrent, signal);
+        },
+      }
+    : {}),
   offer,
   ice,
   stopVideo,
@@ -363,23 +456,39 @@ export const remoteDesktop = new RemoteDesktopController({
   },
 });
 
-export function registerRemoteDesktopIpc(isVoiceInputOwner?: Parameters<typeof denyAppDesktopCapture>[1]): void {
+export function registerRemoteDesktopIpc(
+  isVoiceInputOwner?: Parameters<typeof denyAppDesktopCapture>[1],
+): void {
   denyAppDesktopCapture(session.defaultSession, isVoiceInputOwner);
   const timer = setInterval(() => remoteDesktop.tick(), 1000);
   timer.unref();
-  app.on('before-quit', () => {
+  onQuit('remote-desktop-stop', () => {
     clearInterval(timer);
     permissions.dismiss();
     remoteDesktop.stop();
   });
+  onQuit('remote-desktop-restore', () => remoteDesktop.stopAndRestore(), 'async');
   screen.on('display-removed', (_event, display) => {
+    if (remoteDesktop.changingDisplay) return;
     if (String(display.id) === remoteDesktop.displayId) remoteDesktop.stop();
   });
   screen.on('display-metrics-changed', (_event, display, metrics) => {
-    // Work-area changes (lock screen, Dock/menu bar, display wake) do not
-    // change whole-screen input coordinates and must not terminate the lease.
+    if (remoteDesktop.changingDisplay) return;
+    // Managed resolution changes can deliver scaleFactor after preparation
+    // finishes. Matching logical geometry keeps input coordinates valid;
+    // rotation still invalidates the lease, even for an unchanged size.
     if (
       String(display.id) === remoteDesktop.displayId &&
+      !(
+        metrics.every(
+          (metric) => metric === 'bounds' || metric === 'workArea' || metric === 'scaleFactor',
+        ) &&
+        remoteDesktop.displayGeometryMatches(
+          String(display.id),
+          display.size.width,
+          display.size.height,
+        )
+      ) &&
       metrics.some(
         (metric) => metric === 'bounds' || metric === 'scaleFactor' || metric === 'rotation',
       )

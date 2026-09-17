@@ -48,8 +48,13 @@
   },
   "presentation": {
     "grid": {
-      "today": "今天 {{time}}", "yesterday": "昨天 {{time}}", "empty": "資料夾是空的",
-      "summaryMixed": "{{dirs}} 個資料夾、{{files}} 個檔案", "summaryDirs": "{{count}} 個資料夾", "summaryFiles": "{{count}} 個檔案", "workdir": "工作目錄"
+      "today": "今天 {{time}}",
+      "yesterday": "昨天 {{time}}",
+      "empty": "資料夾是空的",
+      "summaryMixed": "{{dirs}} 個資料夾、{{files}} 個檔案",
+      "summaryDirs": "{{count}} 個資料夾",
+      "summaryFiles": "{{count}} 個檔案",
+      "workdir": "工作目錄"
     },
     "preview": {
       "nonText": {
@@ -66,8 +71,8 @@
       "idle": "視需要讀取遠端文字預覽，不會在訊息清單中批次擷取檔案內容。",
       "failure": {
         "oversize": "檔案超過遠端預覽上限 · {{limit}} · 目前 {{size}}",
-        "forbidden": "受控電腦拒絕讀取這個路徑。",
-        "notFound": "受控電腦上找不到這個檔案。",
+        "forbidden": "遠端電腦拒絕讀取這個路徑。",
+        "notFound": "遠端電腦上找不到這個檔案。",
         "readFailed": "讀取失敗。",
         "readFailedWithError": "讀取失敗：{{error}}",
         "default": "目前無法預覽這個檔案。"
@@ -94,6 +99,11 @@
     "readFailed": "讀取失敗",
     "truncated2mb": "檔案超過 2 MB，僅顯示前 2 MB 內容",
     "truncatedLines": "僅顯示前 {{lines}} 行",
+    "htmlUpdateMobile": "請更新手機版 Cindy 後預覽網頁，仍可切換到原始碼查看。",
+    "htmlUpdateDesktop": "請更新所連接電腦上的 Cindy 後預覽網頁。",
+    "htmlSnapshotTooLarge": "資料夾過大，請將網頁及其資源放到較小的資料夾後重試。",
+    "htmlSnapshotFailed": "網頁載入失敗，請檢查連線後重試。",
+    "htmlReload": "重新載入網頁",
     "fetchingHtmlResources": "正在取回頁面資源…",
     "htmlResourcesMissing": "{{count}} 項頁面資源沒取到，可能缺圖或缺樣式",
     "htmlResourcesTruncated": "頁面資源過多，只處理了前 {{limit}} 項",

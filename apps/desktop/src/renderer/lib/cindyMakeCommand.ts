@@ -112,6 +112,12 @@ export async function tryStartCindyMakeCommand(
     const sessionId = await ensureMakeTask({
       sessionId: input.sessionId,
       createOptions: input.createOptions,
+      title:
+        match.kind === 'start'
+          ? match.invocation.command === 'cindy-make'
+            ? match.invocation.request.trim().replace(/\s+/g, ' ').slice(0, 80)
+            : 'Cindy Make 环境检查'
+          : undefined,
       isCurrent,
     });
     if (!sessionId || !isCurrent()) return { kind: 'stale' };

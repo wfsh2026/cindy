@@ -9,7 +9,7 @@ import { oneDarkPro } from './builtin/one-dark-pro';
 import { solarizedLight } from './builtin/solarized-light';
 import { cindyDark } from './builtin/cindy-dark';
 import { cindyLight } from './builtin/cindy-light';
-import { cartethyiaLight, cartethyiaDark } from './builtin/cartethyia';
+import { cartethyiaLight, cartethyiaDark } from './cartethyia';
 import { LOCAL_THEME_SUFFIX } from '../../shared/local-themes';
 import { getLocalThemes } from './local-themes';
 import type { Theme, ThemeType } from './types';

@@ -1032,10 +1032,10 @@ describe('pickNewSessionDefaultDevice', () => {
 // 之间 deviceExplicit 路由参数的存在性——用全文件唯一字符串断言,不做函数体切片定位,
 // 避免锚点(如 deps 数组)变化时 indexOf 失效产生误导性报错。
 describe('new session default device follows the home device filter', () => {
-  it('sends the deviceExplicit flag only when the home list is filtered to one device', () => {
+  it('sends deviceExplicit for a home device filter or a checked recommendation target', () => {
     const homeSource = readTextLf(resolve(process.cwd(), 'app/devices/index.tsx'), 'utf8');
-    // 筛选某台电脑时带显式标记;"所有任务"(selectedDeviceId=null)不带,保留记忆回落。
-    expect(homeSource).toContain("...(selectedDeviceId ? { deviceExplicit: '1' } : {})");
+    // 筛选电脑或推荐指定电脑时带显式标记;普通新建保留记忆回落。
+    expect(homeSource).toContain("...(selectedDeviceId || explicitDeviceId ? { deviceExplicit: '1' } : {})");
   });
 
   it('treats the deviceExplicit route flag as an explicit device on the new-session screen', () => {
@@ -1293,7 +1293,7 @@ describe('new session model', () => {
       model: 'claude-sonnet-4-6',
     }, 'Carol Mac')).toMatchObject({
       title: '准备创建并发送',
-      subtitle: '确认后会在被控设备创建任务，并把首条消息加入队列。',
+      subtitle: '确认后会在远程设备创建任务，并把首条消息加入队列。',
       details: [
         '设备：Carol Mac',
         '位置：对话工作区',
@@ -1641,7 +1641,9 @@ describe('new session composer surface', () => {
     expect(newSource).toContain("import { MOBILE_VISUAL_MOCK_ENABLED } from '@/config/env';");
     expect(newSource).toContain("const visualFocusComposer = MOBILE_VISUAL_MOCK_ENABLED && readRouteString(params.visualFocusComposer) === '1';");
     expect(newSource).toContain('const visualInitialDraft = MOBILE_VISUAL_MOCK_ENABLED ? readRouteString(params.visualDraft) : null;');
-    expect(newSource).toContain('firstMessage: visualInitialDraft ?? DEFAULT_NEW_SESSION_DRAFT.firstMessage');
+    expect(newSource).toContain('firstMessage: visualInitialDraft ?? (isRemoteTaskSuggestionId(params.suggestion)');
+    expect(newSource).toContain('t(`devices.list.taskSuggestions.items.${params.suggestion}.prompt`)');
+    expect(newSource).toContain(': DEFAULT_NEW_SESSION_DRAFT.firstMessage)');
     expect(newComposerSource).toContain('inputTestID="newSession.firstMessageInput"');
     expect(newComposerSource).toContain('autoFocus={visualFocusComposer}');
     expect(newComposerSource).toContain('maxHeight={composerResize.inputMaxHeight}');
@@ -1839,7 +1841,6 @@ describe('new session composer surface', () => {
     expect(createSource).toContain('effectiveDraft = { ...draft, firstMessage: latestDraftText };');
     expect(createSource).toContain('creatingRef.current = false;');
     expect(createButtonSource).toContain('busy: creating');
-    expect(createButtonSource).toContain('|| worktreePreferenceSaving');
     expect(createButtonSource).toContain('|| worktreeBranchPreferenceSaving');
     expect(newSource).toContain('disabled: !canCreate || undefined,');
     // No start cue on mobile: playing a cue via expo-audio during capture stalls
@@ -1908,69 +1909,6 @@ describe('new session worktree wiring (source locks)', () => {
     expect(newSource).toContain('worktreeIntent.applicable');
     expect(newSource).toContain('&& worktreeIntent.enabled');
     expect(newSource).toContain("&& worktreeIntent.eligibility.status === 'eligible'");
-  });
-
-  it('keeps the workstation-owned preference semantics (seed + explicit write-through)', () => {
-    // 播种:openLink + 瞬态重试(app 后台恢复的重连窗口不得把工作端偏好静默播成未勾)。
-    expect(newSource).toContain(
-      "if (!selectedDeviceId || !syncKey || deviceLinkStatus !== 'online') return undefined;",
-    );
-    expect(newSource).toContain('return maker.getNewMakerDefaults(worktreeSeedAgentKindRef.current);');
-    expect(newSource).toContain(
-      'remoteSessionStore.getNewMakerWorktreePreference(selectedDeviceId).revision',
-    );
-    expect(newSource).toContain(
-      'remoteSessionStore.setNewMakerWorktreePreference(',
-    );
-    expect(newSource).toContain(
-      'useRemoteNewMakerWorktreePreference(selectedDeviceId)',
-    );
-    expect(newSource).toContain("classification.status === 'missing'");
-    expect(newSource).toContain('worktreeHostSupportsRecoveryKeyDiscardRef.current === false');
-    const seedEffect = newSource.indexOf('const worktreeSeedAgentKindRef = useRef(draft.agentKind);');
-    const seedDeps = newSource.slice(
-      newSource.indexOf('}, [', seedEffect),
-      newSource.indexOf(']);', seedEffect) + 3,
-    );
-    expect(seedDeps).toContain('worktreePreferenceSyncKey,');
-    expect(seedDeps).not.toContain('worktreeHostSupportsRecoveryKeyDiscard,');
-    expect(newSource).not.toContain(
-      'remoteSessionStore.setNewMakerWorktreePreference(selectedDeviceId, false);',
-    );
-    expect(newSource).toContain('worktreePreferenceSyncKey,');
-    expect(newSource).toContain('worktreeSeedRetryNonce,');
-    // 显式点击才写穿工作端记忆;工作端接受后才更新手机镜像。
-    expect(newSource).toContain('applyWorktreePreferenceOnHost({');
-    expect(newSource).toContain('apply: maker.applyNewMakerWorktreePref,');
-    expect(newSource).toContain(
-      "!next && worktreeEligibility.status === 'unsupported',",
-    );
-    expect(newSource).toContain('enabled: worktreeEnabled,');
-    expect(newSource).not.toContain(
-      'void maker.applyNewMakerWorktreePref(next).catch(() => undefined);',
-    );
-    // host-first 写入期间，适用 worktree 的项目由按钮和 create() 二次门禁阻止读取旧镜像；
-    // 对话工作区不应被一份与当前创建无关的偏好写入卡住。
-    expect(newSource).toContain('&& !worktreeCreateBlocked;');
-    expect(newSource).toContain(
-      'applicable: worktreeApplicable,',
-    );
-    const createEntry = newSource.indexOf('const create = useCallback(async () => {');
-    // ineligible 豁免守卫使 create 函数体略长,窗口扩至 1600 确保覆盖 worktreeCreateBlocked。
-    const createBody = newSource.slice(createEntry, createEntry + 1_600);
-    expect(createBody).not.toContain('|| worktreePreferenceSaving');
-    expect(createBody).toContain('if (worktreeCreateBlocked) {');
-    expect(newSource).toContain('worktreeBranchPreferenceSaving');
-    expect(newSource).toContain('worktreeCreateBlocked && worktreeControlCaptionKey');
-    expect(newSource).toContain(
-      "worktreePreferenceAuthorityUnknown ? 'session.new.worktreeSettingsSyncFailed' : null",
-    );
-    expect(newSource).toContain("worktreePreferenceCreateBlocked ? 'session.new.worktreeSettingsSaving' : null");
-    expect(newSource).toContain('const resolveWorktreePreferenceGateErrorKey = useCallback(() => (');
-    expect(newSource).toContain("? 'session.new.worktreeSettingsSyncFailed'");
-    expect(newSource).toContain(": 'session.new.worktreeSettingsSaving'");
-    expect(newSource).toContain('setError(t(resolveWorktreePreferenceGateErrorKey()));');
-    expect(newSource).toContain('setGoalError(t(resolveWorktreePreferenceGateErrorKey()));');
   });
 
   it('re-probes worktree eligibility when the relay or workstation reconnects', () => {
@@ -2116,7 +2054,7 @@ describe('new session worktree wiring (source locks)', () => {
     const goalStart = newSource.indexOf('const createGoalSession = useCallback(');
     const goalEnd = newSource.indexOf('\n\n  return (', goalStart);
     const goalBody = newSource.slice(goalStart, goalEnd);
-    const gate = goalBody.indexOf('if (worktreeCreateBlocked) {');
+    const gate = goalBody.indexOf('if (!isWorktreeCreateIntentCurrent(worktreeIntent)) {');
     const worktreeCreate = goalBody.indexOf(
       'await maker.worktree.create(createRequest)',
     );
@@ -2130,27 +2068,6 @@ describe('new session worktree wiring (source locks)', () => {
     expect(goalBody).toContain('effectiveDraft = { ...draft, workingDir: response.meta.path };');
     expect(goalBody).toContain('sessionId: precreatedWorktree!.sessionId');
     expect(goalBody).toContain('sessionId: precreatedWorktree.sessionId');
-  });
-
-  it('does not couple OFF creation to branch writes, while closing checkbox and branch same-tick races', () => {
-    expect(newSource).toContain('|| (worktreeEnabled && worktreeBranchPreferenceSaving)');
-    expect(newSource).toContain('worktreePreferenceWriteTargetRef.current = targetDeviceId;');
-    expect(newSource).toContain('worktreeBranchPreferenceWriteTargetRef.current = key;');
-    const createStart = newSource.indexOf('const create = useCallback(async () => {');
-    const goalStart = newSource.indexOf('const createGoalSession = useCallback(');
-    expect(newSource.slice(createStart, goalStart)).toContain(
-      'worktreePreferenceWriteTargetRef.current === selectedDeviceId',
-    );
-    expect(newSource.slice(goalStart, goalStart + 2_000)).toContain(
-      'worktreePreferenceWriteTargetRef.current === selectedDeviceId',
-    );
-    expect(newSource.slice(createStart, goalStart)).toContain(
-      'worktreeBranchPreferenceWriteTargetRef.current === worktreeBranchPreferenceKey',
-    );
-    expect(newSource.slice(goalStart, goalStart + 2_500)).toContain(
-      'worktreeBranchPreferenceWriteTargetRef.current === worktreeBranchPreferenceKey',
-    );
-    expect(newSource).toContain('disabled={worktreeCreateBlocked}');
   });
 
   it('keeps branch preference GET fail-closed except for explicit old-channel compatibility', () => {
@@ -2170,7 +2087,7 @@ describe('new session worktree wiring (source locks)', () => {
     expect(newSource).not.toContain('return false;\n            }\n          },\n          shouldDefer:');
   });
 
-  it('applies the protocol timeout override map to mobile invokes (worktree:create needs 60s)', () => {
+  it('applies the protocol timeout override map to mobile invokes (worktree:create needs 60s)', async () => {
     // 2026-07-29 与 main 合并后,移动端逐通道超时统一走 invokeTimeouts 的
     // resolveMobileInvokeTimeoutMs(mobile 专属表 → 协议契约表 INVOKE_TIMEOUT_OVERRIDES_MS
     // 兜底),worktree:create 的 60s 预算经协议表兜底生效——两层缺一都会让
@@ -2180,11 +2097,8 @@ describe('new session worktree wiring (source locks)', () => {
       'utf8',
     );
     expect(contextSource).toContain('resolveMobileInvokeTimeoutMs(channel, args)');
-    const timeoutsSource = readTextLf(
-      resolve(process.cwd(), 'src/device-link/invokeTimeouts.ts'),
-      'utf8',
-    );
-    expect(timeoutsSource).toContain('INVOKE_TIMEOUT_OVERRIDES_MS[channel]');
+    const { resolveMobileInvokeTimeoutMs } = await import('@/device-link/invokeTimeouts');
+    expect(resolveMobileInvokeTimeoutMs('worktree:create')).toBe(60_000);
   });
 });
 

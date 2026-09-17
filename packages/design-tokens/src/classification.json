@@ -1,10 +1,10 @@
 {
   "source": "apps/desktop/src/renderer/themes/colors.ts",
   "generatedBy": "packages/design-tokens/src/classify.ts",
-  "snapshotCount": 565,
+  "snapshotCount": 566,
   "categories": {
     "literal": 273,
-    "alias": 242,
+    "alias": 243,
     "hsl-triplet": 6,
     "runtime-derived-or-protected": 44
   },
@@ -4937,30 +4937,6 @@
       "modeledAsSemantic": true
     },
     {
-      "id": "cartethyia-damage-color",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "hex",
-      "darkKind": "hex",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "cartethyia-damage-outline",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "hex",
-      "darkKind": "hex",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "cartethyia-skill-damage-color",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "hex",
-      "darkKind": "hex",
-      "modeledAsSemantic": false
-    },
-    {
       "id": "error-fg",
       "category": "literal",
       "destination": "reference-candidate",
@@ -5011,6 +4987,30 @@
         "rule": "theme-invariant 语义豁免色（Tier-3 singleton），外部主题不覆盖"
       },
       "modeledAsSemantic": true
+    },
+    {
+      "id": "cartethyia-damage-color",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "hex",
+      "darkKind": "hex",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "cartethyia-damage-outline",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "hex",
+      "darkKind": "hex",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "cartethyia-skill-damage-color",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "hex",
+      "darkKind": "hex",
+      "modeledAsSemantic": false
     },
     {
       "id": "text-danger",
@@ -5349,6 +5349,50 @@
       "modeledAsSemantic": false
     },
     {
+      "id": "sidebar-user-card-bg",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "rgb",
+      "darkKind": "rgb",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "sidebar-user-card-bg-hover",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "rgb",
+      "darkKind": "rgb",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "sidebar-user-card-border",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "rgb",
+      "darkKind": "rgb",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "sidebar-user-card-text",
+      "category": "literal",
+      "destination": "reference-candidate",
+      "lightKind": "hex",
+      "darkKind": "hex",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "caret-accent",
+      "category": "alias",
+      "destination": "semantic-or-component-candidate",
+      "lightKind": "alias",
+      "darkKind": "alias",
+      "aliasOf": {
+        "light": "accent-cta-bg",
+        "dark": "accent-cta-bg"
+      },
+      "modeledAsSemantic": false
+    },
+    {
       "id": "sidebar-project-name",
       "category": "alias",
       "destination": "semantic-or-component-candidate",
@@ -5394,50 +5438,6 @@
       "destination": "register-only",
       "lightKind": "non-color",
       "darkKind": "non-color",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "sidebar-user-card-bg",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "rgb",
-      "darkKind": "rgb",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "sidebar-user-card-bg-hover",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "rgb",
-      "darkKind": "rgb",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "sidebar-user-card-border",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "rgb",
-      "darkKind": "rgb",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "sidebar-user-card-text",
-      "category": "literal",
-      "destination": "reference-candidate",
-      "lightKind": "hex",
-      "darkKind": "hex",
-      "modeledAsSemantic": false
-    },
-    {
-      "id": "caret-accent",
-      "category": "alias",
-      "destination": "semantic-or-component-candidate",
-      "lightKind": "alias",
-      "darkKind": "alias",
-      "aliasOf": {
-        "light": "accent-cta-bg",
-        "dark": "accent-cta-bg"
-      },
       "modeledAsSemantic": false
     },
     {
@@ -5490,6 +5490,18 @@
       "destination": "register-only",
       "lightKind": "color-mix",
       "darkKind": "color-mix",
+      "modeledAsSemantic": false
+    },
+    {
+      "id": "form-field-hint",
+      "category": "alias",
+      "destination": "semantic-or-component-candidate",
+      "lightKind": "alias",
+      "darkKind": "alias",
+      "aliasOf": {
+        "light": "text-secondary-mid",
+        "dark": "text-secondary-mid"
+      },
       "modeledAsSemantic": false
     },
     {

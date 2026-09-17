@@ -10,9 +10,12 @@ import type { AgentKind } from '@/hooks/useAgentCapabilities';
 import { cn } from '@/lib/utils';
 import { modelProviderStyle, useModelProviderColors } from '@/lib/modelProviderAppearance';
 import { providerDisplayName } from '@/lib/providerDisplayName';
+import { providerAccountLabel } from '@/lib/providerDisplayName';
 import type { Effort } from '@/lib/userPreferences.types';
 
 import { PriceFreeBadge, PriceTierMarks, type UnifiedRowPriceDisplay } from './priceTierMarks';
+
+import { ModelSourceDetails } from './ModelSourceDetails';
 
 import { agentOptionOf } from './agentOptions';
 // 图标规则(模型条目 icon 优先、缺省回落来源供应商标)只有一份实现,复用它而不是抄一份。
@@ -50,7 +53,10 @@ export function UnifiedModelRow({
   paymentRequiredLabel,
   paymentRequiredUnlockLabel,
   onPaymentRequired,
+  sourceLabel,
 }: {
+  /** Supplied only in the combined All / Favorites views. */
+  sourceLabel?: string;
   entry: UnifiedModelEntry;
   anchor: UnifiedAnchor;
   config: UnifiedRowConfig;
@@ -82,7 +88,9 @@ export function UnifiedModelRow({
   const provider = providers.find((item) => item.id === entry.providerId);
   const providerColors = useModelProviderColors();
   const providerStyle = providerColors ? modelProviderStyle(entry.providerId) : undefined;
-  const sourceLabel = provider ? providerDisplayName(provider, t) : entry.providerId;
+  const providerLabel = sourceLabel ?? (provider ? providerDisplayName(provider, t) : entry.providerId);
+  const accountIdentity = provider?.openAiAccount?.identity?.trim() || provider?.subscriptionAccount?.identity?.trim();
+  const accountLabel = providerAccountLabel(providerLabel, accountIdentity);
   const priceSymbol = priceDisplay?.symbol ?? '$';
   const engineOption = agentOptionOf(config.engine);
   const openConfig = (element: HTMLElement, toggle = false) => {
@@ -218,7 +226,7 @@ export function UnifiedModelRow({
       data-model-provider={entry.providerId}
       style={providerStyle}
       className={cn(
-        '[&+[data-unified-anchor]]:mt-1 group/row flex w-full cursor-pointer flex-col rounded-[10px] px-2.5 py-2 transition-colors duration-100',
+        '[&+[data-unified-anchor]]:mt-1 group/row flex w-full cursor-pointer flex-col rounded-lg px-3 py-2 transition-colors duration-100',
         'hover:bg-[var(--model-item-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
         selected && providerColors
           ? 'bg-[var(--model-item-selected-bg)] hover:bg-[var(--model-item-selected-bg)] ring-1 ring-inset ring-[var(--model-item-selected-border)]'
@@ -298,16 +306,18 @@ export function UnifiedModelRow({
         // 描述是辅助信息,不该比模型名更长地占据视线(2026-08-13 实测反馈)。
         // The optional provider capsule makes same-name models distinguishable without color alone.
         <div className="flex min-w-0 items-center gap-1.5 pl-[26px] pt-px text-12 leading-[1.4]">
-          <span data-model-provider-label title={sourceLabel} className="max-w-[100px] shrink-0 truncate rounded-full bg-[color-mix(in_srgb,var(--model-provider-color)_12%,transparent)] px-1.5 text-11 text-[var(--model-provider-color)]">
-            {sourceLabel}
+          <span data-model-provider-label title={accountLabel} className="max-w-[100px] shrink-0 truncate rounded-full bg-[color-mix(in_srgb,var(--model-provider-color)_12%,transparent)] px-1.5 text-11 text-[var(--model-provider-color)]">
+            {accountLabel}
           </span>
           <span title={description} className="min-w-0 max-w-[30ch] truncate text-[var(--model-item-desc)]">{description}</span>
         </div>
-      ) : description && (
+      ) : sourceLabel && entry.providerId !== 'xd' ? (
+        <ModelSourceDetails providerId={entry.providerId} label={accountLabel} modelId={config.wireModelId ?? entry.modelId} />
+      ) : description ? (
         <div title={description} className="min-w-0 max-w-[30ch] truncate pl-[26px] pt-px text-12 leading-[1.4] text-[var(--text-secondary)]">
           {description}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { readBotCollaborationMeta, type BotCollaborationMeta } from '@cindy/maker-shared/botCollaboration';
+import { placeBotTaskCardsAfterIntroduction, readBotCollaborationMeta, type BotCollaborationMeta } from '@cindy/maker-shared/botCollaboration';
 import { readBotDirectMessageMeta, type BotDirectMessageMeta } from '@cindy/maker-shared/botDirectMessage';
 import type { RemoteMessage, RemoteMessageRole } from '@/session/types';
 import type { MobileSystemCardType } from '@/session/systemCard';
@@ -50,9 +50,9 @@ import {
   type RemoteMoney,
 } from '@/session/remoteMoney';
 import {
-  localizeToolLoopError,
+  localizeAgentError,
   parseMobileToolLoopErrorDetails,
-} from '@/session/toolLoopErrorI18n';
+} from '@/session/agentErrorI18n';
 import type { MobileToolInputProjection } from '@/session/messageToolPayloadProjection';
 
 export type NormalizedRemoteMessageKind =
@@ -197,7 +197,22 @@ export function normalizeRemoteMessages(
 ): NormalizedRemoteMessage[] {
   // History views already place live tails after their persisted prefix. A live
   // row's provisional timestamp must not undo that order during normalization.
-  const sorted = options.preserveSourceOrder ? messages : sortMessagesByCreatedAt(messages);
+  const sorted = placeBotTaskCardsAfterIntroduction(
+    options.preserveSourceOrder ? messages : sortMessagesByCreatedAt(messages),
+    (message) => {
+      if (message.role === 'user') {
+        return message.agentMeta?.delivery !== 'steer' || message.agentMeta?.synthetic
+          ? 'boundary' : 'other';
+      }
+      if (message.role !== 'assistant' || message.agentMeta?.parentUuid || message.systemCardType)
+        return 'other';
+      const task = readBotCollaborationMeta(message.agentMeta?.botCollaboration);
+      if (task?.role === 'delegation-request') return 'task';
+      if (task || message.agentMeta?.botDirectMessage || message.agentMeta?.botAuthorization)
+        return 'other';
+      return typeof message.content === 'string' && message.content.trim() ? 'prose' : 'other';
+    },
+  );
   const toolResultPairing = buildMessageToolResultPairing(sorted, {
     contentToPreview: toolResultContentToPreview,
   });
@@ -217,12 +232,14 @@ export function normalizeRemoteMessages(
 
       const task = readBotCollaborationMeta(message.agentMeta?.botCollaboration);
       const direct = readBotDirectMessageMeta(message.agentMeta?.botDirectMessage);
-      if (task?.role === 'delegation-request' || task?.role === 'interjection' || direct) {
+      const isTaskTrace = task?.role === 'delegation-request' || task?.role === 'interjection';
+      if (isTaskTrace || direct) {
         result.push({
           key: messageNormalizeKey(message), source: message, kind: 'system', role: message.role,
-          label: 'companion', body: typeof message.content === 'string' ? message.content : '',
+          // Task traces are status-only, including legacy rows containing execution instructions.
+          label: 'companion', body: isTaskTrace ? '' : typeof message.content === 'string' ? message.content : '',
           align: 'agent', createdAt: message.createdAt,
-          companion: task && (task.role === 'delegation-request' || task.role === 'interjection')
+          companion: isTaskTrace
             ? { kind: 'task', meta: task } : { kind: 'direct', meta: direct! },
         });
         continue;
@@ -301,7 +318,7 @@ export function normalizeRemoteMessages(
       const rawText = typeof c?.message === 'string' ? c.message : contentToPreview(message.content);
       const toolLoop = parseMobileToolLoopErrorDetails(c?.toolLoop);
       const errText =
-        describeAgentAuthError(rawText) ?? localizeToolLoopError(c?.reason, toolLoop) ?? rawText;
+        describeAgentAuthError(rawText) ?? localizeAgentError(c?.reason, toolLoop) ?? rawText;
       result.push({
         key: messageNormalizeKey(message),
         source: message,

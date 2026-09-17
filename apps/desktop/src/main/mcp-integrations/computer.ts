@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { withAgentDesktopInput } from '../remote-desktop/inputOwnership';
+import { desktopInputRevision, hasRemoteDesktopInput, isHumanDesktopInputActive, withAgentDesktopInput } from '../remote-desktop/inputOwnership';
 import os from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -23,7 +23,7 @@ import { createLogger } from '../logger.js';
 import { outboundFetch } from '../maker-host/outbound-fetch.js';
 import { resolveDesktopOutboundProxy } from '../maker-host/outbound-proxy-resolver.js';
 import { adaptComputerDriverArgs, type ComputerDriverToolSchema } from './computer-contract.js';
-import { computerResultOutcome, getComputerTool } from '@cindy/mcps/computer';
+import { computerResultOutcome, getComputerTool, isUnavailableWindowObservation } from '@cindy/mcps/computer';
 
 const logger = createLogger('mcp/cindy_computer');
 const DRIVER_COMMAND = 'cua-driver';
@@ -527,6 +527,9 @@ const cuaMcpSessionCleanups = new Map<string, Promise<void>>();
 // applied/pending 仍保留在 entry 内，因为新 generation 必须重新应用成功的设置。
 const cuaMcpSessionCursorCapabilities = new Map<string, CuaMcpSessionCursorCapabilities>();
 const cuaDriverSessionGenerations = new Map<string, number>();
+// Retained across transport retries; cleared only when the owning run closes.
+const cuaDriverSessionNames = new Map<string, string>();
+let cuaDriverNamedRunSequence = 0;
 const cuaMcpSessionCloseVersions = new Map<string, number>();
 
 function getInstallCommand(): string {
@@ -1941,7 +1944,8 @@ function parseMcpToolResult(result: unknown): unknown {
 
 function getDriverSessionId(sessionId: string): string {
   const generation = cuaDriverSessionGenerations.get(sessionId) ?? 0;
-  return `${sessionId}-cua-${CUA_DRIVER_SESSION_PROCESS_NONCE}-${generation}`;
+  const name = cuaDriverSessionNames.get(sessionId) ?? sessionId;
+  return `${name}-cua-${CUA_DRIVER_SESSION_PROCESS_NONCE}-${generation}`;
 }
 
 function rotateDriverSessionId(sessionId: string, failedDriverSessionId: string): void {
@@ -1958,9 +1962,10 @@ function applyDriverSessionArgs(
 ): Record<string, unknown> {
   if (!DRIVER_SESSION_ARG_TOOL_NAMES.has(name)) return args;
   const result = { ...args };
-  const keys = name === 'get_agent_cursor_state' ? ['cursor_id']
-    : name === 'move_cursor' ? ['cursor_id', 'session'] : ['session'];
   const schema = schemas.get(name);
+  const keys = name === 'get_agent_cursor_state'
+    ? ['cursor_id', ...(schema?.properties && 'session' in schema.properties ? ['session'] : [])]
+    : name === 'move_cursor' ? ['cursor_id', 'session'] : ['session'];
   for (const key of keys) {
     // Host-owned routing metadata is injected only when the installed tool accepts it.
     if (schema?.additionalProperties === false && !(key in (schema.properties ?? {}))) delete result[key];
@@ -1969,12 +1974,12 @@ function applyDriverSessionArgs(
   return result;
 }
 
-function splitTypeTextChunks(text: string): string[] {
+function splitTypeTextChunks(text: string, chunkChars = TYPE_TEXT_CHUNK_CHARS): string[] {
   const chars = Array.from(text);
-  if (chars.length <= TYPE_TEXT_CHUNK_CHARS) return [text];
+  if (chars.length <= chunkChars) return [text];
   const chunks: string[] = [];
-  for (let index = 0; index < chars.length; index += TYPE_TEXT_CHUNK_CHARS) {
-    chunks.push(chars.slice(index, index + TYPE_TEXT_CHUNK_CHARS).join(''));
+  for (let index = 0; index < chars.length; index += chunkChars) {
+    chunks.push(chars.slice(index, index + chunkChars).join(''));
   }
   return chunks;
 }
@@ -2231,16 +2236,35 @@ async function callCuaMcpToolWithTypeTextChunks(
   timeoutMs: number,
   signal?: AbortSignal,
   assertActive: () => void = () => {},
+  settleFailedInput: () => Promise<void> = async () => {},
 ): Promise<unknown> {
   signal?.throwIfAborted();
   assertActive();
+  const dispatch = (input: Record<string, unknown>) => getComputerTool(name)?.readOnly === true
+    ? callCuaMcpTool(entry, name, input, timeoutMs, signal)
+    : withAgentDesktopInput(async () => {
+      try {
+        return await callCuaMcpTool(entry, name, input, timeoutMs, signal);
+      } catch (error) {
+        // Cancellation/timeout is not proof that native input stopped. Keep
+        // remote input waiting through the existing driver-session teardown.
+        if (signal?.aborted || shouldCleanupCuaMcpSessionAfterError(error)) {
+          await settleFailedInput();
+        }
+        throw error;
+      }
+    });
   if (name !== 'type_text' || typeof args.text !== 'string') {
-    return callCuaMcpTool(entry, name, args, timeoutMs, signal);
+    return dispatch(args);
   }
 
-  const chunks = splitTypeTextChunks(args.text);
+  // Slow per-character typing must also offer frequent handoff boundaries.
+  const chunkChars = hasRemoteDesktopInput() && typeof args.delay_ms === 'number' && args.delay_ms > 0
+    ? Math.max(1, Math.min(TYPE_TEXT_CHUNK_CHARS, Math.floor(300 / args.delay_ms)))
+    : TYPE_TEXT_CHUNK_CHARS;
+  const chunks = splitTypeTextChunks(args.text, chunkChars);
   if (chunks.length === 1) {
-    return callCuaMcpTool(entry, name, args, timeoutMs, signal);
+    return dispatch(args);
   }
 
   let lastResult: unknown = null;
@@ -2250,7 +2274,7 @@ async function callCuaMcpToolWithTypeTextChunks(
     const chunk = chunks[index];
     signal?.throwIfAborted();
     assertActive();
-    lastResult = await callCuaMcpTool(entry, name, { ...args, text: chunk }, timeoutMs, signal);
+    lastResult = await dispatch({ ...args, text: chunk });
     const resultObject = objectValue(lastResult);
     processedChunks += 1;
     const outcome = computerResultOutcome(name, lastResult);
@@ -3353,20 +3377,59 @@ export async function grantComputerDriverPermissions(
   };
 }
 
+// Remote input invalidates previously observed targets even after its short
+// ownership window ends. Never resume typing into a stale focus implicitly.
+const inputObservations = new Map<string, { windows: Map<string, number> }>();
+
 export async function callComputerDriverTool(
   name: ComputerMcpToolName,
   args: Record<string, unknown>,
   context?: ComputerMcpCallContext,
 ): Promise<unknown> {
-  return getComputerTool(name)?.readOnly === true
-    ? callComputerDriverToolImpl(name, args, context)
-    : withAgentDesktopInput(() => callComputerDriverToolImpl(name, args, context));
+  const sessionId = readSessionIdFromContext(context);
+  const revision = desktopInputRevision();
+  let observations = sessionId ? inputObservations.get(sessionId) : undefined;
+  if (sessionId && !observations) {
+    observations = { windows: new Map() };
+    inputObservations.set(sessionId, observations);
+  }
+  const window = `${args.pid}:${args.window_id}`;
+  if (getComputerTool(name)?.readOnly === true) {
+    const startedIdle = !isHumanDesktopInputActive();
+    const result = await callComputerDriverToolImpl(name, args, context);
+    if (name === 'get_window_state' && startedIdle && computerResultOutcome(name, result).ok
+      && !isUnavailableWindowObservation(result, args)
+      && revision === desktopInputRevision() && !isHumanDesktopInputActive()) {
+      observations?.windows.set(window, revision);
+      // App-scoped actions may omit window_id; a successful observation of
+      // that app also refreshes its focus, without refreshing other windows.
+      observations?.windows.set(`${args.pid}:undefined`, revision);
+    }
+    return result;
+  }
+  // Preparation can be slow and does not inject input. Reserve ownership only
+  // around each driver primitive, and recheck this observation before dispatch.
+  const assertCurrent = () => {
+    if (desktopInputRevision() !== revision) {
+      throw new ComputerDriverError('Remote desktop input arrived. Agent yielded before further input; previous input may have completed. Get fresh window state before continuing.', 'DESKTOP_INPUT_YIELDED');
+    }
+    if (isHumanDesktopInputActive()) {
+      throw new ComputerDriverError('Remote desktop input is active. Yield briefly, then get fresh window state before retrying; the remote connection can stay open.', 'DESKTOP_INPUT_BUSY');
+    }
+  };
+  assertCurrent();
+  if (args.pid !== undefined && observations && revision > 0
+    && observations.windows.get(window) !== revision) {
+    throw new ComputerDriverError('Remote desktop input changed the desktop. Get fresh state for this window before acting again.', 'STALE_SNAPSHOT');
+  }
+  return callComputerDriverToolImpl(name, args, context, assertCurrent);
 }
 
 async function callComputerDriverToolImpl(
   name: ComputerMcpToolName,
   args: Record<string, unknown>,
   context?: ComputerMcpCallContext,
+  assertInputCurrent: () => void = () => {},
 ): Promise<unknown> {
   const signal = context?.signal;
   signal?.throwIfAborted();
@@ -3377,6 +3440,7 @@ async function callComputerDriverToolImpl(
   }
   const sessionCloseVersion = getCuaMcpSessionCloseVersion(sessionId);
   const assertActive = () => {
+    assertInputCurrent();
     signal?.throwIfAborted();
     assertComputerDriverToolDispatchAvailable();
     if (getCuaMcpSessionCloseVersion(sessionId) !== sessionCloseVersion) {
@@ -3384,14 +3448,24 @@ async function callComputerDriverToolImpl(
     }
   };
   const rawArgs = args ?? {};
-  const driverInputArgs = stripLocalListWindowsArgs(name, rawArgs);
+  const { session_goal: sessionGoal, ...operationArgs } = rawArgs;
+  // Claim synchronously before shared startup, so concurrent first calls cannot
+  // rename an in-flight cursor. Even callers without a goal lock their old name.
+  if (!cuaDriverSessionNames.has(sessionId)) {
+    const goal = typeof sessionGoal === 'string'
+      ? Array.from(sessionGoal.replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/gu, ' ').trim()).slice(0, 40).join('')
+      : '';
+    cuaDriverSessionNames.set(sessionId, goal ? `${goal} · ${++cuaDriverNamedRunSequence}` : sessionId);
+  }
+  const driverInputArgs = stripLocalListWindowsArgs(name, operationArgs);
   const normalizedArgs = normalizeToolArgsForDriver(name, driverInputArgs);
   const entry = await getCuaMcpSession(sessionId, signal);
   const driverArgs = applyDriverSessionArgs(name, normalizedArgs, entry.driverSessionId, entry.toolSchemas);
   const timeoutMs = getCuaMcpToolTimeoutMs(name);
   try {
     await initializeDefaultCursorStyle(name, driverArgs, entry, entry.driverSessionId, sessionCloseVersion, signal, assertActive);
-    const result = await callCuaMcpToolWithTypeTextChunks(entry, name, driverArgs, timeoutMs, signal, assertActive);
+    const result = await callCuaMcpToolWithTypeTextChunks(entry, name, driverArgs, timeoutMs, signal, assertActive,
+      () => cleanupCuaMcpSessionAfterError(sessionId, entry));
     return name === 'list_windows' ? enrichAndFilterListWindowsResult(result, rawArgs) : result;
   } catch (err) {
     logger.warn('cua-driver MCP tool call failed', {
@@ -3481,12 +3555,14 @@ async function cleanupComputerDriverSessionEntry(sessionId: string, entry: CuaMc
 }
 
 export function cleanupComputerDriverSession(sessionId: string): Promise<void> {
+  inputObservations.delete(sessionId);
   cuaMcpSessionCursorCapabilities.delete(sessionId);
   markCuaMcpSessionClosed(sessionId);
   const entry = cuaMcpSessions.get(sessionId);
   if (entry) {
     rotateDriverSessionId(sessionId, entry.driverSessionId);
   }
+  cuaDriverSessionNames.delete(sessionId);
   return cleanupComputerDriverSessionInternal(sessionId, { resetGeneration: false });
 }
 
@@ -3520,11 +3596,13 @@ async function cleanupActiveComputerDriverSessions(): Promise<void> {
 }
 
 export async function cleanupAllComputerDriverSessions(): Promise<void> {
+  inputObservations.clear();
   stopPermissionGrantFlow('cleanup');
   clearProcessSnapshotCache();
   await cleanupActiveComputerDriverSessions();
   cuaMcpSessionCursorCapabilities.clear();
   cuaDriverSessionGenerations.clear();
+  cuaDriverSessionNames.clear();
   cuaMcpSessionCloseVersions.clear();
 }
 
