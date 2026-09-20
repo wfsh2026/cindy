@@ -2235,6 +2235,7 @@ pub(crate) struct InstallDirIdentity {
     inode: u64,
 }
 
+#[cfg(unix)]
 pub(crate) fn capture_install_dir_identity(path: &Path) -> io::Result<InstallDirIdentity> {
     let meta = fs::symlink_metadata(path)?;
     if !meta.is_dir() && !meta.file_type().is_symlink() {
@@ -2248,6 +2249,41 @@ pub(crate) fn capture_install_dir_identity(path: &Path) -> io::Result<InstallDir
         device: file_device(&meta),
         inode: file_inode(&meta),
     })
+}
+
+#[cfg(windows)]
+pub(crate) fn capture_install_dir_identity(path: &Path) -> io::Result<InstallDirIdentity> {
+    use std::os::windows::fs::OpenOptionsExt;
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{
+        GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_DIRECTORY,
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+        FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE,
+    };
+
+    // Read the identity and reparse flag from the same handle without following
+    // a junction. std::Metadata's Windows identity accessors are still unstable.
+    let mut options = fs::OpenOptions::new();
+    options.access_mode(0);
+    options.custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT);
+    options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE);
+    let file = options.open(path)?;
+    let handle = file.as_raw_handle();
+    let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { std::mem::zeroed() };
+    let captured = unsafe { GetFileInformationByHandle(handle, &mut info) };
+    if captured == 0 {
+        let error = io::Error::last_os_error();
+        return Err(error);
+    }
+    let is_reparse = info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT != 0;
+    if info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY == 0 && !is_reparse {
+        let display_path = path.display();
+        let message = format!("install path is not a directory: {display_path}");
+        let error = io::Error::new(io::ErrorKind::InvalidInput, message);
+        return Err(error);
+    }
+    let inode = ((info.nFileIndexHigh as u64) << 32) | info.nFileIndexLow as u64;
+    Ok(InstallDirIdentity { is_reparse, device: info.dwVolumeSerialNumber as u64, inode })
 }
 
 pub(crate) fn install_dir_identity_unchanged(
@@ -2589,26 +2625,14 @@ fn file_inode(meta: &fs::Metadata) -> u64 {
 }
 
 #[cfg(windows)]
-fn file_device(meta: &fs::Metadata) -> u64 {
-    use std::os::windows::fs::MetadataExt;
-    meta.volume_serial_number().unwrap_or(0) as u64
-}
-
-#[cfg(windows)]
-fn file_inode(meta: &fs::Metadata) -> u64 {
-    use std::os::windows::fs::MetadataExt;
-    meta.file_index().unwrap_or(0)
-}
-
-#[cfg(windows)]
 fn directory_owned_by_current_user_windows(app_dir: &Path) -> Option<bool> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree, ERROR_SUCCESS};
     use windows_sys::Win32::Security::{
-        EqualSid, GetTokenInformation, TOKEN_QUERY, TOKEN_USER, TokenUser,
+        EqualSid, GetTokenInformation, TOKEN_QUERY, TOKEN_USER, TokenUser, OWNER_SECURITY_INFORMATION,
     };
     use windows_sys::Win32::Security::Authorization::{
-        GetNamedSecurityInfoW, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
+        GetNamedSecurityInfoW, SE_FILE_OBJECT,
     };
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
@@ -3130,6 +3154,21 @@ mod tests {
         }
     }
 
+    fn create_directory_link(target: &Path, link: &Path) {
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(target, link).expect("create directory symlink");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let mut command = std::process::Command::new("cmd.exe");
+            let args = ["/d", "/c", "mklink", "/J"];
+            command.args(args).arg(link).arg(target).creation_flags(0x0800_0000);
+            let output = command.output().expect("create test junction");
+            let succeeded = output.status.success();
+            assert!(succeeded, "could not create test junction: {output:?}");
+        }
+    }
+
     #[test]
     fn remove_staging_dir_is_idempotent_and_rejects_files() {
         let temp = TestDir::new();
@@ -3403,6 +3442,45 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
+    fn install_dir_identity_tracks_directory_replacement() {
+        let temp = TestDir::new();
+        let app_dir = temp.0.join("Cindy");
+        let original_dir = temp.0.join("original");
+        fs::create_dir(&app_dir).expect("create install directory");
+        let identity = super::capture_install_dir_identity(&app_dir).expect("capture identity");
+        let unchanged = super::install_dir_identity_unchanged(&identity, &app_dir);
+        assert!(unchanged);
+        let pinned = super::open_install_dir_handle(&app_dir, &identity).expect("pin install directory");
+        let pinned_matches = super::install_dir_identity_unchanged(&identity, &app_dir);
+        assert!(pinned_matches);
+        let pinned_rename = fs::rename(&app_dir, &original_dir);
+        let pinned_rename_rejected = pinned_rename.is_err();
+        assert!(pinned_rename_rejected);
+        drop(pinned);
+        fs::rename(&app_dir, &original_dir).expect("move original directory");
+        fs::create_dir(&app_dir).expect("create replacement directory");
+        let replacement_matches = super::install_dir_identity_unchanged(&identity, &app_dir);
+        let original_matches = super::install_dir_identity_unchanged(&identity, &original_dir);
+        assert!(!replacement_matches);
+        assert!(original_matches);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn install_dir_identity_rejects_regular_files_and_missing_paths() {
+        let temp = TestDir::new();
+        let path = temp.0.join("Cindy.exe");
+        let missing = super::capture_install_dir_identity(&path);
+        let missing_rejected = missing.is_err();
+        assert!(missing_rejected);
+        fs::write(&path, b"fixture").expect("write ordinary file");
+        let error = super::capture_install_dir_identity(&path).expect_err("reject file");
+        let kind = error.kind();
+        assert_eq!(kind, std::io::ErrorKind::InvalidInput);
+    }
+
+    #[test]
     fn install_dir_identity_rejects_a_swapped_reparse_point() {
         let temp = TestDir::new();
         let app_dir = temp.0.join("Cindy");
@@ -3417,7 +3495,7 @@ mod tests {
         fs::remove_dir(&app_dir).unwrap();
         let planted = temp.0.join("planted");
         fs::create_dir(&planted).unwrap();
-        std::os::unix::fs::symlink(&planted, &app_dir).unwrap();
+        create_directory_link(&planted, &app_dir);
         assert!(
             !super::install_dir_identity_unchanged(&identity, &app_dir),
             "elevated Retry must not copy through a junction swapped in after the first check"
@@ -3478,7 +3556,7 @@ mod tests {
         fs::remove_dir(&app_dir).unwrap();
         let planted = temp.0.join("planted");
         fs::create_dir(&planted).unwrap();
-        std::os::unix::fs::symlink(&planted, &app_dir).unwrap();
+        create_directory_link(&planted, &app_dir);
         let error = super::copy_tree_into_pinned(&extract, &handle, |_, _| {}).unwrap_err();
         assert!(
             !planted.join("Cindy.exe").exists(),
@@ -3495,7 +3573,8 @@ mod tests {
         let handle = super::open_install_dir_handle(&app_dir, &identity).expect("pin");
         let planted = temp.0.join("planted");
         fs::create_dir(&planted).unwrap();
-        std::os::unix::fs::symlink(&planted, app_dir.join("resources")).unwrap();
+        let resources_link = app_dir.join("resources");
+        create_directory_link(&planted, &resources_link);
         let error = handle.join(Path::new("resources/app.asar")).unwrap_err();
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
         assert!(
