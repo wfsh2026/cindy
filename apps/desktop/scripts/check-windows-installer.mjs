@@ -45,7 +45,7 @@ try {
       productName: 'CindyInstallerProbe',
       electronVersion: '41.10.3',
       compression: 'store',
-      directories: { output: path.join(root, 'out'), buildResources: resources },
+      directories: { output: path.join(root, 'out') },
       win: { signAndEditExecutable: false, sign: async () => {} },
       nsis: {
         oneClick: false,
