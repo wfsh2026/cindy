@@ -224,6 +224,8 @@ const CORE_INVOKE_CHANNELS: readonly string[] = [
   // 数据真相在被控端(其 renderer 草稿),无 sender 依赖、无本机副作用 → 准入。老被控端无此 handler
   // → 控制端收 CHANNEL_NOT_ALLOWED → 回退被控端 capabilities 默认。
   'maker:get-new-maker-defaults',
+  'maker:model-favorites:get',
+  'maker:model-favorites:apply',
   // device-link 草稿「每个模型 effort/fast」写穿(控制端 → 被控端):控制端在远程项目草稿里改
   // 选中 / 非选中模型的 effort/fast 时通知被控端,被控端调它原来的本地 setter(setEffortForModel /
   // setFastModeForModel)写真实草稿;被控端 newMakerDraft 变更自动经既有 maker:sync-new-maker-draft
@@ -264,6 +266,8 @@ const CORE_INVOKE_CHANNELS: readonly string[] = [
   // —— 读模型(被控端本地 DB 是数据真相)——
   'local-db:sessions:list',
   'local-db:sessions:get',
+  // Bounded metadata reconciliation. Old hosts reject this; controllers fall back to GET.
+  'local-db:sessions:get-many',
   // Read-only indexed task search for the remote Composer @ palette and the
   // controller sidebar task search. Older controlled clients reject this
   // channel and the controller falls back to the bounded legacy sessions:list
@@ -392,6 +396,8 @@ const EXTENDED_INVOKE_CHANNELS: readonly string[] = [
   // 重生成标题(与 generate-title 同一 oneShot 通道)。老被控端无此 channel →
   // CHANNEL_NOT_ALLOWED → 控制端按生成失败提示。
   'maker:regenerate-title',
+  // 输入框推荐提示词：在被控端读取会话素材并使用被控端模型凭证生成。
+  'maker:predict-prompt',
   'maker:get-context-usage',
   // workflow 逐 agent 进度树(只读):handler 纯 fs 读 Claude Code workflow 记录文件,
   // 无 event.sender 依赖、无副作用;记录文件真相在被控端 HOME(控制端本机读必落空)。
@@ -674,6 +680,7 @@ export const PUSH_FORWARD_ALLOWLIST: ReadonlySet<string> = new Set([
   // 控制端的远程项目草稿据此实时刷新显示镜像(remoteDraftState)。账号 / 全局级、无 sessionId →
   // topics.ts 的 ACCOUNT_CHANNELS 把它并入 `sessions` topic(控制端按设备订阅 sessions)。
   'maker:new-maker-draft:changed',
+  'maker:model-favorites:changed',
   // 被控端 repo-scoped worktree 源分支选择变化；无 sessionId，topics.ts 按账号级
   // 并入 sessions topic，控制端再按来源 deviceId + payload.baseRepo 精确消费。
   'maker:new-maker-worktree-branch:changed',
@@ -721,6 +728,9 @@ export const INVOKE_TIMEOUT_OVERRIDES_MS: Readonly<Record<string, number>> = {
   // 10min,压缩恰好到预算上限时会先 INVOKE_TIMEOUT,被误判为「设备无响应」并
   // 可能触发 peer-link 恢复(codex P2)——同 desktop-cmd:run 模式加 1min 余量。
   'maker:compact-session': 11 * 60_000,
+  // Persist drain + credentials refresh + 12s model request + return delivery.
+  // Shared by desktop/mobile; only this invoke gets the longer wait, no peer reset.
+  'maker:predict-prompt': 45_000,
   // 被控端先等 Lead history 最多 30s，再 resume/queue Worker；默认 30s 会与服务端
   // deadline 对撞，把边沿成功误报成 DEVICE_LINK_TIMEOUT。留出派发和回程余量。
   'maker:worker:dispatch-ui-assignment': 65_000,
@@ -729,6 +739,7 @@ export const INVOKE_TIMEOUT_OVERRIDES_MS: Readonly<Record<string, number>> = {
   // 不吃满超时),不会误伤首拉重试。
   'local-db:sessions:list': 12_000,
   'local-db:sessions:get': 12_000,
+  'local-db:sessions:get-many': 12_000,
 };
 
 /**

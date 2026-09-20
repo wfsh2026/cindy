@@ -249,6 +249,10 @@ const GENERATED_DEFAULTS = {
     "light": "var(--surface-on-card)",
     "dark": "var(--surface-on-card)"
   },
+  "switch-thumb-on": {
+    "light": "hsl(var(--background))",
+    "dark": "hsl(var(--background))"
+  },
   "switch-disabled-opacity": {
     "light": "0.3",
     "dark": "0.3"
@@ -422,12 +426,20 @@ const GENERATED_DEFAULTS = {
     "dark": "0 0% 45%"
   },
   "search-match-bg": {
-    "light": "53 100% 89%",
-    "dark": "40 33% 16%"
+    "light": "45 100% 70%",
+    "dark": "40 55% 21%"
   },
   "search-match-fg": {
     "light": "0 0% 15%",
     "dark": "0 0% 90%"
+  },
+  "search-match-active-bg": {
+    "light": "34 100% 55%",
+    "dark": "42 100% 65%"
+  },
+  "search-match-active-fg": {
+    "light": "0 0% 10%",
+    "dark": "0 0% 10%"
   },
   "update-btn-border": {
     "light": "#d4d4d4",
@@ -2092,6 +2104,46 @@ const GENERATED_DEFAULTS = {
   "form-field-hint": {
     "light": "var(--text-secondary-mid)",
     "dark": "var(--text-secondary-mid)"
+  },
+  "slider-track": {
+    "light": "var(--border-default)",
+    "dark": "var(--border-default)"
+  },
+  "slider-fill": {
+    "light": "var(--text-primary)",
+    "dark": "var(--text-primary)"
+  },
+  "slider-thumb": {
+    "light": "var(--surface-elevated)",
+    "dark": "var(--text-primary)"
+  },
+  "slider-thumb-shadow": {
+    "light": "0 1px 3px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.08)",
+    "dark": "0 1px 3px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.16)"
+  },
+  "segmented-track": {
+    "light": "rgba(0, 0, 0, 0.06)",
+    "dark": "rgba(0, 0, 0, 0.25)"
+  },
+  "segmented-selected-shadow": {
+    "light": "0 1px 2px rgba(0, 0, 0, 0.1), 0 3px 8px rgba(0, 0, 0, 0.06)",
+    "dark": "0 1px 2px rgba(0, 0, 0, 0.4), 0 3px 8px rgba(0, 0, 0, 0.24)"
+  },
+  "segmented-selected-bg": {
+    "light": "var(--surface-elevated)",
+    "dark": "var(--surface-elevated)"
+  },
+  "segmented-selected-border": {
+    "light": "var(--border-default)",
+    "dark": "var(--border-default)"
+  },
+  "segmented-option-fg": {
+    "light": "var(--text-secondary)",
+    "dark": "var(--text-secondary)"
+  },
+  "segmented-hover-bg": {
+    "light": "var(--surface-hover)",
+    "dark": "var(--surface-hover)"
   }
 } as const;
 
@@ -2233,6 +2285,7 @@ registerColor('border', GENERATED_DEFAULTS["border"], 'border');
 registerColor('input', GENERATED_DEFAULTS["input"], 'input');
 registerColor('switch-track-off', GENERATED_DEFAULTS["switch-track-off"], '共享 Switch 未选中轨道；跟随主题次要前景，与默认/悬停表面及滑块保持至少 3:1 非文字组件对比度，同时弱于开启态');
 registerColor('switch-thumb-off', GENERATED_DEFAULTS["switch-thumb-off"], '共享 Switch 未选中滑块；跟随主题反相前景，与未选中轨道保持至少 3:1 非文字组件对比度');
+registerColor('switch-thumb-on', GENERATED_DEFAULTS["switch-thumb-on"], '共享 Switch 开启滑块;默认沿用 background 保持旧主题与用户覆盖,CINDY Dark 独立改为近白(用户批准 2026-09-16)');
 registerColor('switch-disabled-opacity', GENERATED_DEFAULTS["switch-disabled-opacity"], '共享 Switch 禁用态整体不透明度(纯数值 token,非颜色);全局 0.3(用户裁决 2026-08-05,自出货值 0.5 调深),各皮肤仍可覆盖');
 registerColor('switch-disabled-thumb-opacity', GENERATED_DEFAULTS["switch-disabled-thumb-opacity"], '共享 Switch 禁用态滑块自身不透明度(纯数值 token,叠加在整体不透明度之上);全局 0.5(用户裁决 2026-08-05)——禁用态滑块与轨道趋近、削掉立体感,「不可用」区别于「关」的关键');
 registerColor('switch-track-on', GENERATED_DEFAULTS["switch-track-on"], '共享 Switch 开启态轨道;默认沿用 primary(不覆盖的主题外观不变),移植主题覆盖为各自主题色、CINDY 冻结于决策表;每个覆盖值须过 switchThemeContrast 的 ≥3:1 守卫(用户裁决 2026-08-05)');
@@ -2283,8 +2336,10 @@ registerColor('sidebar-item-active-border', GENERATED_DEFAULTS["sidebar-item-act
 registerColor('sidebar-search-bg', GENERATED_DEFAULTS["sidebar-search-bg"], 'Light Surface');
 registerColor('sidebar-muted', GENERATED_DEFAULTS["sidebar-muted"], 'Stone #737373');
 registerColor('sidebar-action-icon', GENERATED_DEFAULTS["sidebar-action-icon"], 'Silver #a3a3a3 — hover action icons');
-registerColor('search-match-bg', GENERATED_DEFAULTS["search-match-bg"], '#fff8c5 — Primer attention-muted');
+registerColor('search-match-bg', GENERATED_DEFAULTS["search-match-bg"], 'Search matches - distinct from surrounding content surfaces');
 registerColor('search-match-fg', GENERATED_DEFAULTS["search-match-fg"], 'Near-black #262626 — text inherit');
+registerColor('search-match-active-bg', GENERATED_DEFAULTS["search-match-active-bg"], 'Current search match - stronger than other matches');
+registerColor('search-match-active-fg', GENERATED_DEFAULTS["search-match-active-fg"], 'Current search match text and outline on the gold fill');
 
 // UpdateBanner — Relaunch button (White Pill variant)
 registerColor('update-btn-border', GENERATED_DEFAULTS["update-btn-border"], 'Border Light — per docs/design-rules/cindy-design-system.md White Pill');
@@ -3059,3 +3114,18 @@ registerColor('model-provider-custom-3', optionalModelProviderDefaults, 'Optiona
 registerColor('model-provider-custom-4', optionalModelProviderDefaults, 'Optional custom model provider identity 4');
 registerColor('model-provider-custom-5', optionalModelProviderDefaults, 'Optional custom model provider identity 5');
 registerColor('model-provider-custom-6', optionalModelProviderDefaults, 'Optional custom model provider identity 6');
+registerColor('slider-track', GENERATED_DEFAULTS["slider-track"], '共享 Slider 组件颜色');
+
+registerColor('slider-fill', GENERATED_DEFAULTS["slider-fill"], '共享 Slider 组件颜色');
+
+registerColor('slider-thumb', GENERATED_DEFAULTS["slider-thumb"], '共享 Slider 组件颜色');
+
+registerColor('slider-thumb-shadow', GENERATED_DEFAULTS["slider-thumb-shadow"], 'Slider 滑块阴影:用户批准 2026-09-17');
+
+// Desktop Segmented v8, owner-approved 2026-09-18. Component-local roles.
+registerColor('segmented-track', GENERATED_DEFAULTS["segmented-track"], 'Desktop segmented control: adaptive black-alpha track');
+registerColor('segmented-selected-bg', GENERATED_DEFAULTS["segmented-selected-bg"], 'Desktop segmented control: raised selected pill');
+registerColor('segmented-selected-border', GENERATED_DEFAULTS["segmented-selected-border"], 'Desktop segmented control: low-contrast selected border');
+registerColor('segmented-selected-shadow', GENERATED_DEFAULTS["segmented-selected-shadow"], 'Desktop segmented control: selected pill elevation');
+registerColor('segmented-option-fg', GENERATED_DEFAULTS["segmented-option-fg"], 'Desktop segmented control: unselected label');
+registerColor('segmented-hover-bg', GENERATED_DEFAULTS["segmented-hover-bg"], 'Desktop segmented control: hover plate');

@@ -1,6 +1,6 @@
 {
   "edition": "personal",
-  "upstreamVersion": "0.1.83",
+  "upstreamVersion": "0.1.86",
   "upstreamCommit": "40162c508ff10b0f5d3398fd4af5db82dd39f319",
   "changeKeys": [
     "subagentReader",

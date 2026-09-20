@@ -11,6 +11,7 @@ import {
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cindyMakeState } from '@/lib/cindyMakeState';
 
 import {
   applyRemoteSessionActivity,
@@ -112,9 +113,12 @@ vi.mock('@/components/sidebar/WorktreeBadge', () => ({
 
 vi.mock('@/contexts/WorktreeContext', () => {
   const reportLiveness = vi.fn();
+  const refreshObserved = vi.fn();
   return {
     useWorktreeForSession: () => null,
     useReportWorktreeLiveness: () => reportLiveness,
+    useObservedWorktreeForSession: () => null,
+    useRefreshObservedWorktree: () => refreshObserved,
   };
 });
 
@@ -240,7 +244,46 @@ describe('SessionCard visual cases', () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
   });
+
+  it.each(['card', 'list'] as const)(
+    'keeps %s active during preparation before the Agent starts',
+    (variant) => {
+      const visualCase = sessionCardVisualCases.find((item) => item.id === 'short-idle-cc')!;
+      vi.spyOn(cindyMakeState, 'subscribe').mockReturnValue(() => {});
+      vi.spyOn(cindyMakeState, 'taskForSession').mockReturnValue({
+        runId: 'make-run',
+        platform: 'win32',
+        arch: 'x64',
+        checks: [],
+        status: 'running',
+        task: { sessionId: visualCase.session.id, phase: 'dependencies' },
+      });
+      renderCase(visualCase.id, {
+        variant,
+        isRunning: false,
+        session: { ...visualCase.session, source: 'cindy-make' },
+      });
+      expect(sessionRowEl().querySelector('.session-status-breathing')).not.toBeNull();
+      expect(screen.getByText('cindyMake.code.phases.dependencies')).toBeTruthy();
+      if (variant === 'list') {
+        expect(
+          sessionRowEl().querySelector('[data-sidebar-right-status="running"]'),
+        ).not.toBeNull();
+      }
+
+      cleanup();
+      mocks.pendingPluginSetupSessionIds.add(visualCase.session.id);
+      renderCase(visualCase.id, {
+        variant,
+        isRunning: false,
+        session: { ...visualCase.session, source: 'cindy-make' },
+      });
+      expect(screen.getByText('等待插件设置')).toBeTruthy();
+      expect(screen.queryByText('cindyMake.code.phases.dependencies')).toBeNull();
+    },
+  );
 
   it('keeps a broad gallery of title, body, icon, and state combinations', () => {
     expect(sessionCardVisualCases.map((item) => item.id)).toEqual([
@@ -855,7 +898,7 @@ describe('SessionCard visual cases', () => {
     ['done', 'var(--card-status-done)'],
     ['awaiting', 'var(--card-status-awaiting)'],
     ['error', 'var(--card-status-error)'],
-  ] as const)('moves the %s attention dot to the list bottom-right corner', (kind, color) => {
+  ] as const)('renders %s attention in list mode, with errors hidden', (kind, color) => {
     const visualCase = sessionCardVisualCases.find((item) => item.id === 'attention-dot');
     if (!visualCase) throw new Error('Missing attention visual case');
     mocks.attentionKindBySession.set(visualCase.session.id, kind);
@@ -878,11 +921,15 @@ describe('SessionCard visual cases', () => {
     );
 
     const rightStatus = container.querySelector(`[data-sidebar-right-status="${kind}"]`);
-    expect(rightStatus?.className).toContain('right-2.5');
-    expect(rightStatus?.className).toContain('bottom-2');
-    expect((rightStatus?.firstElementChild as HTMLElement | null)?.style.backgroundColor).toBe(
-      color,
-    );
+    if (kind === 'error') {
+      expect(rightStatus).toBeNull();
+    } else {
+      expect(rightStatus?.className).toContain('right-2.5');
+      expect(rightStatus?.className).toContain('bottom-2');
+      expect((rightStatus?.firstElementChild as HTMLElement | null)?.style.backgroundColor).toBe(
+        color,
+      );
+    }
 
     const title = Array.from(container.querySelectorAll('span')).find(
       (node) =>

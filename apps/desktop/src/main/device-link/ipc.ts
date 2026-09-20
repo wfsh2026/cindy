@@ -17,6 +17,7 @@ import { serverApiFetch, ServerApiError } from '../serverApiClient';
 import { requireString, throwIpcError } from '../utils/ipcValidate';
 import { assertTrustedAppRendererEvent } from '../security/trustedAppRenderer';
 import type { IpcErrorCode } from '../../shared/ipc-errors';
+import { decodeRemoteHistory } from '../../shared/remoteHistoryCache';
 import {
   DEVICE_LINK_INVOKE,
   DEVICE_LINK_PUSH,
@@ -956,6 +957,7 @@ export async function handleMirrorCacheGetMessages(
   sessionId: unknown,
 ): Promise<{
   messages: Record<string, unknown>[];
+  historyView?: string;
   invalidation?: number;
   ownerToken?: string;
   accountCounter?: number;
@@ -991,6 +993,7 @@ export async function handleMirrorCacheGetMessages(
   // 暴露给不可信 renderer(review: codex P2)。账号代际再区分同账号登出重登。
   return {
     messages,
+    ...(read.historyView !== undefined ? { historyView: read.historyView } : {}),
     invalidation: read.invalidation,
     ownerToken,
     accountCounter: read.accountCounter,
@@ -1011,10 +1014,12 @@ export async function handleMirrorCachePutMessages(
   expectedInvalidation?: unknown,
   expectedOwnerToken?: unknown,
   expectedAccountCounter?: unknown,
+  historyView?: unknown,
 ): Promise<{ ok: true; invalidation?: number }> {
   const device = requireCacheId(deviceId, 'deviceId');
   const session = requireCacheId(sessionId, 'sessionId');
   if (!Array.isArray(messages)) throwIpcError('INVALID_PARAMS', 'messages must be an array');
+  if (historyView !== undefined && !decodeRemoteHistory(historyView)) throwIpcError('INVALID_PARAMS', 'Invalid history view cache');
   const bounded = boundedItems(messages, MIRROR_CACHE_MAX_INBOUND_MESSAGES, 'messages');
   const expected =
     typeof expectedInvalidation === 'number'
@@ -1047,6 +1052,7 @@ export async function handleMirrorCachePutMessages(
       expected,
       expectedOwner,
       expectedAccount,
+      ...(historyView !== undefined ? [historyView as string] : []),
     );
     return { ok: true, invalidation: result.invalidation };
   } catch (err) {
@@ -1369,6 +1375,7 @@ export function registerDeviceLinkIpc(deps: DeviceLinkIpcDeps = defaultDeps()): 
       expectedInvalidation?: unknown;
       expectedOwnerToken?: unknown;
       expectedAccountCounter?: unknown;
+      historyView?: unknown;
     };
     return handleMirrorCachePutMessages(
       getMirrorCache(),
@@ -1379,6 +1386,7 @@ export function registerDeviceLinkIpc(deps: DeviceLinkIpcDeps = defaultDeps()): 
       p.expectedInvalidation,
       p.expectedOwnerToken,
       p.expectedAccountCounter,
+      p.historyView,
     );
   });
   ipcMain.handle(DEVICE_LINK_INVOKE.MIRROR_CACHE_GET_SESSION_LIST, (e) => {

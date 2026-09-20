@@ -21,6 +21,10 @@ import type { DoctorProbeResult } from '../doctor.js';
 
 vi.mock('../sourceGit.js', () => ({ runSourceGit: vi.fn() }));
 vi.mock('../sourcePnpm.js', () => ({ runSourcePnpm: vi.fn(async () => undefined) }));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return { ...actual, writeFile: vi.fn(actual.writeFile) };
+});
 
 async function createExistingCheckout(sourcePath: string): Promise<void> {
   await mkdir(path.join(sourcePath, '.git'), { recursive: true });
@@ -48,6 +52,7 @@ describe('Source and dependency preparation', () => {
     root = await mkdtemp(path.join(os.tmpdir(), 'cindy-make-source-'));
     vi.mocked(runSourceGit).mockReset();
     vi.mocked(runSourcePnpm).mockReset().mockResolvedValue(undefined);
+    vi.mocked(writeFile).mockClear();
   });
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
@@ -166,11 +171,20 @@ describe('Source and dependency preparation', () => {
           CINDY_TEST_GIT: selectedGit,
           CINDY_TEST_NODE: path.join(root, source === 'system' ? 'system' : 'tools', 'node'),
           CINDY_TEST_PNPM: path.join(root, source === 'system' ? 'system' : 'tools', 'pnpm'),
-          CINDY_TEST_PYTHON: path.join(root, source === 'system' ? 'system' : 'tools', 'python3'),
+          CINDY_TEST_PYTHON: undefined,
         },
-        ['install', '--frozen-lockfile', '--prefer-offline', '--prod=false'],
+        [
+          'fetch',
+          '--frozen-lockfile',
+          '--prefer-offline',
+          '--prod=false',
+          '--ignore-scripts',
+          '--config.node-linker=isolated',
+          '--config.enable-modules-dir=false',
+        ],
         sourcePath,
         expect.any(AbortSignal),
+        expect.any(Function),
       );
       const checkoutIndex = gitCalls.findIndex(([, args]) => args[0] === 'checkout');
       expect(vi.mocked(runSourceGit).mock.invocationCallOrder[checkoutIndex]).toBeLessThan(
@@ -180,11 +194,11 @@ describe('Source and dependency preparation', () => {
         status: 'ready',
       });
       await expect(readCindySourceStatus(root)).resolves.not.toHaveProperty('mainCommit');
-      expect(probe).toHaveBeenCalledTimes(source === 'system' ? 4 : 8);
+      expect(probe).toHaveBeenCalledTimes(source === 'system' ? 3 : 6);
       expect(
         probe.mock.calls.every(
           ([, command, args]) =>
-            ['git', 'node', 'pnpm', 'python3'].includes(command) && args.join(' ') === '--version',
+            ['git', 'node', 'pnpm'].includes(command) && args.join(' ') === '--version',
         ),
       ).toBe(true);
       expect(native).not.toHaveBeenCalled();
@@ -206,6 +220,7 @@ describe('Source and dependency preparation', () => {
         processEnvironment: () => ({}),
       } as unknown as MakeToolchainEnvironment;
       vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
         if (args[0] === 'ls-remote') return '0123456789abcdef	refs/heads/main';
         if (args[0] === 'remote') return CINDY_SOURCE_REPOSITORY;
         if (args[0] === 'branch') return 'cindy-personal';
@@ -214,7 +229,55 @@ describe('Source and dependency preparation', () => {
       });
     });
 
-    it('keeps the shared job preparing until installation completes, including late subscribers', async () => {
+    it('warms the cache without installing baseline dependencies or running scripts', async () => {
+      const progress = vi.fn();
+      const result = await prepareCindySource(
+        env,
+        root,
+        { channel: 'dev', version: '0.0.0' },
+        new AbortController().signal,
+        progress,
+      );
+      expect(result.status).toBe('ready');
+      expect(runSourcePnpm).toHaveBeenCalledOnce();
+      const args = vi.mocked(runSourcePnpm).mock.calls[0][1];
+      expect(args[0]).toBe('fetch');
+      expect(args).toEqual(
+        expect.arrayContaining(['--ignore-scripts', '--config.enable-modules-dir=false']),
+      );
+      expect(progress.mock.calls.some(([value]) => value.phase === 'caching')).toBe(true);
+    });
+
+    it('broadcasts cache reuse and download counters to Settings', async () => {
+      const dependencies = {
+        resolved: 21,
+        reused: 12,
+        downloaded: 9,
+        added: 0,
+      };
+      const status = vi.fn();
+      const unsubscribe = subscribeCindySourceStatus(status);
+      vi.mocked(runSourcePnpm).mockImplementationOnce(
+        async (_env, _args, _cwd, _signal, publish) => {
+          publish?.(dependencies);
+        },
+      );
+      try {
+        await prepareCindySource(
+          env,
+          root,
+          { channel: 'dev', version: '0.0.0' },
+          new AbortController().signal,
+        );
+        expect(status).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'preparing', phase: 'caching', dependencies }),
+        );
+      } finally {
+        unsubscribe();
+      }
+    });
+
+    it('keeps the shared job preparing until cache warming completes, including late subscribers', async () => {
       let finishInstall!: () => void;
       vi.mocked(runSourcePnpm).mockImplementationOnce(
         () =>
@@ -233,12 +296,12 @@ describe('Source and dependency preparation', () => {
       await vi.waitFor(() => expect(runSourcePnpm).toHaveBeenCalledOnce());
       await expect(readCurrentCindySourceStatus(root)).resolves.toMatchObject({
         status: 'preparing',
-        phase: 'installing',
+        phase: 'caching',
         branch: 'cindy-personal',
       });
       await expect(readCindySourceStatus(root)).resolves.toMatchObject({
         status: 'preparing',
-        phase: 'installing',
+        phase: 'caching',
       });
       expect(progress.mock.calls.some(([update]) => update.status === 'ready')).toBe(false);
       const lateProgress = vi.fn();
@@ -249,7 +312,7 @@ describe('Source and dependency preparation', () => {
         new AbortController().signal,
         lateProgress,
       );
-      expect(lateProgress).toHaveBeenCalledWith(expect.objectContaining({ phase: 'installing' }));
+      expect(lateProgress).toHaveBeenCalledWith(expect.objectContaining({ phase: 'caching' }));
       finishInstall();
       const [firstResult, secondResult] = await Promise.all([first, second]);
       expect(firstResult).toBe(secondResult);
@@ -258,7 +321,7 @@ describe('Source and dependency preparation', () => {
       await expect(readCindySourceStatus(root)).resolves.toMatchObject({ status: 'ready' });
     });
 
-    it('reports install failure and retries the existing personal checkout without resetting it', async () => {
+    it('reports cache warming failure and retries the existing personal checkout without resetting it', async () => {
       vi.mocked(runSourcePnpm).mockRejectedValueOnce(
         Object.assign(new Error('installation failed'), { code: 'installFailed' }),
       );
@@ -297,7 +360,7 @@ describe('Source and dependency preparation', () => {
       ).toBe(false);
     });
 
-    it('does not mark a cancelled installation ready even if the child completes successfully', async () => {
+    it('does not mark cancelled cache warming ready even if the child completes successfully', async () => {
       const controller = new AbortController();
       vi.mocked(runSourcePnpm).mockImplementationOnce(async (_env, _args, _cwd, signal) => {
         expect(cancelCindySourcePreparation()).toBe(true);
@@ -316,10 +379,28 @@ describe('Source and dependency preparation', () => {
       expect(progress.mock.calls.some(([update]) => update.status === 'ready')).toBe(false);
       await expect(readCindySourceStatus(root)).resolves.toMatchObject({ status: 'cancelled' });
       expect(cancelCindySourcePreparation()).toBe(false);
+      expect(
+        vi
+          .mocked(writeFile)
+          .mock.calls.filter(
+            ([file, data]) =>
+              file === path.join(root, 'source-status.json') &&
+              String(data).includes('"status":"cancelled"'),
+          ),
+      ).toHaveLength(1);
+      await expect(
+        prepareCindySource(
+          env,
+          root,
+          { channel: 'dev', version: '0.0.0' },
+          new AbortController().signal,
+        ),
+      ).resolves.toMatchObject({ status: 'ready' });
+      await expect(readCindySourceStatus(root)).resolves.toMatchObject({ status: 'ready' });
     });
 
-    it.each(['node', 'pnpm', 'python3'] as const)(
-      'fails without installing when %s is unavailable',
+    it.each(['node', 'pnpm'] as const)(
+      'fails without fetching when %s is unavailable',
       async (tool) => {
         vi.mocked(env.probe).mockImplementation(async (command) =>
           command === tool ? { status: 'missing', stdout: '' } : probeReadyTool(command),
@@ -335,6 +416,24 @@ describe('Source and dependency preparation', () => {
         expect(runSourcePnpm).not.toHaveBeenCalled();
       },
     );
+
+    it('warms the cache without Python because builds belong to task worktrees', async () => {
+      vi.mocked(env.probe).mockImplementation(async (command) =>
+        command === 'python3' ? { status: 'missing', stdout: '' } : probeReadyTool(command),
+      );
+      await expect(
+        prepareCindySource(
+          env,
+          root,
+          { channel: 'dev', version: '0.0.0' },
+          new AbortController().signal,
+        ),
+      ).resolves.toMatchObject({ status: 'ready' });
+      expect(runSourcePnpm).toHaveBeenCalledOnce();
+      expect(vi.mocked(env.probe).mock.calls.some(([command]) => command === 'python3')).toBe(
+        false,
+      );
+    });
 
     it('prepares dependencies for a previously Git-only ready checkout', async () => {
       await writeFile(
@@ -427,6 +526,7 @@ describe('Source and dependency preparation', () => {
     );
     const env = { processEnvironment: () => ({}) } as MakeToolchainEnvironment;
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       if (args[0] === 'merge-base') return 'b'.repeat(40);
       if (args[0] === 'rev-parse' && args[1] === '--verify') return 'c'.repeat(40);
       if (args[0] === 'rev-parse' && args[1] === '--abbrev-ref') return 'cindy-personal';
@@ -459,6 +559,7 @@ describe('Source and dependency preparation', () => {
     );
     const env = { processEnvironment: () => ({}) } as MakeToolchainEnvironment;
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       if (args[0] === 'rev-parse' && args[1] === 'HEAD') return 'a'.repeat(40);
       if (args[0] === 'rev-parse' && args[1] === '--verify') return 'b'.repeat(40);
       if (args[0] === 'rev-parse' && args[1] === '--abbrev-ref') return 'cindy-personal';
@@ -504,6 +605,7 @@ describe('Source and dependency preparation', () => {
       processEnvironment: () => ({}),
     } as unknown as MakeToolchainEnvironment;
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       switch (args[0]) {
         case 'ls-remote':
           return '0123456789abcdef\trefs/heads/main';
@@ -562,6 +664,7 @@ describe('Source and dependency preparation', () => {
         processEnvironment: () => ({}),
       } as unknown as MakeToolchainEnvironment;
       vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
         if (
           (missing === 'main' && args.includes('refs/heads/main^{commit}')) ||
           (missing === 'origin/main' && args.includes('refs/remotes/origin/main^{commit}')) ||
@@ -679,6 +782,7 @@ describe('Source and dependency preparation', () => {
       processEnvironment: () => ({}),
     } as unknown as MakeToolchainEnvironment;
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       if (args[0] === 'ls-remote') return '0123456789abcdef\trefs/heads/main';
       if (args[0] === 'remote') return CINDY_SOURCE_REPOSITORY;
       if (args[0] === 'for-each-ref') return 'refs/heads/main';
@@ -704,6 +808,7 @@ describe('Source and dependency preparation', () => {
       processEnvironment: () => ({}),
     } as unknown as MakeToolchainEnvironment;
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       if (args[0] === 'ls-remote') return '0123456789abcdef\trefs/heads/main';
       if (args[0] === 'clone') {
         await expect(access(sourcePath)).rejects.toThrow();
@@ -731,6 +836,7 @@ describe('Source and dependency preparation', () => {
       processEnvironment: () => ({}),
     } as unknown as MakeToolchainEnvironment;
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       if (args[0] === 'ls-remote') return '0123456789abcdef\trefs/heads/main';
       if (args[0] === 'remote') return CINDY_SOURCE_REPOSITORY;
       if (args[0] === 'for-each-ref') return 'refs/heads/main';
@@ -753,6 +859,60 @@ describe('Source and dependency preparation', () => {
     expect(vi.mocked(runSourceGit).mock.calls.some(([, args]) => args[0] === 'clone')).toBe(true);
   });
 
+  it('reports remote discovery and local checks without retaining completed Git percentages', async () => {
+    await createExistingCheckout(path.join(root, 'source'));
+    const env = {
+      platform: 'win32',
+      probe: vi.fn(probeReadyTool),
+      processEnvironment: () => ({}),
+    } as unknown as MakeToolchainEnvironment;
+    const onProgress = vi.fn();
+    let releaseRemote!: () => void;
+    const remoteGate = new Promise<void>((resolve) => {
+      releaseRemote = resolve;
+    });
+    vi.mocked(runSourceGit).mockImplementation(async (_env, args, _cwd, _signal, publish) => {
+      if (args[0] === 'ls-remote') {
+        await remoteGate;
+        return '0123456789abcdef\trefs/heads/main';
+      }
+      if (args[0] === 'remote' || args[0] === 'status') {
+        expect(onProgress).toHaveBeenLastCalledWith(
+          expect.objectContaining({ phase: 'checkingLocal' }),
+        );
+        expect(onProgress.mock.lastCall?.[0].progress).toBeUndefined();
+        return args[0] === 'remote' ? CINDY_SOURCE_REPOSITORY : '';
+      }
+      if (args[0] === 'fetch') publish?.({ stage: 'receiving', percent: 100 });
+      if (args[0] === 'rev-parse') return '0123456789abcdef';
+      return '';
+    });
+    const pending = prepareCindySource(
+      env,
+      root,
+      { channel: 'dev', version: '0.0.0' },
+      new AbortController().signal,
+      onProgress,
+    );
+    try {
+      await vi.waitFor(() => expect(runSourceGit).toHaveBeenCalled());
+      expect(onProgress).toHaveBeenLastCalledWith(
+        expect.objectContaining({ phase: 'checkingRemote' }),
+      );
+      await expect(readCurrentCindySourceStatus(root)).resolves.toMatchObject({
+        status: 'preparing',
+        phase: 'checkingRemote',
+      });
+      expect(onProgress.mock.lastCall?.[0].progress).toBeUndefined();
+    } finally {
+      releaseRemote();
+      await pending;
+    }
+    await expect(pending).resolves.toMatchObject({ status: 'ready' });
+    expect(onProgress.mock.lastCall?.[0].phase).toBeUndefined();
+    expect(onProgress.mock.lastCall?.[0].progress).toBeUndefined();
+  });
+
   it('attaches a concurrent caller to the running job instead of starting a second one', async () => {
     const sourcePath = path.join(root, 'source');
     await createExistingCheckout(sourcePath);
@@ -766,6 +926,7 @@ describe('Source and dependency preparation', () => {
       releaseFetch = resolve;
     });
     vi.mocked(runSourceGit).mockImplementation(async (_env, args) => {
+      if (args.includes('refs/cindy-make/personal-upstream^{commit}')) throw new Error('no file integration yet');
       if (args[0] === 'ls-remote') return '0123456789abcdef\trefs/heads/main';
       if (args[0] === 'remote') return CINDY_SOURCE_REPOSITORY;
       if (args[0] === 'fetch') {

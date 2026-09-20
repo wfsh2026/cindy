@@ -4,6 +4,9 @@ import type {
   RemoteDesktopRequest,
 } from "./remoteDesktop.js";
 
+// Whole foreground connection/recovery budget, including retries and first frame.
+export const REMOTE_DESKTOP_CONNECTION_TIMEOUT_MS = 60_000;
+
 export type DesktopViewerRequest = <T>(
   request: RemoteDesktopRequest,
   beforeSend?: () => void,
@@ -15,7 +18,7 @@ interface ViewerConnectOptions {
   resume?: boolean;
   takeover?: boolean;
   isCurrent: () => boolean;
-  onCapabilities?: (caps: RemoteDesktopCapabilities) => void;
+  onCapabilities?: (caps: RemoteDesktopCapabilities) => void | Promise<void>;
   onStart?: () => void;
 }
 
@@ -77,7 +80,7 @@ export class RemoteDesktopViewerSession {
     if (!caps.enabled) throw new Error("DESKTOP_DISABLED");
     if (options.resume && !caps.automaticReconnect)
       throw new Error("CHANNEL_NOT_ALLOWED");
-    options.onCapabilities?.(caps);
+    await options.onCapabilities?.(caps);
     check();
     const display =
       caps.displays.find((d) => d.id === options.displayId) ?? caps.displays[0];
@@ -247,6 +250,7 @@ export function viewerDisplaySize(
 
 /** Only transient connection errors may restart a viewer. Explicit stop wins. */
 export function remoteDesktopFailureKey(code: string): string | null {
+  if (/DESKTOP_CONNECTION_TIMEOUT/.test(code)) return "connectionTimeout";
   if (/ACCESS_REVOKED/.test(code)) return "accessRevoked";
   if (/REMOTE_DISABLED/.test(code)) return "remoteDisabled";
   if (/DESKTOP_BUSY/.test(code)) return "connectionBusy";

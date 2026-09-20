@@ -10,6 +10,7 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
       ? root.getElementById(id)
       : root.querySelector("#" + id);
   const { net, iceServers } = config;
+  let nativeVideoActive = false;
   const validKeys = new Set(config.keyCodes);
   const transform =
     /* BEGIN TRANSFORM */
@@ -237,6 +238,7 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
     viewportRightInset = 0,
     viewportLeftInset = 0,
     viewportBottomInset = 0,
+    viewportTopInset = 0,
     keyboardViewportInset = 0,
     portraitKeyboardTopInset = 0;
   let keyboardViewportOpen = false;
@@ -246,8 +248,10 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
   // Insets guide centering and pan limits without clipping the full-screen
   // video surface or adding an opaque strip beside the Dynamic Island.
   const viewportLeft = () => (fillHeight ? viewportLeftInset : 0);
+  const usableHeight = () =>
+    Math.max(1, stage.clientHeight - viewportTopInset - viewportBottomInset);
   const viewportHeight = () =>
-    Math.max(1, stage.clientHeight - (viewerSized ? viewportBottomInset : 0));
+    viewerSized ? usableHeight() : Math.max(1, stage.clientHeight);
   const viewportWidth = () =>
     Math.max(
       1,
@@ -259,12 +263,16 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
   // The usable center is (topInset + stageHeight) / 2, so shift by topInset / 2.
   // Keep the fitted size and cap the shift when the desktop is too tall to fit.
   const verticalOffset = (height) =>
-    fillHeight
+    (viewerSized ? viewportTopInset : 0) +
+    (fillHeight
       ? 0
       : Math.min(
-          portraitKeyboardTopInset / 2,
+          Math.max(
+            0,
+            portraitKeyboardTopInset - (viewerSized ? viewportTopInset : 0),
+          ) / 2,
           Math.max(0, (viewportHeight() - height) / 2),
-        );
+        ));
   const layout = () => {
     const r = transform(
       viewportWidth(),
@@ -314,6 +322,10 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
     return null;
   }
   function paintBackground() {
+    if (nativeVideoActive) {
+      if (bg) bg.style.display = "none";
+      return;
+    }
     if (!bg || !bgCanvas || !bgContext) return;
     const vw = stage.clientWidth,
       vh = stage.clientHeight;
@@ -396,8 +408,6 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
     bgLoopFrame = null;
   function drawBackground() {
     if (!bgContext || !bgRects) return;
-    bgContext.setTransform(bgDpr, 0, 0, bgDpr, 0, 0);
-    bgContext.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
     const useVideo =
       videoPresented && video.videoWidth > 0 && video.videoHeight > 0;
     const src = useVideo ? video : image;
@@ -406,7 +416,11 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
     // up with what the picture element actually shows.
     const sw = useVideo ? video.videoWidth : image.naturalWidth;
     const sh = useVideo ? video.videoHeight : image.naturalHeight;
-    if (!(sw > 0 && sh > 0)) return;
+    // Cursor updates can schedule a repaint while the next JPEG is loading.
+    // Keep the last backdrop until the replacement has drawable pixels.
+    if ((!useVideo && !image.complete) || !(sw > 0 && sh > 0)) return;
+    bgContext.setTransform(bgDpr, 0, 0, bgDpr, 0, 0);
+    bgContext.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
     const horizontal = bgAxis === "x";
     const sourceLength = horizontal ? sw : sh;
     const cuts = [0, bgEdgeFraction, 1 - bgEdgeFraction, 1];
@@ -534,7 +548,10 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
       bottom = Math.max(1, stage.clientHeight - viewportBottomInset);
     // Keep the entire cursor, including its hotspot offset, clear of chrome.
     const minX = Math.min(right - 1, left + 8 + hotX),
-      minY = Math.min(bottom - 1, 8 + hotY);
+      minY = Math.min(
+        bottom - 1,
+        (viewerSized ? viewportTopInset : 0) + 8 + hotY,
+      );
     return {
       minX,
       maxX: Math.max(minX, right - 8 - (w - hotX)),
@@ -601,6 +618,15 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
   }
   function render() {
     const r = layout();
+    if (config.nativeMedia && epoch)
+      post({
+        type: "nativeViewport",
+        fillHeight,
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+      });
     const touchFeedback = control && mode === "touch" && touchCursorVisible;
     const cursorX = mode === "touch" && touchCursor ? touchCursor.x : cx;
     const cursorY = mode === "touch" && touchCursor ? touchCursor.y : cy;
@@ -1282,7 +1308,7 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
     post({
       type: "viewportChanged",
       width: viewportWidth(),
-      height: Math.max(1, stage.clientHeight - viewportBottomInset),
+      height: usableHeight(),
     });
   }
   const observer = new ResizeObserver(() => {
@@ -1451,8 +1477,13 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
     release();
     closeRtc();
     post({ type: "fallback", attemptId: failedAttempt, reason });
-    if (canRetry && epoch && retries < net.retryMs.length) {
-      const delay = net.retryMs[retries++];
+    // Local consent is bounded by the host's picker lifetime. Reuse this retry
+    // timer without consuming the finite network-recovery attempts.
+    const capturePending = reason === "capture-pending";
+    if (canRetry && epoch && (capturePending || retries < net.retryMs.length)) {
+      const delay = capturePending
+        ? net.retryMs[net.retryMs.length - 1]
+        : net.retryMs[retries++];
       retryTimer = setTimeout(() => {
         retryTimer = null;
         if (epoch) connect();
@@ -1739,10 +1770,15 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         post({
           type: "viewportSize",
           width: viewportWidth(),
-          height: Math.max(1, stage.clientHeight - viewportBottomInset),
+          height: usableHeight(),
         });
         break;
       case "presentation":
+        if (config.nativeMedia) {
+          release();
+          showKeyboard(false);
+          break;
+        }
         try {
           if (message.enabled) {
             release();
@@ -1783,7 +1819,7 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         }
         video.muted = !message.audio;
         retries = 0;
-        connect();
+        if (!config.nativeMedia) connect();
         break;
       case "keyboard":
         showKeyboard(message.enabled === true);
@@ -1796,8 +1832,12 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         break;
       case "theme":
         if (/^#[0-9a-f]{3,8}$/i.test(message.surface)) {
-          document.body.style.background = message.surface;
-          document.documentElement.style.background = message.surface;
+          document.body.style.background = config.nativeMedia
+            ? "transparent"
+            : message.surface;
+          document.documentElement.style.background = config.nativeMedia
+            ? "transparent"
+            : message.surface;
           document.documentElement.style.setProperty(
             "--surface",
             message.surface,
@@ -1856,6 +1896,7 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
       case "mouseButtons": {
         nativeMouseControls = message.native === true;
         const before = layout(),
+          previousTopInset = viewportTopInset,
           previousBottomInset = viewportBottomInset,
           keyboardOpen = fillHeight && message.keyboardOpen === true;
         const keepHorizontal =
@@ -1870,6 +1911,11 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
           );
         const offsetChanged = previousOffset !== portraitKeyboardTopInset;
         let sideInsetsChanged = false;
+        if (Number.isFinite(message.topInset))
+          viewportTopInset = Math.max(
+            0,
+            Math.min(stage.clientHeight - 1, message.topInset),
+          );
         if (Number.isFinite(message.bottomInset))
           viewportBottomInset = Math.max(
             0,
@@ -1923,6 +1969,7 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         } else if (
           sideInsetsChanged ||
           offsetChanged ||
+          (viewerSized && previousTopInset !== viewportTopInset) ||
           (viewerSized && previousBottomInset !== viewportBottomInset)
         ) {
           settlePan();
@@ -1953,6 +2000,8 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         break;
       }
       case "init":
+        nativeVideoActive = false;
+        image.style.visibility = "visible";
         viewerSized = false;
         followRest = null;
         cursorNeedsEntry = true;
@@ -1975,7 +2024,17 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         trickleIce = message.trickleIce === true;
         retries = 0;
         render();
-        connect();
+        if (!config.nativeMedia) connect();
+        break;
+      case "nativeVideo":
+        if (!config.nativeMedia || message.epoch !== epoch) break;
+        nativeVideoActive = message.active === true;
+        image.style.visibility = nativeVideoActive ? "hidden" : "visible";
+        paintBackground();
+        break;
+      case "nativeCursor":
+        if (config.nativeMedia && message.epoch === epoch)
+          receiveCursor(message.cursor);
         break;
       case "viewport":
         fillHeight = message.fillHeight === true;
@@ -1993,7 +2052,10 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
         break;
       case "fallback":
         if (message.epoch === epoch && message.attemptId === attemptId)
-          failRtc("host", message.retry !== false);
+          failRtc(
+            message.capturePending === true ? "capture-pending" : "host",
+            message.retry !== false,
+          );
         break;
       case "frame": {
         if ("cursor" in message) receiveCursor(message.cursor);
@@ -2047,6 +2109,8 @@ export function mountRemoteDesktopViewer(root, postMessage, config) {
           sending = false;
         break;
       case "stop":
+        nativeVideoActive = false;
+        image.style.visibility = "visible";
         showKeyboard(false);
         control = false;
         release();

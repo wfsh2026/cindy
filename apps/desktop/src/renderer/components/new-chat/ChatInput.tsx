@@ -15,7 +15,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { buildLocalSkillPathRoute } from '@/features/skillhub/lib/localRoutes';
 import { Folder, MessageSquarePlus, Mic, Pen, TriangleAlert, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useStableTranslation as useTranslation } from '@/hooks/useStableTranslation';
 import type { AgentInputReference } from '@cindy/maker-shared/agent-input-projection';
 import {
   normalizeExperienceSelectionSnapshot,
@@ -51,6 +51,7 @@ import {
 } from './ComposerListNodes';
 import { WindowsSelectionReplacement } from './WindowsSelectionReplacement';
 import { EmptyDocSelectionGuard } from './EmptyDocSelectionGuard';
+import { restoreComposerDocument } from './restoreComposerDocument';
 import {
   hasFocusMovedToInteractiveElement,
   useComposerSendFocusRestore,
@@ -247,6 +248,10 @@ import { Fragment, Slice, type Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Selection, TextSelection } from '@tiptap/pm/state';
 import * as sessionService from '@/lib/sessionService';
 import { classifyCindyMakeCommand, tryStartCindyMakeCommand } from '@/lib/cindyMakeCommand';
+import {
+  CindyMakePreflightDialog,
+  type CindyMakePreflightProps,
+} from '@/components/cindy-make/CindyMakePreflightDialog';
 import { getModelById } from '@/lib/modelDefinitions';
 import {
   beginSlashCommandRosterLoad,
@@ -396,7 +401,7 @@ import { createWorkLouderCodexVoiceGesture } from '@/lib/workLouderCodexVoiceGes
 import { appendMentionChip } from './mentionChipInsertion';
 // device-link 远程会话:设置变更不落本地 DB(会 404),改写远程内存层 + 运行时隧道。
 import { getSessionDeviceId } from '@/features/device-link/remoteProjectsStore';
-import { makerApiFor, makerApiForDevice } from '@/lib/makerTransport';
+import { makerApiFor, makerApiForDevice, makerApiForSticky } from '@/lib/makerTransport';
 import { SESSION_LINK_DROP_MIME } from '@/lib/sessionLinkDrop';
 
 const log = createLogger('ChatInput');
@@ -1448,12 +1453,12 @@ export function ChatInput({
       dismissPromptRecommendation(sessionId, recommendation.revision);
       return;
     }
-    // remote / review/read-only 保持原有 fail-closed 语义。deviceLinkDeviceId=undefined
-    // 是归属尚未解析的暂态，先保留 candidate；解析为本地 null 后再继续。
+    // deviceLinkDeviceId=undefined 是归属尚未解析的暂态，先保留 candidate；
+    // 远程推荐通过被控端 maker 隧道生成，避免在控制端读取不到会话素材。
     if (deviceLinkDeviceId === undefined || runtimeAgentKind == null || !hasPredictionMessages) {
       return;
     }
-    if (deviceLinkDeviceId !== null || remoteHostId || disabled) {
+    if (remoteHostId || disabled) {
       dismissPromptRecommendation(sessionId, recommendation.revision);
       return;
     }
@@ -1484,7 +1489,7 @@ export function ChatInput({
       content: message.content,
     }));
 
-    window.electronAPI.maker
+    makerApiForSticky(requestSessionId)
       .predictNextPrompt({
         sessionId: requestSessionId,
         agentKind: runtimeAgentKind,
@@ -1836,6 +1841,10 @@ export function ChatInput({
   // 这里用本地乐观态承接即时反馈:seed 自 initialProviderId,选择时乐观更新;
   // initialProviderId 变化(将来 session 回流)时跟随。null = 跟随默认路由。
   const currentSessionIdRef = useRef(sessionId);
+  const [makePreflight, setMakePreflight] = useState<
+    Omit<CindyMakePreflightProps, 'onOpenChange'> | null
+  >(null);
+  useEffect(() => setMakePreflight(null), [sessionId]);
   currentSessionIdRef.current = sessionId;
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
     initialProviderId ?? null,
@@ -3844,11 +3853,11 @@ export function ChatInput({
       isRestoringRef.current = true;
       try {
         const draft = storageKey !== undefined ? getComposerDraft(storageKey) : undefined;
-        if (draft?.text) {
-          editor.commands.setContent(normalizeRestoredComposerDraft(draft.text));
-        } else {
-          editor.commands.clearContent();
-        }
+        restoreComposerDocument(
+          editor,
+          draft?.text ? normalizeRestoredComposerDraft(draft.text) : undefined,
+          voiceInputBusyRef.current || voiceDraftTextRef.current.length > 0,
+        );
       } finally {
         isRestoringRef.current = false;
       }
@@ -5396,13 +5405,36 @@ export function ChatInput({
             toast.error(t('cindyMakeDoctor.failed'));
             return;
           }
-          if (makeResult.kind === 'started') {
+          if (makeResult.kind === 'started' || makeResult.kind === 'preflight') {
             editor.commands.clearContent(true);
             historyIndexRef.current = -1;
             hydratedHistoryDocumentRef.current = null;
             draftRef.current = null;
             if (sourceStorageKey) clearComposerDraft(sourceStorageKey);
-            if (makeResult.sessionId !== sourceSessionId) {
+            if (makeResult.kind === 'preflight') {
+              const {
+                agentKind,
+                model,
+                effort,
+                permissionMode,
+                providerId,
+                fastMode,
+                planModeEnabled,
+              } = makeResult.createOptions ?? {};
+              setMakePreflight({
+                request: makeResult.request,
+                sessionId: sourceSessionId,
+                createOptions: {
+                  agentKind,
+                  model,
+                  effort,
+                  permissionMode,
+                  providerId,
+                  fastMode,
+                  planModeEnabled,
+                },
+              });
+            } else if (makeResult.sessionId !== sourceSessionId) {
               navigate('/cc-agent/' + makeResult.sessionId);
             }
             return;
@@ -8436,6 +8468,12 @@ export function ChatInput({
 
   return (
     <div className="relative flex w-full flex-col items-center gap-4" data-chat-input-root>
+      {makePreflight && makePreflight.sessionId === sessionId && (
+        <CindyMakePreflightDialog
+          {...makePreflight}
+          onOpenChange={(open) => !open && setMakePreflight(null)}
+        />
+      )}
       {/* 计划模式激活态 chip(输入框上方,与 GoalIndicator 同形)。-mb-2 抵一部分
           root gap-4,让 chip 与输入框间距接近 GoalIndicator 的节奏。 */}
       {planModeEntry && planModeEnabled && (

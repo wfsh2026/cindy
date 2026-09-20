@@ -1,3 +1,5 @@
+import type { WorktreeRecycleAction, WorktreeRecycleStatus } from '../shared/worktreeRecycle';
+import { FAVORITE_HOST_READY, FAVORITE_HOST_REQUEST, FAVORITE_HOST_REPLY, FAVORITE_HOST_CHANGED, type ModelFavoritesHostApi } from '../shared/modelFavoritesSync';
 import { invokeOpenPath } from './openPath';
 import { COPY_PNG_TO_CLIPBOARD_CHANNEL, type CopyPngToClipboardParams } from '../shared/pngClipboard';
 import { REMOTE_VIEWER } from '../shared/remoteDesktopViewer';
@@ -29,6 +31,7 @@ import { DESKTOP_LOCAL, type RemoteDesktopApi } from '../shared/remoteDesktop';
 import { DEVICE_LINK_PUSH } from '../shared/deviceLinkIpc';
 import type { MobileCodexRateLimitsResult } from '@cindy/maker-shared/device-link-contract';
 import type { AppearanceSettings } from '../shared/appearanceSettings';
+import type { DialogueWorkspaceSettingsState } from '../shared/dialogueWorkspaceSettings';
 import type {
   CustomProviderUpdateOptions,
   CustomProviderUpdateResult,
@@ -1036,6 +1039,16 @@ type CindyMediaPreferenceKind = {
 };
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  modelFavoritesHost: {
+    ready: () => ipcRenderer.send(FAVORITE_HOST_READY),
+    changed: stamp => ipcRenderer.send(FAVORITE_HOST_CHANGED, stamp),
+    reply: reply => ipcRenderer.send(FAVORITE_HOST_REPLY, reply),
+    onRequest: listener => {
+      const receive = (_event: Electron.IpcRendererEvent, request: Parameters<typeof listener>[0]) => listener(request);
+      ipcRenderer.on(FAVORITE_HOST_REQUEST, receive);
+      return () => { ipcRenderer.removeListener(FAVORITE_HOST_REQUEST, receive); };
+    },
+  } satisfies ModelFavoritesHostApi,
   routines: {
     list: (botId: string) => ipcRenderer.invoke('routines:list', botId),
     save: (botId: string, input: RoutineInput, id?: string) => ipcRenderer.invoke('routines:save', botId, input, id),
@@ -3153,6 +3166,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       skills?: import('../main/skillhub/scanner').Skill[];
       sources?: import('../main/skillhub/scanner').SourceReport[];
       pendingCleanups?: Array<{ token: string; name: string }>;
+      learnSkillEnabled?: boolean;
     }> => ipcRenderer.invoke('skillhub:scan', params),
 
     readSkill: (params: {
@@ -3990,9 +4004,46 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getCindyMakeSourceStatus: (): Promise<import('../shared/cindyMakeDoctor').MakeSourceStatus> =>
     ipcRenderer.invoke('app:get-cindy-make-source-status'),
+  cindyMakeMerge: (
+    input: import('../shared/cindyMakeMerge').CindyMakeMergeRequest,
+  ): Promise<import('../shared/cindyMakeMerge').CindyMakeMergeState | undefined> =>
+    ipcRenderer.invoke('app:cindy-make-merge', input),
+  getCindyMakeHistory: (
+    selected?: string,
+  ): Promise<import('../shared/cindyMakeHistory').CindyMakeHistoryState> =>
+    ipcRenderer.invoke('app:cindy-make-history', selected),
+  actCindyMakeHistory: (
+    runId: string,
+    action: import('../shared/cindyMakeHistory').MakeHistoryAction,
+  ): Promise<import('../shared/cindyMakeHistory').CindyMakeHistoryState> =>
+    ipcRenderer.invoke('app:cindy-make-history-action', runId, action),
+  generateCindyMakePersonal: (): Promise<
+    import('../shared/cindyMakeHistory').CindyMakeHistoryState
+  > => ipcRenderer.invoke('app:cindy-make-history-build'),
+  cancelCindyMakePersonal: (
+    buildId: string,
+  ): Promise<import('../shared/cindyMakeHistory').CindyMakeHistoryState> =>
+    ipcRenderer.invoke('app:cindy-make-history-cancel-build', buildId),
+  openCindyMakeHistoryBuild: (): Promise<void> =>
+    ipcRenderer.invoke('app:cindy-make-history-open-build'),
+  cindyMakeTest: (
+    sessionId: string,
+    completionId: string,
+    action: import('../shared/cindyMakeSession').CindyMakeTestAction,
+  ): Promise<import('../shared/cindyMakeSession').CindyMakeCompletionMeta> =>
+    ipcRenderer.invoke('app:cindy-make-test', sessionId, completionId, action),
+  getCindyVersions: (): Promise<import('../shared/cindyVersions').CindyVersionsState> =>
+    ipcRenderer.invoke('app:cindy-versions-state'),
+  actCindyVersion: (
+    action: import('../shared/cindyVersions').CindyVersionAction,
+    id: string,
+  ): Promise<import('../shared/cindyVersions').CindyVersionsState> =>
+    ipcRenderer.invoke('app:cindy-versions-action', action, id),
 
   getCindyMakeState: (): Promise<import('../shared/cindyMakeDoctor').CindyMakeGlobalState> =>
     ipcRenderer.invoke('app:get-cindy-make-state'),
+  manageCindyMakeTask: (sessionId: string, action: 'end' | 'finish' | 'delete'): Promise<void> =>
+    ipcRenderer.invoke('app:manage-cindy-make-task', sessionId, action),
 
   onCindyMakeState: (
     listener: (state: import('../shared/cindyMakeDoctor').CindyMakeGlobalState) => void,
@@ -4022,11 +4073,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelCindyMakeSource: (): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('app:cancel-cindy-make-source'),
 
-  // Create the per-task worktree (branch off the personal baseline + install deps).
+  // Compatibility entry point: prepare a worktree and its dependencies.
   prepareCindyMakeWorkspace: (
     runId: string,
   ): Promise<import('../shared/cindyMakeDoctor').MakeTaskWorkspace> =>
     ipcRenderer.invoke('app:prepare-cindy-make-workspace', runId),
+  startCindyMakeTask: (
+    input: import('../shared/cindyMakeDoctor').CindyMakeTaskStart,
+  ): Promise<string> => ipcRenderer.invoke('app:start-cindy-make-task', input),
+  cancelCindyMakeTask: (runId: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('app:cancel-cindy-make-task', runId),
 
   // ── 客户端日志上报(Settings → About)──
   // 真相在 main:是否配置了上报目标、是否已同意隐私政策、开关的 override 状态都由 main
@@ -4263,9 +4319,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('image-cache:cleanup-files', urls),
 
   // ── 媒体总仓存储管理(关于页存储空间卡片)──
+  worktreeRecycle: {
+    list: (): Promise<WorktreeRecycleStatus[]> => ipcRenderer.invoke('worktree-recycle:list'),
+    control: (input: WorktreeRecycleAction): Promise<void> => ipcRenderer.invoke('worktree-recycle:control', input),
+  },
   // 占用统计 / 清理预检(报数)/ 执行清理 / 对账体检。scan 与 cleanup 的
   // draftUrls 由 renderer 从 composerDraftStore 现场收集(main 读不到
   // renderer 内存,草稿附件是合法的零引用 blob,必须随参取证防误删)。
+  dialogueWorkspace: {
+    open: (): Promise<{ success: boolean }> => ipcRenderer.invoke('dialogue-workspace:open'),
+    get: (): Promise<DialogueWorkspaceSettingsState> => ipcRenderer.invoke('dialogue-workspace:get'),
+    choose: (): Promise<DialogueWorkspaceSettingsState> => ipcRenderer.invoke('dialogue-workspace:choose'),
+    reset: (): Promise<DialogueWorkspaceSettingsState> => ipcRenderer.invoke('dialogue-workspace:reset'),
+  },
+
   cindyMediaStorage: {
     /**
      * 本窗口草稿附件 URL 变化时上报(composerDraftStore mutator 尾部调用,
@@ -4561,6 +4628,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         sessionId: string,
       ): Promise<{
         messages: Record<string, unknown>[];
+        historyView?: string;
         invalidation?: number;
         ownerToken?: string;
         accountCounter?: number;
@@ -4583,6 +4651,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         expectedInvalidation?: number,
         expectedOwnerToken?: string,
         expectedAccountCounter?: number,
+        historyView?: string,
       ): Promise<{ ok: true; invalidation?: number }> =>
         ipcRenderer.invoke('device-link:mirror-cache:messages:put', {
           deviceId,
@@ -4591,6 +4660,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
           expectedInvalidation,
           expectedOwnerToken,
           expectedAccountCounter,
+          historyView,
         }),
       /** 读侧边栏远程会话列表快照 */
       getSessionList: (): Promise<{
@@ -5389,6 +5459,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       create: (body?: unknown): Promise<unknown> =>
         ipcRenderer.invoke('local-db:sessions:create', body),
       get: (id: string): Promise<unknown> => ipcRenderer.invoke('local-db:sessions:get', id),
+      getMany: (ids: string[]): Promise<unknown> => ipcRenderer.invoke('local-db:sessions:get-many', ids),
       resolveReferences: (sessionIds: string[]): Promise<unknown> =>
         ipcRenderer.invoke('local-db:sessions:resolve-references', sessionIds),
       restoreIfArchived: (id: string, expected: unknown): Promise<unknown> =>
@@ -5435,10 +5506,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         modelChain: import('../shared/botModelChain').BotModelRoute[];
         isCustomized: boolean;
       }> => ipcRenderer.invoke('local-db:bots:model-chain-settings-set', body),
-      list: (body?: { lastReadAtByBotId?: Record<string, number> }): Promise<unknown[]> =>
+      list: (body?: { lastReadAtByBotId?: Record<string, number>; welcomeContext?: import('../shared/botWelcomeContext').BotWelcomeContext; locale?: import('../shared/locale').SupportedLocale }): Promise<unknown[]> =>
         ipcRenderer.invoke('local-db:bots:list', body),
       get: (botId: string): Promise<unknown> => ipcRenderer.invoke('local-db:bots:get', botId),
-      chooseAvatar: (body: { botId: string }): Promise<unknown> =>
+      chooseAvatar: (body: { botId: string; avatarImageBase64?: string }): Promise<unknown> =>
         ipcRenderer.invoke('local-db:bots:choose-avatar', body),
       searchHistory: (body: unknown): Promise<unknown> =>
         ipcRenderer.invoke('local-db:bots:search-history', body),
@@ -6184,11 +6255,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Renderer 通过这四个调用合并三路数据 + 触发 desktop 命令 execute。
     // 老 scanSlashCommands 已下线 —— 数据等价于 listAgentSkills, 改名是为了和
     // listAgentCommands / listDesktopCommands 形成清晰的 "三源 + execute" 命名族。
-    listDesktopCommands: (): Promise<{
+    listDesktopCommands: (ctx?: { deviceId?: string }): Promise<{
       success: boolean;
       error?: string;
       commands?: Array<{ kind: 'desktop'; name: string; description: string }>;
-    }> => ipcRenderer.invoke('maker:list-desktop-commands'),
+    }> => ipcRenderer.invoke('maker:list-desktop-commands', ctx),
 
     executeDesktopCommand: (
       name: string,
@@ -7221,6 +7292,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       sessionId?: string,
     ): Promise<{ title: string | null }> =>
       ipcRenderer.invoke('maker:generate-title', { message, agentKind, sessionId }),
+    // Optional status copy: only public semantic phases cross this boundary.
+    polishWorkingStatus: (request: import('../shared/workingStatus').WorkingStatusRequest): Promise<{ text: string | null }> =>
+      ipcRenderer.invoke('maker:working-status', request),
     // 重命名输入框 Magic 按钮:按会话最新对话内容重新生成标题(素材由 main 读 DB)
     regenerateSessionTitle: (sessionId: string): Promise<{ title: string | null }> =>
       ipcRenderer.invoke('maker:regenerate-title', { sessionId }),

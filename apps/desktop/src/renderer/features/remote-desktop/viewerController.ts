@@ -4,6 +4,7 @@ import {
   REMOTE_DESKTOP_ICE_SERVERS,
   REMOTE_DESKTOP_MAX_FRAME_BYTES,
   RemoteDesktopViewerSession,
+  REMOTE_DESKTOP_CONNECTION_TIMEOUT_MS,
   viewerDisplaySize,
   RemoteDesktopViewerMedia,
   remoteDesktopFailureKey,
@@ -35,6 +36,14 @@ export interface ViewerSnapshot {
   ready: boolean;
 }
 
+function connectionBudget(caps: RemoteDesktopCapabilities | null): number {
+  // Match Mobile: system consent has its own two-minute host deadline.
+  return (
+    REMOTE_DESKTOP_CONNECTION_TIMEOUT_MS +
+    (caps?.displays.some((display) => display.id === 'wayland-portal') ? 120_000 : 0)
+  );
+}
+
 /** Desktop presentation adapter. Reuses the Mobile lease, browser media and
  * input queue; only window visibility and native clipboard live on Desktop.
  */
@@ -60,6 +69,7 @@ export class DesktopViewerController {
   private wantsControl = true;
   private retryAt = 0;
   private retryDelay = 1000;
+  private connectionTimer: ReturnType<typeof setTimeout> | null = null;
   private frameBusy: string | null = null;
   private heartbeatBusy: string | null = null;
   private streaming = false;
@@ -110,7 +120,29 @@ export class DesktopViewerController {
     ];
   }
   private publish(patch: Partial<ViewerSnapshot>): void {
+    const previousBudget = connectionBudget(this.state.caps);
     this.state = { ...this.state, ...patch };
+    const budget = connectionBudget(this.state.caps);
+    // Capabilities arrive after the initial timer starts. Change its budget
+    // only when the backend changes, never on repeated caps or media retries.
+    if (budget !== previousBudget && this.connectionTimer !== null) {
+      clearTimeout(this.connectionTimer);
+      this.connectionTimer = null;
+    }
+    const waiting =
+      this.scope.active &&
+      !this.disposed &&
+      !this.state.error &&
+      (!this.state.ready || this.state.status === 'reconnecting');
+    if (!waiting) {
+      if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
+      this.connectionTimer = null;
+    } else if (this.connectionTimer === null) {
+      // Transient failures and media fallback must not renew the total budget.
+      this.connectionTimer = setTimeout(() => {
+        this.fail(new Error('DESKTOP_CONNECTION_TIMEOUT'));
+      }, budget);
+    }
     if (!this.disposed) this.changed(this.state);
   }
   private request = async <T>(
@@ -134,6 +166,8 @@ export class DesktopViewerController {
     if (this.disposed || scope.generation < this.scope.generation) return;
     if (scope.generation === this.scope.generation && scope.active === this.scope.active) return;
     this.cancel();
+    if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
+    this.connectionTimer = null;
     this.scope = scope;
     this.resuming = scope.resume === true;
     this.retryDelay = 1000;
@@ -565,6 +599,8 @@ export class DesktopViewerController {
   dispose(): void {
     this.cancel();
     this.disposed = true;
+    if (this.connectionTimer !== null) clearTimeout(this.connectionTimer);
+    this.connectionTimer = null;
     for (const t of this.timers) clearInterval(t);
     for (const off of this.unsubscribers) off();
     this.runtime.dispose();

@@ -19,14 +19,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   Archive,
   ArchiveRestore,
-  ChevronRight,
   Copy,
-  GitBranch,
   Link2,
   Pencil,
   Pin,
   PinOff,
   RefreshCw,
+  Search,
   Sparkles,
   Trash2,
 } from 'lucide-react-native';
@@ -35,6 +34,7 @@ import {
   Alert,
   Animated,
   Pressable,
+  Platform,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -78,6 +78,7 @@ import {
 } from '@/session/sessionMenu';
 import { SheetModal } from '@/session/SheetModal';
 import { SheetSurface } from '@/session/SheetSurface';
+import { SessionDetailsNative, SessionDetailsNativeActions } from './SessionDetailsNative';
 import type { RemoteSession } from '@/session/types';
 import { iconSize, iconStroke, monoFont, useTheme, useThemedStyles, type ThemeColors } from '@/theme';
 import { fontWeight, lineHeight, radius, spacing, typeScale } from '@/theme/tokens';
@@ -97,6 +98,9 @@ export interface SessionExtraDirBrowserState {
 }
 
 export interface SessionMenuSheetProps {
+  providerName?: string;
+  messageOnly?: boolean;
+  onOpenSearch?: () => void;
   accountProvider?: OpenAiAccountProvider;
   usageReader: SessionMenuUsageReader & Pick<MobileMakerTransport, 'getContextUsage'>;
   visible: boolean;
@@ -126,8 +130,6 @@ export interface SessionMenuSheetProps {
   onRegenerateTitle(): Promise<{ title: string | null }>;
   /** 打开工作目录(复用文件浏览页);调用方负责关 sheet 并跳转。 */
   onOpenWorkspace(): void;
-  /** Pi 原生会话树入口；只有 host runtime 真正返回 Pi 会话时由父级注入。 */
-  onOpenSessionTree?: () => void;
   onTogglePinned(): void;
   onArchive(): void;
   onRestore(): void;
@@ -138,6 +140,9 @@ export interface SessionMenuSheetProps {
 }
 
 export function SessionMenuSheet({
+  providerName,
+  messageOnly = false,
+  onOpenSearch,
   usageReader,
   accountProvider,
   visible,
@@ -158,7 +163,6 @@ export function SessionMenuSheet({
   onRename,
   onRegenerateTitle,
   onOpenWorkspace,
-  onOpenSessionTree,
   onTogglePinned,
   onArchive,
   onRestore,
@@ -170,7 +174,7 @@ export function SessionMenuSheet({
   const styles = useThemedStyles(makeStyles);
   const { colors } = useTheme();
   const { t, i18n: i18nInstance } = useTranslation();
-  const menuUsage = useSessionMenuUsage(session, usageReader, visible, codexRateLimits, accountProvider);
+  const menuUsage = useSessionMenuUsage(session, usageReader, visible && !messageOnly, codexRateLimits, accountProvider);
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -182,7 +186,7 @@ export function SessionMenuSheet({
     if (visible) setView(initialView);
   }
   const { contextUsage, contextLoading, refresh: onRefreshContextUsage } = useSessionMenuContextUsage(
-    session, usageReader, visible && view === 'info', onContextError,
+    session, usageReader, visible && !messageOnly && view === 'info', onContextError,
   );
   const [primarySnap, setPrimarySnap] = useState<ContextSheetSnap>('half');
   const [secondarySnap, setSecondarySnap] = useState<ContextSheetSnap>('half');
@@ -474,8 +478,8 @@ export function SessionMenuSheet({
   const workspace = buildSessionInfoWorkspace(session);
   const showExtraDirs = sessionInfoShowsExtraDirs(session);
 
-  const mainActions = actions.filter((action) => action.id !== 'delete');
-  const deleteAction = actions.find((action) => action.id === 'delete');
+  const mainActions = messageOnly ? [] : actions.filter((action) => action.id !== 'delete');
+  const deleteAction = messageOnly ? undefined : actions.find((action) => action.id === 'delete');
 
   const confirmCodexReset = useCallback(() => {
     if (!resetSummary?.canReset || codexResetBusy) return;
@@ -543,6 +547,7 @@ export function SessionMenuSheet({
       ) : (
         <>
           <View style={styles.headerBlock} testID="session.menuHeader">
+            <Text style={styles.detailTitle}>{header.title}</Text>
             {header.chips.length > 0 ? (
               <View style={styles.chipRow}>
                 {header.chips.map((chip) => (
@@ -562,9 +567,16 @@ export function SessionMenuSheet({
             ) : null}
           </View>
 
-          <SessionUsageSummary session={session} usage={menuUsage} contextUsage={contextUsage} onPress={openInfo} />
+          {!messageOnly ? <SessionUsageSummary providerName={providerName} session={session} usage={menuUsage} contextUsage={contextUsage} onPress={openInfo} translucent={Platform.OS === 'ios'} /> : null}
 
-          <View style={styles.actionGroup}>
+          {Platform.OS === 'ios' ? (
+            <SessionDetailsNativeActions actions={mainActions.map(action => ({
+              label: action.id === 'copyLink' ? copyLabel(action.label, 'copyLink', t('session.menu.linkCopied')) : action.label,
+              disabled: action.disabled,
+              testID: action.testID,
+              onPress: () => handleAction(action),
+            }))} />
+          ) : <View style={styles.actionGroup}>
             {mainActions.map((action) => (
               <MenuActionRow
                 key={action.id}
@@ -577,21 +589,21 @@ export function SessionMenuSheet({
                 testID={action.testID}
               />
             ))}
-          </View>
+          </View>}
 
-          {session.agentKind === 'pi' && onOpenSessionTree ? (
-            <View style={styles.actionGroup}>
-              <MenuActionRow
-                icon={GitBranch}
-                label={t('session.menu.branches')}
-                onPress={onOpenSessionTree}
-                testID="session.branchesButton"
-                trailing={<ChevronRight color={colors.textTertiary} size={iconSize.md} strokeWidth={iconStroke.regular} />}
-              />
+          {onOpenSearch ? (
+            Platform.OS === 'ios' ? <SessionDetailsNativeActions actions={[{
+              label: t('session.presentation.overview.actions.search.label'),
+              onPress: onOpenSearch,
+              testID: 'session.detailsSearch',
+            }]} /> : <View style={styles.actionGroup}>
+              <MenuActionRow icon={Search} label={t('session.presentation.overview.actions.search.label')} onPress={onOpenSearch} testID="session.detailsSearch" />
             </View>
           ) : null}
 
-          {deleteAction ? (
+          {deleteAction ? Platform.OS === 'ios' ? (
+            <SessionDetailsNativeActions actions={[{ label: deleteAction.label, testID: deleteAction.testID, disabled: deleteAction.disabled, danger: true, onPress: () => handleAction(deleteAction) }]} />
+          ) : (
             <View style={styles.actionGroup}>
               <MenuActionRow
                 danger
@@ -610,7 +622,7 @@ export function SessionMenuSheet({
 
   const infoContent = (
     <View style={styles.infoBody} testID="session.infoSheetBody">
-      <SessionUsageSummary session={session} usage={menuUsage} contextUsage={contextUsage} detail />
+      <SessionUsageSummary providerName={providerName} session={session} usage={menuUsage} contextUsage={contextUsage} detail translucent={Platform.OS === 'ios'} />
       <View style={styles.infoSection}>
         <View style={styles.infoSectionHeader}>
           <Text style={styles.infoSectionTitle}>{t('session.menu.usageSection')}</Text>
@@ -787,6 +799,42 @@ export function SessionMenuSheet({
     </View>
   );
 
+  const renameFooter = renaming ? (
+    <MainWindowActionGroup
+      primaryActions={[{
+        accessibilityLabel: t('session.menu.confirmRename'),
+        label: t('session.menu.confirm'),
+        onPress: submitRename,
+        testID: 'session.renameButton',
+        tone: 'primary',
+      }]}
+      cancelAction={{
+        accessibilityLabel: t('session.menu.cancelRename'),
+        label: t('session.common.cancel'),
+        onPress: cancelRename,
+        testID: 'session.renameCancelButton',
+      }}
+      testID="session.renameActions"
+    />
+  ) : undefined;
+
+  if (Platform.OS === 'ios') {
+    const showingInfo = !messageOnly && view === 'info';
+    return (
+      <SessionDetailsNative
+        visible={visible}
+        title={t(showingInfo ? 'session.menu.sessionInfo' : 'session.menu.details')}
+        backLabel={t('session.menu.backToMenu')}
+        onBack={showingInfo ? () => setView('menu') : undefined}
+        onClose={onClose}
+        onClosed={onClosed}
+        footer={renameFooter}
+      >
+        {showingInfo ? infoContent : menuContent}
+      </SessionDetailsNative>
+    );
+  }
+
   return (
     <SheetModal
       backdropTestID="session.settingsBackdrop"
@@ -800,35 +848,18 @@ export function SessionMenuSheet({
       <SheetSurface
         bottomInset={insets.bottom}
         // 确认对统一规则:重命名编辑态的确定/取消走 footer 插槽置底(满宽纵排,确定在上取消居底)。
-        footer={renaming ? (
-          <MainWindowActionGroup
-            primaryActions={[{
-              accessibilityLabel: t('session.menu.confirmRename'),
-              label: t('session.menu.confirm'),
-              onPress: submitRename,
-              testID: 'session.renameButton',
-              tone: 'primary',
-            }]}
-            cancelAction={{
-              accessibilityLabel: t('session.menu.cancelRename'),
-              label: t('session.common.cancel'),
-              onPress: cancelRename,
-              testID: 'session.renameCancelButton',
-            }}
-            testID="session.renameActions"
-          />
-        ) : undefined}
+        footer={renameFooter}
         heights={heights}
         onClose={onClose}
         onSnapChange={setPrimarySnap}
         snap={primarySnap}
         testID="session.menuSheet"
-        title={header.title}
+        title={t('session.menu.details')}
         variant="tasksheet"
       >
         {menuContent}
       </SheetSurface>
-      {view === 'info' ? (
+      {!messageOnly && view === 'info' ? (
         <Animated.View
           style={[styles.secondaryLayer, { transform: [{ translateY: secondaryTranslate }] }]}
           testID="session.infoLayer"
@@ -986,6 +1017,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignSelf: 'stretch',
     gap: spacing.xs,
     paddingHorizontal: spacing.xs,
+  },
+  detailTitle: {
+    color: colors.textPrimary,
+    fontSize: typeScale.body,
+    fontWeight: fontWeight.semibold,
   },
   chipRow: {
     alignSelf: 'stretch',

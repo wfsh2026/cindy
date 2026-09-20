@@ -348,6 +348,7 @@ export function sessionCreateToRow(
   body:
     | {
         id?: string;
+        title?: string;
         workingDir?: string;
         workspaceKind?: WorkspaceKind;
         model?: string;
@@ -370,14 +371,17 @@ export function sessionCreateToRow(
          */
         providerId?: string | null;
         /** Main-owned purposes only; the renderer create IPC validates which values it accepts. */
-        source?: 'bot' | 'cindy-make';
+        source?: 'bot' | 'cindy-make' | 'cindy-make-merge';
       }
     | undefined,
   now: number,
 ): SessionInsert {
   return {
     id,
-    title: DEFAULT_DRAFT_SESSION_TITLE,
+    title:
+      typeof body?.title === 'string' && body.title.trim().length > 0
+        ? body.title.trim()
+        : DEFAULT_DRAFT_SESSION_TITLE,
     workingDir: normalizeWorkingDirForStorage(body?.workingDir),
     workspaceKind: body?.workspaceKind ?? 'project',
     model: body?.model ?? 'claude-sonnet-4-6',

@@ -1,8 +1,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { TEST_CDN_BASE_URL as CDN_EXTERNAL_BASE_URL } from '../../test/vitest/clientEndpointsFixture';
+
 
 vi.mock('../../../personal-build.json', () => ({ default: {
   edition: 'personal', upstreamVersion: '0.1.72', upstreamCommit: 'a'.repeat(40), changeKeys: ['officialNotices'],
@@ -36,11 +38,18 @@ const appGetPath = vi.fn((name: string) => {
 const fetchManifest = vi.fn();
 const getBaseUrl = vi.fn(() => CDN_EXTERNAL_BASE_URL);
 const isDev = vi.fn(() => false);
+const syncWindowsVersionAfterUpdate = vi.fn(async () => undefined);
 const download = vi.fn();
 const readAutoUpdateSettings = vi.fn(() => ({ autoRelaunchOnIdle: true }));
 const spawnProcess = vi.fn(() => ({
   unref: vi.fn(),
   on: vi.fn(),
+}));
+const findLinuxUserInstallation = vi.fn(() => null);
+const isDebianManagedInstallation = vi.fn(() => false);
+const missingLinuxUserInstallTools = vi.fn(() => [] as string[]);
+vi.mock('../linuxInstallation', () => ({
+  findLinuxUserInstallation, isDebianManagedInstallation, missingLinuxUserInstallTools,
 }));
 const checkWindowsUpdaterPrerequisites = vi.fn<
   () => { satisfied: boolean; missingFiles: string[] }
@@ -156,6 +165,11 @@ vi.mock('../windowsUpdaterPrerequisites', () => ({
   stageBundledWindowsUpdaterRuntime,
 }));
 
+vi.mock('../windowsInstallationVersion', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../windowsInstallationVersion')>(),
+  syncWindowsVersionAfterUpdate,
+}));
+
 vi.mock('../security/trustedAppRenderer', () => ({
   assertTrustedAppRendererEvent: vi.fn(),
 }));
@@ -205,6 +219,12 @@ afterAll(() => {
   fs.rmSync(TEST_ROOT, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
 });
 beforeEach(() => {
+  vi.stubEnv('VITE_CINDY_AUTH_REGION', 'global');
+  // Own every startup/background timer so afterEach can cancel it before the
+  // app.getPath mock starts pointing at the next test's isolated fixture.
+  // stopUpdateService clears intervals but not the initial 10-second check.
+  vi.useFakeTimers();
+  syncWindowsVersionAfterUpdate.mockClear();
   browserWindowGetAllWindows.mockReset();
   browserWindowGetAllWindows.mockReturnValue([]);
   ipcHandlers.clear();
@@ -253,6 +273,12 @@ beforeEach(() => {
   readAutoUpdateSettings.mockReset();
   readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: true });
   spawnProcess.mockClear();
+  findLinuxUserInstallation.mockReset();
+  findLinuxUserInstallation.mockReturnValue(null);
+  isDebianManagedInstallation.mockReset();
+  isDebianManagedInstallation.mockReturnValue(false);
+  missingLinuxUserInstallTools.mockReset();
+  missingLinuxUserInstallTools.mockReturnValue([]);
   checkWindowsUpdaterPrerequisites.mockReset();
   checkWindowsUpdaterPrerequisites.mockReturnValue({
     satisfied: true,
@@ -274,6 +300,34 @@ afterEach(() => {
 });
 
 describe.sequential('updateService', () => {
+describe('installation version repair scope', () => {
+  it.each(['darwin', 'linux'] as const)('does not add metadata work to %s startup', async (platform) => {
+    const service = await freshUpdateService(platform);
+    service.initUpdateService();
+    expect(syncWindowsVersionAfterUpdate).not.toHaveBeenCalled();
+    service.stopUpdateService();
+  });
+
+  it('does not touch Windows development installations', async () => {
+    const service = await freshUpdateService('win32');
+    isDev.mockReturnValue(true);
+    service.initUpdateService();
+    expect(syncWindowsVersionAfterUpdate).not.toHaveBeenCalled();
+    service.stopUpdateService();
+  });
+
+  it('checks only the current Windows install and its existing update receipt', async () => {
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    expect(syncWindowsVersionAfterUpdate).toHaveBeenCalledOnce();
+    expect(syncWindowsVersionAfterUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      platform: 'win32', packaged: true, version: appGetVersion(), exePath: TEST_EXE,
+      patchInfoPath: path.join(TEST_USER_DATA, 'updates', 'patch-info.json'),
+    }));
+    service.stopUpdateService();
+  });
+});
+
 describe('binary version checks after a user-requested update', () => {
   beforeEach(() => {
     readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
@@ -334,7 +388,7 @@ describe('binary version checks after a user-requested update', () => {
     }
   });
 
-  it('never starts the Windows updater or schedules binary upgrades in notify-only mode', async () => {
+  it('clears the marker when the Windows updater reports an asynchronous spawn error', async () => {
     const service = await freshUpdateService('win32');
     const resourcesPath = path.join(TEST_ROOT, 'resources');
     fs.mkdirSync(resourcesPath, { recursive: true });
@@ -352,11 +406,15 @@ describe('binary version checks after a user-requested update', () => {
     try {
       await service.checkForUpdate(updateManifest());
       ipcListeners.get('update-relaunch')?.({}, 'dark');
-      expect(spawnProcess).not.toHaveBeenCalled();
-      expect(childListeners.has('error')).toBe(false);
+      await vi.waitFor(() => { expect(childListeners.has('error')).toBe(true); });
+      const [, updaterArgs, updaterOptions] = spawnProcess.mock.calls.at(-1)! as unknown as [string, string[], { env: Record<string, string> }];
+      expect(updaterArgs).not.toContain('--install-key');
+      expect(updaterOptions.env.CINDY_VERSION_SYNC_KEY).toMatch(/^[0-9a-f-]{36}$/);
       const markerPath = path.join(TEST_USER_DATA, 'agent-binary-update-once.json');
+      expect(fs.existsSync(markerPath)).toBe(true);
+      childListeners.get('error')?.(Object.assign(new Error('spawn denied'), { code: 'EACCES' }));
       expect(fs.existsSync(markerPath)).toBe(false);
-      expect(service.getUpdateStatus()).toBe('available');
+      expect(service.getUpdateStatus()).toBe('error');
       expect(exitSpy).not.toHaveBeenCalled();
     } finally {
       service.stopUpdateService();
@@ -391,7 +449,7 @@ function updateManifest(version = '0.0.65', hotfixFile?: string) {
       version,
       hotfix: {
         file: hotfixFile ?? `app/darwin-arm64/xdt-maker-${version}.zip`,
-        sha256: 'abc',
+        sha256: 'a'.repeat(64),
         size: 123,
       },
     },
@@ -452,6 +510,33 @@ function linuxInstallerManifest(version = '0.0.65') {
 }
 
 describe('checkForUpdate Linux installer flow', () => {
+  it('does not quit or increment attempts for an unmanaged Linux installation', async () => {
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'deb');
+      return { path: targetPath, size: 123 };
+    });
+    const service = await freshUpdateService('linux', 'x64');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(linuxInstallerManifest())).resolves.toBe('ready');
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      await vi.waitFor(() => expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
+        status: 'ready', errorCode: 'linux_installation_unsupported',
+      }));
+      const info = JSON.parse(fs.readFileSync(path.join(TEST_USER_DATA, 'updates', 'patch-info.json'), 'utf8'));
+      expect(info.applyAttempts).toBeUndefined();
+      expect(fs.existsSync(path.join(TEST_USER_DATA, 'updates', info.fileName))).toBe(true);
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(exitSpy).not.toHaveBeenCalled();
+      expect(service.isUpdateRelaunchImminent()).toBe(false);
+    } finally {
+      service.stopUpdateService();
+      exitSpy.mockRestore();
+    }
+  });
+
   it('downloads the Linux installer .deb instead of a hotfix zip', async () => {
     readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
     download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
@@ -624,6 +709,30 @@ describe('checkForUpdate 版本无关(占位 0.0.0)打包豁免', () => {
   });
 });
 
+describe('personal version app update policy', () => {
+  it('skips app checks, background polling and relaunch even with an ordinary version number', async () => {
+    appGetVersion.mockReturnValue('1.2.3');
+    const service = await freshUpdateService('win32');
+    const identity = await import('../cindy-make/versionRuntimeIdentity');
+    identity.setCindyPersonalRuntime(true);
+    try {
+      service.initUpdateService();
+      expect(await service.checkForUpdate(updateManifest('9.9.9'))).toBe('idle');
+      expect(await ipcHandlers.get('update-check-startup')!()).toMatchObject({ hasUpdate: false, action: 'none' });
+      ipcListeners.get('update-relaunch')!({}, 'dark');
+      expect(fetchManifest).not.toHaveBeenCalled();
+      expect(download).not.toHaveBeenCalled();
+      expect(powerMonitorOn).not.toHaveBeenCalled();
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(appQuit).not.toHaveBeenCalled();
+    } finally {
+      service.stopUpdateService();
+      identity.setCindyPersonalRuntime(false);
+    }
+  });
+});
+
+
 describe('app update forward-only policy', () => {
   it('does not download a manifest version lower than the running app', async () => {
     const service = await freshUpdateService('darwin');
@@ -717,6 +826,289 @@ describe('app update forward-only policy', () => {
       });
       expect(service.getUpdateStatus()).toBe('ready');
       expect(fs.existsSync(patchPath)).toBe(true);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('keeps an offline Windows patch but refuses to apply its persisted digest', async () => {
+    vi.useFakeTimers();
+    fetchManifest.mockResolvedValue(null);
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    const updatesDir = path.join(TEST_USER_DATA, 'updates');
+    const patchPath = path.join(updatesDir, 'staged.zip');
+    const patchInfoPath = path.join(updatesDir, 'patch-info.json');
+    fs.mkdirSync(updatesDir, { recursive: true });
+    fs.writeFileSync(patchPath, 'update');
+    fs.writeFileSync(
+      patchInfoPath,
+      JSON.stringify({
+        version: '0.0.65',
+        fileName: 'staged.zip',
+        sha256: 'f'.repeat(64),
+        enableBeta: false,
+      }),
+    );
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const handler = ipcHandlers.get('update-check-startup');
+      await expect(handler?.()).resolves.toMatchObject({
+        hasUpdate: false,
+        action: 'none',
+        error: 'manifest_failed',
+      });
+      expect(service.getUpdateStatus()).toBe('idle');
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(fs.existsSync(patchPath)).toBe(true);
+      expect(fs.existsSync(patchInfoPath)).toBe(true);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('hashes staged Windows zips as a stream instead of one main-thread buffer', () => {
+    const source = fs.readFileSync(
+      path.join(__dirname, '..', 'updateService.ts'),
+      'utf8',
+    );
+    const start = source.indexOf('function windowsZipFileMatchesDigest');
+    expect(start).toBeGreaterThan(-1);
+    const body = source.slice(start, start + 900);
+    expect(body).toContain('createReadStream');
+    expect(body).not.toMatch(/readFileSync\s*\(/);
+    expect(body).not.toMatch(/readFile\s*\(/);
+  });
+
+  it('lets a later online check re-anchor an offline-ready Windows patch', async () => {
+    vi.useFakeTimers();
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    const stagedBytes = Buffer.from('update');
+    const digest = createHash('sha256').update(stagedBytes).digest('hex');
+    const manifest = updateManifest('0.0.65', 'app/windows-x64/staged.zip');
+    manifest.app.hotfix.sha256 = digest;
+    fetchManifest
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(manifest);
+    const updatesDir = path.join(TEST_USER_DATA, 'updates');
+    fs.mkdirSync(updatesDir, { recursive: true });
+    fs.writeFileSync(path.join(updatesDir, 'staged.zip'), stagedBytes);
+    fs.writeFileSync(
+      path.join(updatesDir, 'patch-info.json'),
+      JSON.stringify({
+        version: '0.0.65',
+        fileName: 'staged.zip',
+        sha256: 'f'.repeat(64),
+        enableBeta: false,
+      }),
+    );
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const startupHandler = ipcHandlers.get('update-check-startup');
+      await expect(startupHandler?.()).resolves.toMatchObject({
+        hasUpdate: false,
+        action: 'none',
+        error: 'manifest_failed',
+      });
+
+      const checkNowHandler = ipcHandlers.get('update-check-now');
+      await expect(checkNowHandler?.()).resolves.toEqual({ result: 'ready' });
+      expect(fetchManifest).toHaveBeenCalledTimes(2);
+      expect(download).not.toHaveBeenCalled();
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('redownloads a ready Windows patch when the same version is republished under a new filename', async () => {
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    const firstDigest = 'a'.repeat(64);
+    const secondDigest = 'b'.repeat(64);
+    const firstManifest = updateManifest('0.0.65', 'app/windows-x64/staged.zip');
+    firstManifest.app.hotfix.sha256 = firstDigest;
+    const secondManifest = updateManifest('0.0.65', 'app/windows-x64/cindy-0.0.65.zip');
+    secondManifest.app.hotfix.sha256 = secondDigest;
+    download.mockImplementation(async ({ targetPath, sha256 }: { targetPath: string; sha256: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, sha256 === firstDigest ? 'old-bytes' : 'new-bytes');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(firstManifest)).resolves.toBe('ready');
+      expect(download).toHaveBeenCalledTimes(1);
+
+      await expect(service.checkForUpdate(secondManifest)).resolves.toBe('ready');
+      expect(download).toHaveBeenCalledTimes(2);
+      expect(download.mock.calls[1]?.[0]).toMatchObject({ sha256: secondDigest });
+      expect(fs.readFileSync(path.join(TEST_USER_DATA, 'updates', 'cindy-0.0.65.zip'), 'utf8')).toBe(
+        'new-bytes',
+      );
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('redownloads a ready Windows patch when the same file is republished with a new digest', async () => {
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    const firstDigest = 'a'.repeat(64);
+    const secondDigest = 'b'.repeat(64);
+    const firstManifest = updateManifest('0.0.65', 'app/windows-x64/staged.zip');
+    firstManifest.app.hotfix.sha256 = firstDigest;
+    const secondManifest = updateManifest('0.0.65', 'app/windows-x64/staged.zip');
+    secondManifest.app.hotfix.sha256 = secondDigest;
+    download.mockImplementation(async ({ targetPath, sha256 }: { targetPath: string; sha256: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, sha256 === firstDigest ? 'old-bytes' : 'new-bytes');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(firstManifest)).resolves.toBe('ready');
+      expect(download).toHaveBeenCalledTimes(1);
+      const patchPath = path.join(TEST_USER_DATA, 'updates', 'staged.zip');
+      expect(fs.readFileSync(patchPath, 'utf8')).toBe('old-bytes');
+
+      await expect(service.checkForUpdate(secondManifest)).resolves.toBe('ready');
+      expect(download).toHaveBeenCalledTimes(2);
+      expect(download.mock.calls[1]?.[0]).toMatchObject({ sha256: secondDigest });
+      expect(fs.readFileSync(patchPath, 'utf8')).toBe('new-bytes');
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('redownloads a cold-started Windows patch when the same version is republished under a new filename', async () => {
+    vi.useFakeTimers();
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    const digest = 'd'.repeat(64);
+    const manifest = updateManifest('0.0.65', 'app/windows-x64/cindy-0.0.65.zip');
+    manifest.app.hotfix.sha256 = digest;
+    fetchManifest.mockResolvedValue(manifest);
+    const updatesDir = path.join(TEST_USER_DATA, 'updates');
+    fs.mkdirSync(updatesDir, { recursive: true });
+    fs.writeFileSync(path.join(updatesDir, 'staged.zip'), 'old-bytes');
+    fs.writeFileSync(
+      path.join(updatesDir, 'patch-info.json'),
+      JSON.stringify({
+        version: '0.0.65',
+        fileName: 'staged.zip',
+        sha256: 'f'.repeat(64),
+        enableBeta: false,
+      }),
+    );
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'new-bytes');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const handler = ipcHandlers.get('update-check-startup');
+      await expect(handler?.()).resolves.toMatchObject({
+        hasUpdate: true,
+        version: '0.0.65',
+      });
+      expect(download).toHaveBeenCalledTimes(1);
+      expect(download.mock.calls[0]?.[0]).toMatchObject({ sha256: digest });
+      expect(fs.readFileSync(path.join(updatesDir, 'cindy-0.0.65.zip'), 'utf8')).toBe('new-bytes');
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('redownloads a cold-started Windows patch whose bytes do not match the current digest', async () => {
+    vi.useFakeTimers();
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    const digest = 'c'.repeat(64);
+    const manifest = updateManifest('0.0.65', 'app/windows-x64/staged.zip');
+    manifest.app.hotfix.sha256 = digest;
+    fetchManifest.mockResolvedValue(manifest);
+    const updatesDir = path.join(TEST_USER_DATA, 'updates');
+    fs.mkdirSync(updatesDir, { recursive: true });
+    fs.writeFileSync(path.join(updatesDir, 'staged.zip'), 'stale-bytes');
+    fs.writeFileSync(
+      path.join(updatesDir, 'patch-info.json'),
+      JSON.stringify({
+        version: '0.0.65',
+        fileName: 'staged.zip',
+        sha256: 'f'.repeat(64),
+        enableBeta: false,
+      }),
+    );
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'fresh-bytes');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const handler = ipcHandlers.get('update-check-startup');
+      await expect(handler?.()).resolves.toMatchObject({
+        hasUpdate: true,
+        version: '0.0.65',
+      });
+      expect(download).toHaveBeenCalledTimes(1);
+      expect(fs.readFileSync(path.join(updatesDir, 'staged.zip'), 'utf8')).toBe('fresh-bytes');
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('uses the current matching manifest digest for a staged Windows patch', async () => {
+    vi.useFakeTimers();
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    checkWindowsUpdaterPrerequisites.mockReturnValue({
+      satisfied: false,
+      missingFiles: ['vcruntime140.dll'],
+    });
+    const stagedBytes = Buffer.from('update');
+    const digest = createHash('sha256').update(stagedBytes).digest('hex');
+    const manifest = updateManifest('0.0.65', 'app/windows-x64/staged.zip');
+    manifest.app.hotfix.sha256 = digest;
+    fetchManifest.mockResolvedValue(manifest);
+    const updatesDir = path.join(TEST_USER_DATA, 'updates');
+    const patchPath = path.join(updatesDir, 'staged.zip');
+    fs.mkdirSync(updatesDir, { recursive: true });
+    fs.writeFileSync(patchPath, stagedBytes);
+    fs.writeFileSync(
+      path.join(updatesDir, 'patch-info.json'),
+      JSON.stringify({
+        version: '0.0.65',
+        fileName: 'staged.zip',
+        sha256: 'f'.repeat(64),
+        enableBeta: false,
+      }),
+    );
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const handler = ipcHandlers.get('update-check-startup');
+      await expect(handler?.()).resolves.toMatchObject({
+        hasUpdate: true,
+        action: 'none',
+        version: '0.0.65',
+      });
+      expect(download).not.toHaveBeenCalled();
+
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+
+      expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(2);
+      expect(logError).not.toHaveBeenCalledWith(
+        'Windows update archive is missing its trusted manifest SHA-256',
+      );
     } finally {
       service.stopUpdateService();
     }
@@ -1756,7 +2148,261 @@ describe('startup update relaunch safety', () => {
   });
 });
 
+describe('Windows updater prerequisites', () => {
+  it('passes the verified manifest digest to the Windows updater', async () => {
+    const digest = 'a'.repeat(64);
+    const manifest = updateManifest('0.0.65');
+    manifest.app.hotfix.sha256 = digest;
+    const resourcesPath = path.join(TEST_ROOT, 'resources');
+    fs.mkdirSync(resourcesPath, { recursive: true });
+    fs.writeFileSync(path.join(resourcesPath, 'cindy-updater.exe'), 'updater');
+    const resourcesPathDescriptor = Object.getOwnPropertyDescriptor(process, 'resourcesPath');
+    Object.defineProperty(process, 'resourcesPath', { value: resourcesPath, configurable: true });
+    const tmpdirSpy = vi.spyOn(os, 'tmpdir').mockReturnValue(TEST_ROOT);
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    spawnProcess.mockImplementationOnce(() => ({
+      unref: vi.fn(),
+      on: vi.fn((event: string, listener: () => void) => {
+        if (event === 'spawn') listener();
+      }),
+    }));
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(manifest)).resolves.toBe('ready');
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      await vi.waitFor(() => { expect(spawnProcess).toHaveBeenCalledOnce(); });
+      const spawnedArgs = (spawnProcess.mock.calls as unknown as Array<[string, string[]]>)[0]?.[1];
+      expect(spawnedArgs).toEqual(expect.arrayContaining(['--zip-sha256', digest]));
+    } finally {
+      service.stopUpdateService();
+      tmpdirSpy.mockRestore();
+      exitSpy.mockRestore();
+      if (resourcesPathDescriptor) Object.defineProperty(process, 'resourcesPath', resourcesPathDescriptor);
+      else Reflect.deleteProperty(process, 'resourcesPath');
+    }
+  });
+
+  it('refuses to spawn the Windows updater when the manifest digest is missing', async () => {
+    const manifest = updateManifest('0.0.65');
+    manifest.app.hotfix.sha256 = '';
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(manifest)).resolves.toBe('ready');
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+      await vi.waitFor(() => { expect(service.getUpdateStatus()).toBe('error'); });
+      expect(spawnProcess).not.toHaveBeenCalled();
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('defers the first startup relaunch and exposes the prerequisite error', async () => {
+    vi.useFakeTimers();
+    checkWindowsUpdaterPrerequisites.mockReturnValue({
+      satisfied: false,
+      missingFiles: ['vcruntime140.dll', 'vcruntime140_1.dll'],
+    });
+    fetchManifest.mockResolvedValue(updateManifest('0.0.65'));
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      const startupHandler = ipcHandlers.get('update-check-startup');
+      await expect(startupHandler?.()).resolves.toMatchObject({
+        hasUpdate: true,
+        action: 'none',
+        version: '0.0.65',
+      });
+      expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
+        status: 'ready',
+        version: '0.0.65',
+        errorCode: 'windows_vc_runtime_missing',
+      });
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(service.isUpdateRelaunchImminent()).toBe(false);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+
+  it('keeps Cindy and the staged patch intact when the VC++ Runtime is missing', async () => {
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    checkWindowsUpdaterPrerequisites.mockReturnValue({
+      satisfied: false,
+      missingFiles: ['vcruntime140_1.dll'],
+    });
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(updateManifest('0.0.65'))).resolves.toBe('ready');
+      const patchInfoPath = path.join(TEST_USER_DATA, 'updates', 'patch-info.json');
+      const patchInfoBefore = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
+        fileName: string;
+      };
+      const stagedPatchPath = path.join(TEST_USER_DATA, 'updates', patchInfoBefore.fileName);
+
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+
+      await vi.waitFor(() => {
+        expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
+          status: 'ready',
+          version: '0.0.65',
+          errorCode: 'windows_vc_runtime_missing',
+        });
+      });
+      const patchInfoAfter = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
+        applyAttempts?: number;
+      };
+      expect(patchInfoAfter.applyAttempts).toBeUndefined();
+      expect(fs.existsSync(stagedPatchPath)).toBe(true);
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(exitSpy).not.toHaveBeenCalled();
+      expect(service.isUpdateRelaunchImminent()).toBe(false);
+    } finally {
+      exitSpy.mockRestore();
+      service.stopUpdateService();
+    }
+  });
+
+  it.each([
+    { stageResult: 'fallback-safe' as const, prerequisiteChecks: 2 },
+    { stageResult: 'blocked' as const, prerequisiteChecks: 1 },
+  ])('keeps the patch and retry count when Runtime staging is $stageResult', async ({
+    stageResult,
+    prerequisiteChecks,
+  }) => {
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: false });
+    checkWindowsUpdaterPrerequisites
+      .mockReturnValueOnce({ satisfied: true, missingFiles: [] })
+      .mockReturnValue({
+        satisfied: false,
+        missingFiles: ['vcruntime140.dll', 'vcruntime140_1.dll'],
+      });
+    stageBundledWindowsUpdaterRuntime.mockReturnValue(stageResult);
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+
+    const resourcesPath = path.join(TEST_ROOT, 'resources');
+    fs.mkdirSync(resourcesPath, { recursive: true });
+    fs.writeFileSync(path.join(resourcesPath, 'cindy-updater.exe'), 'updater');
+    const resourcesPathDescriptor = Object.getOwnPropertyDescriptor(process, 'resourcesPath');
+    Object.defineProperty(process, 'resourcesPath', {
+      value: resourcesPath,
+      configurable: true,
+    });
+    const now = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now);
+    const updaterWorkDir = path.join(os.tmpdir(), `cindy-update-${now}`);
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(updateManifest('0.0.65'))).resolves.toBe('ready');
+      const patchInfoPath = path.join(TEST_USER_DATA, 'updates', 'patch-info.json');
+      const patchInfoBefore = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
+        fileName: string;
+      };
+      const stagedPatchPath = path.join(TEST_USER_DATA, 'updates', patchInfoBefore.fileName);
+
+      ipcListeners.get('update-relaunch')?.({}, 'dark');
+
+      await vi.waitFor(() => {
+        expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(prerequisiteChecks);
+        expect(ipcHandlers.get('update-get-status')?.()).toMatchObject({
+          status: 'ready',
+          version: '0.0.65',
+          errorCode: 'windows_vc_runtime_missing',
+        });
+      });
+      if (stageResult === 'fallback-safe') {
+        expect(checkWindowsUpdaterPrerequisites).toHaveBeenNthCalledWith(2, undefined, '');
+      }
+      const patchInfoAfter = JSON.parse(fs.readFileSync(patchInfoPath, 'utf-8')) as {
+        applyAttempts?: number;
+      };
+      expect(patchInfoAfter.applyAttempts).toBeUndefined();
+      expect(fs.existsSync(stagedPatchPath)).toBe(true);
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(service.isUpdateRelaunchImminent()).toBe(false);
+    } finally {
+      service.stopUpdateService();
+      nowSpy.mockRestore();
+      fs.rmSync(updaterWorkDir, { recursive: true, force: true });
+      if (resourcesPathDescriptor) {
+        Object.defineProperty(process, 'resourcesPath', resourcesPathDescriptor);
+      } else {
+        Reflect.deleteProperty(process, 'resourcesPath');
+      }
+    }
+  });
+
+  it('does not repeatedly auto-relaunch a prerequisite-blocked patch', async () => {
+    vi.useFakeTimers();
+    readAutoUpdateSettings.mockReturnValue({ autoRelaunchOnIdle: true });
+    checkWindowsUpdaterPrerequisites.mockReturnValue({
+      satisfied: false,
+      missingFiles: ['vcruntime140.dll', 'vcruntime140_1.dll'],
+    });
+    download.mockImplementation(async ({ targetPath }: { targetPath: string }) => {
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, 'update');
+      return { path: targetPath, size: 123 };
+    });
+
+    const service = await freshUpdateService('win32');
+    service.initUpdateService();
+    try {
+      await expect(service.checkForUpdate(updateManifest('0.0.65'))).resolves.toBe('ready');
+      await vi.waitFor(() => {
+        expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(1);
+      });
+
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+      expect(checkWindowsUpdaterPrerequisites).toHaveBeenCalledTimes(1);
+      expect(spawnProcess).not.toHaveBeenCalled();
+      expect(service.getUpdateStatus()).toBe('ready');
+      expect(service.isUpdateRelaunchImminent()).toBe(false);
+    } finally {
+      service.stopUpdateService();
+    }
+  });
+});
+
 describe('Windows notify-only updates', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_CINDY_AUTH_REGION', 'cn');
+    appGetVersion.mockReturnValue('0.1.80');
+  });
+
   it('uses the personal official baseline in both startup and manual checks without installing', async () => {
     vi.stubEnv('VITE_CINDY_AUTH_REGION', 'cn');
     appGetVersion.mockReturnValue('0.1.80');
@@ -1796,7 +2442,7 @@ describe('Windows notify-only updates', () => {
     }
   });
   it('reports a newer manifest without downloading or staging it', async () => {
-    const manifest = updateManifest('0.0.65');
+    const manifest = updateManifest('0.1.73');
     const service = await freshUpdateService('win32');
     service.initUpdateService();
     try {
@@ -1804,7 +2450,7 @@ describe('Windows notify-only updates', () => {
       const statusHandler = ipcHandlers.get('update-get-status');
       const status = statusHandler?.();
       expect(result).toBe('available');
-      expect(status).toMatchObject({ status: 'available', version: '0.0.65', errorCode: undefined });
+      expect(status).toMatchObject({ status: 'available', version: '0.1.73', errorCode: undefined });
       expect(download).not.toHaveBeenCalled();
       expect(checkWindowsUpdaterPrerequisites).not.toHaveBeenCalled();
       expect(stageBundledWindowsUpdaterRuntime).not.toHaveBeenCalled();
@@ -1819,16 +2465,16 @@ describe('Windows notify-only updates', () => {
   it('clears stale payloads and refuses both relaunch IPC paths', async () => {
     const updatesDir = path.join(TEST_USER_DATA, 'updates');
     const patchInfoPath = path.join(updatesDir, 'patch-info.json');
-    const stagedPatchPath = path.join(updatesDir, 'xdt-maker-0.0.65.zip');
+    const stagedPatchPath = path.join(updatesDir, 'xdt-maker-0.1.73.zip');
     const reloginFlagPath = path.join(TEST_USER_DATA, 'relogin-required.flag');
     fs.mkdirSync(updatesDir, { recursive: true });
     fs.writeFileSync(stagedPatchPath, 'update');
-    const patchInfo = { version: '0.0.65', fileName: 'xdt-maker-0.0.65.zip', sha256: 'abc' };
+    const patchInfo = { version: '0.1.73', fileName: 'xdt-maker-0.1.73.zip', sha256: 'abc' };
     const patchInfoText = JSON.stringify(patchInfo);
-    const reloginFlagText = JSON.stringify({ version: '0.0.65' });
+    const reloginFlagText = JSON.stringify({ version: '0.1.73' });
     fs.writeFileSync(patchInfoPath, patchInfoText);
     fs.writeFileSync(reloginFlagPath, reloginFlagText);
-    const manifest = updateManifest('0.0.65');
+    const manifest = updateManifest('0.1.73');
     fetchManifest.mockResolvedValue(manifest);
 
     const service = await freshUpdateService('win32');
@@ -1847,9 +2493,9 @@ describe('Windows notify-only updates', () => {
       const reloginFlagExists = fs.existsSync(reloginFlagPath);
       const relaunchImminent = service.isUpdateRelaunchImminent();
 
-      expect(startupResult).toMatchObject({ hasUpdate: true, action: 'none', version: '0.0.65' });
+      expect(startupResult).toMatchObject({ hasUpdate: true, action: 'none', version: '0.1.73' });
       expect(autoRelaunchResult).toEqual({ accepted: false, blockReason: 'not-ready' });
-      expect(status).toMatchObject({ status: 'available', version: '0.0.65' });
+      expect(status).toMatchObject({ status: 'available', version: '0.1.73' });
       expect(patchInfoExists).toBe(false);
       expect(stagedPatchExists).toBe(false);
       expect(reloginFlagExists).toBe(false);
@@ -1865,8 +2511,8 @@ describe('Windows notify-only updates', () => {
   });
 
   it('returns to idle when the manifest no longer advertises an upgrade', async () => {
-    const newerManifest = updateManifest('0.0.65');
-    const currentManifest = updateManifest('0.0.64');
+    const newerManifest = updateManifest('0.1.73');
+    const currentManifest = updateManifest('0.1.72');
     const service = await freshUpdateService('win32');
     service.initUpdateService();
     try {
