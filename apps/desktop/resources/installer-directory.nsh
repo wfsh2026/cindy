@@ -1,8 +1,5 @@
 ; Replace only the assisted directory page. Keep electron-builder's install
 ; section, registry layout and UAC broker, including current-user installs.
-!ifndef CINDY_INSTALLER_RESOURCES
-  !define CINDY_INSTALLER_RESOURCES "${__FILEDIR__}"
-!endif
 !ifndef BUILD_UNINSTALLER
 !include LogicLib.nsh
 !include FileFunc.nsh
@@ -65,7 +62,7 @@ Var cindyDirectoryMessage
 
 !macro customHeader
   !ifndef BUILD_UNINSTALLER
-    !include "${CINDY_INSTALLER_RESOURCES}\installer-directory-messages.nsh"
+    !include "${BUILD_RESOURCES_DIR}\installer-directory-messages.nsh"
 
     Function CindyGetUserSid
       StrCpy $cindyUserSid ""

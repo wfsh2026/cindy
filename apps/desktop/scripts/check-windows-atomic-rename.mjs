@@ -50,6 +50,7 @@ try {
   clearInterval(poll);
   assert.equal(exitCode, 0, 'native helper failed');
   assert.equal(missingObservations, 0, '.active disappeared during publication');
+  assert.equal(fs.readlinkSync(active), second, 'the exact destination entry must be replaced');
   assert.equal(fs.readFileSync(path.join(active, 'SKILL.md'), 'utf8'), 'second');
   assert.equal(fs.existsSync(replacement), false);
 

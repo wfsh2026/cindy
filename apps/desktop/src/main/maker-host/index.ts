@@ -134,7 +134,7 @@ import { createToolResultImageDescriptor } from '../vision-bridge/tool-result-im
 import * as blobStore from '../cindy-media/blobStore.js';
 import { buildPiVisionBridgeEnv } from '../vision-bridge/pi-vision-bridge-env.js';
 import { resolveVisionBackendRoute, setVisionGatewayKeyReader } from './provider-route.js';
-import { resolveSessionCcDebugFile } from '../logger.js';
+import { resolveSessionCcDebugFile, trackSessionCcDebugFile } from '../logger.js';
 import { resetProviderModelAutoRefreshCooldowns } from './provider-model-auto-refresh.js';
 import { getThinkingEnabledFromMemory } from './newMakerDefaultsCache.js';
 import { getSessionFastMode } from './session-effort-store.js';
@@ -801,6 +801,10 @@ export function listBotCreationCapabilities(input: Parameters<ReturnType<typeof 
   return createDesktopBotCapabilityService().forCreation(input);
 }
 
+export function listBotSettingsCapabilities(input: Parameters<ReturnType<typeof createBotCapabilityService>['forSettings']>[0]) {
+  return createDesktopBotCapabilityService().forSettings(input);
+}
+
 /** Settings IPC reuses the model-side catalog at its save boundary. */
 export async function validateBotCapabilityAdditions(update: BotCapabilityUpdate): Promise<void> {
   await createDesktopBotCapabilityService().validateAdditions(update);
@@ -1167,6 +1171,7 @@ export function getMaker(): Maker {
       // 每个 session 的 cc 子进程 debug 写到 sessions/<id>/cc-debug.raw.log (logger 拼路径
       // + mkdir), tailer 再归一化汇入该 session 的 <date>.ndjson。
       resolveCcDebugFile: resolveSessionCcDebugFile,
+      trackCcDebugFile: trackSessionCcDebugFile,
       mcpProviders: claudeMcpProviders,
       capabilityRouting: DESKTOP_CAPABILITY_ROUTING_POLICY,
       makerMemory: makerMemoryManager,
@@ -1931,7 +1936,7 @@ export function getMaker(): Maker {
       prepareCodexResumeSession: async (threadId) => {
         if (!getActiveAppSession().dataOwnerId) return prepareExternalCodexSessionForResume(threadId);
         const locations = new CodexThreadLocations(path.join(codexAccountHome('thread-index'), 'locations'));
-        return await locations.read(threadId) ?? await prepareExternalCodexSessionForResume(threadId);
+        return locations.prepareResume(threadId, prepareExternalCodexSessionForResume);
       },
       resolveCodexThreadStorage: async (threadId) => {
         if (!getActiveAppSession().dataOwnerId) return;

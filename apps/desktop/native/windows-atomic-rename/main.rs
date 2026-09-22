@@ -112,6 +112,9 @@ fn atomic_replace(source: &Path, destination: &Path) -> io::Result<()> {
         })?;
     let buffer_size = name_offset
         .checked_add(name_bytes)
+        // SetFileInformationByHandle converts absolute DOS paths using a
+        // NUL-terminated string. FileNameLength still excludes this terminator.
+        .and_then(|length| length.checked_add(size_of::<u16>()))
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "rename buffer is too large"))?;
     let buffer_size_u32 = u32::try_from(buffer_size)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "rename buffer is too large"))?;

@@ -587,13 +587,26 @@ describe('built-in Skills', () => {
     const root = path.join(input.appDataDir, 'Cindy', 'shared-system-skills');
     const orphanBundle = 'v10-aaaaaaaaaaaaaaaa-00000000-0000-0000-0000-000000000000';
     const orphanRoot = path.join(root, '.versions', orphanBundle);
-    fs.cpSync(path.dirname(initial.descriptors[0]!.absolutePath), orphanRoot, { recursive: true });
+    // Copy the immutable bundle, not its .active junction/symlink. The orphan
+    // must be a separate directory, including on Windows without symlink rights.
+    const bundleRoot = fs.realpathSync(path.dirname(initial.descriptors[0]!.absolutePath));
+    fs.cpSync(bundleRoot, orphanRoot, {
+      recursive: true,
+      dereference: true,
+    });
+    expect(fs.lstatSync(orphanRoot).isSymbolicLink()).toBe(false);
+    expect(fs.lstatSync(orphanRoot).isDirectory()).toBe(true);
+    expect(fs.realpathSync(orphanRoot)).not.toBe(bundleRoot);
     const creatorLink = path.join(input.homeDir, '.agents', 'skills', 'cindy-skill-creator');
     fs.unlinkSync(creatorLink);
     fs.symlinkSync(
       path.join(orphanRoot, 'cindy-skill-creator'),
       creatorLink,
       process.platform === 'win32' ? 'junction' : 'dir',
+    );
+
+    expect(fs.realpathSync(creatorLink)).not.toBe(
+      fs.realpathSync(initial.descriptors[0]!.absolutePath),
     );
 
     const repaired = await prepareBuiltInSkills(input);

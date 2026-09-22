@@ -3452,6 +3452,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // 计算本地 skill 文件夹 hash（30s 缓存在 renderer 侧）
     // manifest 是参与 hash 的文件清单(path + sha256),用于 dirty 排查
+    comparePublished: (params: import('../shared/skillhubPublishComparison').SkillhubPublishComparisonParams): Promise<import('../shared/skillhubPublishComparison').SkillhubPublishComparison> => ipcRenderer.invoke('skillhub:compare-published', params),
+
     getFolderHash: (
       absolutePath: string,
     ): Promise<{
@@ -3590,7 +3592,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     uninstall: (
       absolutePath: string,
       skillId?: string,
-    ): Promise<{ success: true; cleanupToken?: string } | { success: false; errorCode: string; message: string }> =>
+    ): Promise<
+      | { success: true; cleanupToken?: string } | { success: false; errorCode: string; message: string }> =>
       ipcRenderer.invoke('skillhub:uninstall', { absolutePath, skillId }),
 
     retryUninstallCleanup: (token: string): Promise<{ complete: boolean }> =>
@@ -4017,9 +4020,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     action: import('../shared/cindyMakeHistory').MakeHistoryAction,
   ): Promise<import('../shared/cindyMakeHistory').CindyMakeHistoryState> =>
     ipcRenderer.invoke('app:cindy-make-history-action', runId, action),
-  generateCindyMakePersonal: (): Promise<
-    import('../shared/cindyMakeHistory').CindyMakeHistoryState
-  > => ipcRenderer.invoke('app:cindy-make-history-build'),
+  generateCindyMakePersonal: (
+    selection?: import('../shared/cindyMakeHistory').MakeHistoryBuildSelection[],
+  ): Promise<import('../shared/cindyMakeHistory').CindyMakeHistoryState> =>
+    ipcRenderer.invoke('app:cindy-make-history-build', selection),
   cancelCindyMakePersonal: (
     buildId: string,
   ): Promise<import('../shared/cindyMakeHistory').CindyMakeHistoryState> =>
@@ -4091,7 +4095,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('log-upload:settings-get'),
   setLogUploadCrashAuto: (enabled: boolean): Promise<LogUploadSettingsPayload> =>
     ipcRenderer.invoke('log-upload:set-crash-auto', enabled === true),
-  /** 恢复默认:删掉开关 override,重新跟随当前版本默认值(默认关闭)。 */
+  /** 恢复默认:删掉 override,重新跟随当前版本默认的“已有 Git 项目”模式。 */
   resetLogUploadCrashAuto: (): Promise<LogUploadSettingsPayload> =>
     ipcRenderer.invoke('log-upload:reset-crash-auto'),
   /** 手动上传一次。失败以 IPC 错误码返回(LOG_UPLOAD_* / PRIVACY_CONSENT_REQUIRED)。 */
@@ -5577,6 +5581,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       /** Small invalidation push; consumers re-read through list/detail. */
       onChanged: createIpcFanOut('local-db:subagent-runs:changed'),
     },
+    taskTags: {
+      onChanged: createIpcFanOut('local-db:task-tags:changed'),
+      execute: (
+        request: import('@cindy/maker-shared').TaskTagRequest,
+      ): Promise<import('@cindy/maker-shared').TaskTagResult> =>
+        ipcRenderer.invoke('local-db:task-tags:execute', request),
+    },
     projectAliases: {
       list: (): Promise<unknown> => ipcRenderer.invoke('local-db:project-aliases:list'),
       set: (input: { projectKey: string; alias: string }): Promise<unknown> =>
@@ -7027,22 +7038,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }> => ipcRenderer.invoke('maker:chat-embedding:reset', owner),
 
     // Git safety workflow —— 控制 turn end 自动 XDT snapshot commit。
-    // 默认 false; Codex rewind 按钮跟随该开关显示。
+    // 三态默认只覆盖已有 Git 项目；Codex 对话编辑不依赖此开关。
     gitSafetyGet: (): Promise<{
+      mode: 'off' | 'existing-git' | 'all-projects';
       autoSnapshotEnabled: boolean;
+      autoInitProjectGit: boolean;
       isCustomized: boolean;
+      defaultMode: 'off' | 'existing-git' | 'all-projects';
       defaultAutoSnapshotEnabled: boolean;
     }> => ipcRenderer.invoke('maker:git-safety:get'),
     gitSafetySet: (
-      enabled: boolean,
+      mode: 'off' | 'existing-git' | 'all-projects' | boolean,
     ): Promise<{
+      mode: 'off' | 'existing-git' | 'all-projects';
       autoSnapshotEnabled: boolean;
+      autoInitProjectGit: boolean;
       isCustomized: boolean;
+      defaultMode: 'off' | 'existing-git' | 'all-projects';
       defaultAutoSnapshotEnabled: boolean;
-    }> => ipcRenderer.invoke('maker:git-safety:set', enabled),
+    }> => ipcRenderer.invoke('maker:git-safety:set', mode),
     gitSafetyReset: (): Promise<{
+      mode: 'off' | 'existing-git' | 'all-projects';
       autoSnapshotEnabled: boolean;
+      autoInitProjectGit: boolean;
       isCustomized: boolean;
+      defaultMode: 'off' | 'existing-git' | 'all-projects';
       defaultAutoSnapshotEnabled: boolean;
     }> => ipcRenderer.invoke('maker:git-safety:reset'),
 
@@ -7363,7 +7383,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     rewindCommit: (
       sessionId: string,
       clientId: string,
-      opts?: { requireLatestUser?: boolean; stopIfRunning?: boolean },
+      opts?: { requireLatestUser?: boolean; stopIfRunning?: boolean; allowFileRestore?: boolean },
     ): Promise<unknown> => ipcRenderer.invoke('maker:rewind:commit', sessionId, clientId, opts),
     fork: (sourceSessionId: string, messageClientId: string): Promise<unknown> =>
       ipcRenderer.invoke('maker:fork', sourceSessionId, messageClientId),

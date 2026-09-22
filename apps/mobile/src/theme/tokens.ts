@@ -20,6 +20,20 @@ export interface ThemeColors {
   subagentIdentity2: string;
   subagentIdentity3: string;
   subagentIdentity4: string;
+  taskTagRed: string;
+  taskTagOrange: string;
+  taskTagYellow: string;
+  taskTagGreen: string;
+  taskTagBlue: string;
+  taskTagPurple: string;
+  taskTagGray: string;
+  taskTagPink: string;
+  taskTagCoral: string;
+  taskTagTeal: string;
+  taskTagIndigo: string;
+  taskTagWhite: string;
+  taskTagWhiteCheck: string;
+
   /** 页面 Surface 背景 */
   surface: string;
   /** 抬一层的 Card / 弹窗 / 输入框 */
@@ -375,6 +389,20 @@ export const loginPalettes: Record<ThemeMode, LoginSkinColors> = {
 export const lightColors: ThemeColors = {
   subagentIdentity1: '#9b72cf', subagentIdentity2: '#619d4b', subagentIdentity3: '#558dc0', subagentIdentity4: '#b48c42',
   surface: '#EDEDED',
+  taskTagRed: '#ed615f',
+  taskTagOrange: '#eea34e',
+  taskTagYellow: '#e5c744',
+  taskTagGreen: '#70b568',
+  taskTagBlue: '#609bd4',
+  taskTagPurple: '#ab7bc6',
+  taskTagGray: '#969696',
+  taskTagPink: '#df83b0',
+  taskTagCoral: '#de8970',
+  taskTagTeal: '#53a89d',
+  taskTagIndigo: '#7c83cf',
+  taskTagWhite: '#ffffff',
+  taskTagWhiteCheck: '#525252',
+
   surfaceElevated: '#F8F8F8',
   surfaceTranslucent: 'rgba(237, 237, 237, 0.78)',
   surfaceTranslucentSidebar: 'rgba(246, 246, 246, 0.90)',
@@ -449,6 +477,19 @@ export const lightColors: ThemeColors = {
 export const darkColors: ThemeColors = {
   subagentIdentity1: '#c4a1ef', subagentIdentity2: '#9aca85', subagentIdentity3: '#91bdea', subagentIdentity4: '#dfbc77',
   surface: '#2A2828',
+  taskTagRed: '#ed615f',
+  taskTagOrange: '#eea34e',
+  taskTagYellow: '#e5c744',
+  taskTagGreen: '#70b568',
+  taskTagBlue: '#609bd4',
+  taskTagPurple: '#ab7bc6',
+  taskTagGray: '#969696',
+  taskTagPink: '#e79fc1',
+  taskTagCoral: '#e6a08c',
+  taskTagTeal: '#75bfb4',
+  taskTagIndigo: '#999fdf',
+  taskTagWhite: '#ffffff',
+  taskTagWhiteCheck: '#525252',
   surfaceElevated: '#312F2F',
   surfaceTranslucent: 'rgba(42, 40, 40, 0.78)',
   surfaceTranslucentSidebar: 'rgba(18, 15, 15, 0.85)',
@@ -745,4 +786,22 @@ export const motionEasing = {
   in: [0.4, 0, 1, 1],
   /** 位置 / 尺寸插值 */
   move: [0.4, 0, 0.2, 1],
+} as const;
+
+/** Shared size for floating iOS navigation/menu controls (points). */
+export const navigationChrome = {
+  target: 44,
+  // Match navigation foreground polarity; backing stays local to the glass shape.
+  clear: {
+    light: {
+      foreground: '#000000',
+      scrim: 'rgba(255, 255, 255, 0.35)',
+      selected: 'rgba(0, 0, 0, 0.10)',
+    },
+    dark: {
+      foreground: '#FFFFFF',
+      scrim: 'rgba(0, 0, 0, 0.35)',
+      selected: 'rgba(255, 255, 255, 0.18)',
+    },
+  },
 } as const;
