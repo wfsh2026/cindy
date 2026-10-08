@@ -24,7 +24,10 @@ describe('sidebar collapse reset wiring', () => {
 
   it('resets project session showAll on project collapse and on Projects section collapse', () => {
     expect(projectNodeSource).toContain('parentSectionCollapsed: boolean');
-    expect(projectNodeSource).toContain('sectionCollapsed={isCollapsed || parentSectionCollapsed}');
+    expect(projectNodeSource).toContain('sectionCollapsed: isCollapsed || parentSectionCollapsed');
+    expect(projectNodeSource).toContain('listProps={listProps}');
+    const taskFoldersSource = readSidebarSource('ProjectTaskFolders.tsx');
+    expect(taskFoldersSource).toContain('<SessionEntryList {...listProps} />');
     // 2026-08-13 定稿:主列表段级收起随「标题 = 范围下拉」取消,parent 恒为 false
     //(prop 保留:置顶段等其它宿主仍在用)。
     expect(projectsSectionSource).toContain('parentSectionCollapsed={false}');

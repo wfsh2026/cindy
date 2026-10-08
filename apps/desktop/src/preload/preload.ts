@@ -5216,6 +5216,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Sidebar identity state is owner-scoped in main and every mutation/push is generation-fenced.
+  taskFolders: {
+    execute: (request: import('../shared/taskFolders').TaskFolderRequest): Promise<import('../shared/taskFolders').TaskFolderSnapshot> => ipcRenderer.invoke('sidebar:task-folders:execute', request),
+    onChanged: (callback: (snapshot: import('../shared/taskFolders').TaskFolderSnapshot) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, snapshot: import('../shared/taskFolders').TaskFolderSnapshot) => callback(snapshot);
+      ipcRenderer.on('sidebar:task-folders:changed', listener);
+      return () => { ipcRenderer.removeListener('sidebar:task-folders:changed', listener); };
+    },
+  },
   sidebarSettings: {
     claimLegacyRendererOwner: (): SidebarLegacyRendererOwnerClaim => {
       const value: unknown = ipcRenderer.sendSync(

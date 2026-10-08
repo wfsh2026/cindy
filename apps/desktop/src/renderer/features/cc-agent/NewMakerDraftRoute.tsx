@@ -1,3 +1,5 @@
+import { executeTaskFolder, folderProjectKey } from './sidebar/taskFoldersStore';
+import { projectIdentityKeyForSession } from './lib/projectGrouping';
 import { isModelEnabled, useModelVisibilityVersion } from '@/state/modelVisibilityPrefs';
 /**
  * NewMakerDraftRoute —— "/cc-agent/new" 路由组件:transient draft,无后端 session。
@@ -720,7 +722,23 @@ export function NewMakerDraftRoute() {
   // Icon-only mode is reserved for the tighter toolbar state, not merely a
   // moderately narrow content rail (for example, when attachments are present).
   const isDraftToolbarNarrow = inputWidthBand <= 1;
-  const { createSession, error: createSessionError } = useCCSessions();
+  const { createSession: createSessionBase, error: createSessionError } = useCCSessions();
+  const createSession = useCallback(async (...args: Parameters<typeof createSessionBase>) => {
+    const target = draft.taskFolder;
+    const owner = getDataOwnerGeneration();
+    const stamp = { dataOwnerId: owner.dataOwnerId, ownerGeneration: owner.generation };
+    const session = await createSessionBase(...args);
+    if (session && target) {
+      const rawKey = projectIdentityKeyForSession(session);
+      const key = rawKey ? folderProjectKey(rawKey) : null;
+      if (key === target.projectKey) {
+        const command = { action: 'move' as const, projectKey: key, folderId: target.folderId, sessionIds: [session.id] };
+        try { await executeTaskFolder(command, stamp); }
+        catch { const message = t('ccAgent.sidebar.taskFolders.createdUnfiled'); toast.warning(message); }
+      }
+    }
+    return session;
+  }, [createSessionBase, draft.taskFolder, t]);
   const vendorAuthGate = useVendorAuthGate();
   const refreshWorktreeForSession = useRefreshWorktreeForSession();
 

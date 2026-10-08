@@ -1,3 +1,5 @@
+import { inheritTaskFolder } from '../taskFolderStore';
+import { getActiveDataOwnerPushStamp } from '../appSessionState';
 /**
  * fork-session：消息级 fork 业务函数。
  *
@@ -738,6 +740,7 @@ export async function forkSessionAtMessage(
   sourceSessionId: string,
   messageClientId: string,
 ): Promise<Session> {
+  const folderOwner = getActiveDataOwnerPushStamp();
   const db = getDbClient().drizzle;
 
   // 1. 读 source session
@@ -1040,10 +1043,12 @@ export async function forkSessionAtMessage(
       reason: forkSource.rebuildReason,
     });
   }
+  await inheritTaskFolder(sourceSessionId, row.id, folderOwner);
   return sessionToCamel({ ...row, messageCount: sourceMessages.length + (recoveryMarker ? 1 : 0) });
 }
 
 export async function forkSessionStripEncrypted(sourceSessionId: string): Promise<Session> {
+  const folderOwner = getActiveDataOwnerPushStamp();
   const db = getDbClient().drizzle;
 
   const [source] = await db
@@ -1196,5 +1201,6 @@ export async function forkSessionStripEncrypted(sourceSessionId: string): Promis
   if (!row) {
     throw new Error('Fork session 创建后查询失败');
   }
+  await inheritTaskFolder(sourceSessionId, row.id, folderOwner);
   return sessionToCamel({ ...row, messageCount: sourceMessages.length + (recoveryMarker ? 1 : 0) });
 }

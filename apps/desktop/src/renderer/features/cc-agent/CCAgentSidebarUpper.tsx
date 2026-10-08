@@ -1,3 +1,5 @@
+import { TaskFolderCatalogueProvider } from './sidebar/taskFolderCatalogue';
+import { TaskFolderDialogs, TaskFolderBulkMove } from './sidebar/TaskFolderDialogs';
 import { shouldShowOpenPathError } from '../../../shared/openPathResult';
 /**
  * CCAgentFeature 的 Sidebar 上半内容。
@@ -3459,9 +3461,10 @@ function ExpandedView({
   const bulkActionDisabled = bulkActionPending !== null;
 
   return (
-    <>
+    <TaskFolderCatalogueProvider sessions={allSessionsForAttention}>
       {/* 顶部动作(新建 / 搜索 / 自动任务)已上移到 shell 的 SidebarTopNav 常驻列表;
           这里直接从多选操作条 / 列表内容开始。 */}
+      <TaskFolderDialogs sessions={allSessionsForAttention} onSessionClick={handleSessionClick} attentionIds={sidebarNotifications} runningIds={displayRunningSessionIds} />
       {selectedSessionIds.size > 0 && (
         <div className="px-3 pb-2">
           <div
@@ -3474,6 +3477,7 @@ function ExpandedView({
             <span className="min-w-0 flex-1 truncate text-xs font-medium">
               {t('ccAgent.sidebar.bulkSelection.selected', { count: selectedSessionIds.size })}
             </span>
+            <TaskFolderBulkMove sessions={selectedSessions} />
             <Tip text={bulkArchiveLabel} side="bottom">
               <span
                 role={bulkArchiveDisabled ? 'button' : undefined}
@@ -3869,7 +3873,7 @@ function ExpandedView({
         onRemoveProjectFromSidebar={handleRemoveProjectFromSidebar}
       />
       {deleteScheduleDialog}
-    </>
+    </TaskFolderCatalogueProvider>
   );
 }
 

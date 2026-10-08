@@ -1,3 +1,4 @@
+import { TaskFolderMoveItem } from './TaskFolderDialogs';
 import { TaskTagMenuSection, TaskTagEditor, TaskTagDots } from '@/features/task-tags/TaskTags';
 /**
  * SessionCard — sidebar-card-mode 下的单条会话卡片（SessionItem 的瀑布流形态）
@@ -1086,6 +1087,7 @@ export const SessionCard = withSidebarNavigation<SessionCardProps>(function Sess
             onClick={(e) => e.stopPropagation()}
             className={cn(MENU_CONTENT_CLASS, 'min-w-32 overflow-hidden')}
           >
+            <TaskFolderMoveItem session={session} />
             {isArchived ? (
               <>
                 <DropdownMenuItem

@@ -13,6 +13,8 @@ import { searchConversations } from '@/lib/conversationSearchService';
 import { ConversationSearchBox } from '@/features/cc-agent/sidebar/ConversationSearchBox';
 import type { ProjectNode as ProjectNodeData } from '@/features/cc-agent/lib/projectGrouping';
 
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ dataOwnerId: null, dataOwnerGeneration: 0 }) }));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: Record<string, unknown>) => {

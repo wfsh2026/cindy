@@ -4447,6 +4447,10 @@ interface ElectronAPI {
     }) => Promise<import('@/lib/gitReview.types').ReviewPushResult>;
   };
 
+  taskFolders: {
+    execute: (request: import('../shared/taskFolders').TaskFolderRequest) => Promise<import('../shared/taskFolders').TaskFolderSnapshot>;
+    onChanged: (callback: (snapshot: import('../shared/taskFolders').TaskFolderSnapshot) => void) => () => void;
+  };
   sidebarSettings: {
     claimLegacyRendererOwner: () => import('../shared/sidebarSettings').SidebarLegacyRendererOwnerClaim;
     loadSnapshot: () => import('../shared/sidebarSettings').SidebarSettingsSnapshot;

@@ -92,6 +92,7 @@ export interface CollabDraft {
 }
 
 export interface NewMakerDraft {
+  taskFolder?: { projectKey: string; folderId: string } | null;
   /** 当前选中的 vendor。默认 'cc',用户切换后写回 + 持久化。 */
   vendor: MakerVendor;
   /** 选中的 workingDir;初次 null,Project 行内 + 会预填到此。 */
@@ -814,6 +815,7 @@ export function patchDraft(patch: Partial<NewMakerDraft>): void {
   // 避免项目切换、草稿恢复或未来的通用 patch 调用方绕过「仅 checkbox 修改」契约。
   delete normalizedPatch.worktreeEnabled;
   delete normalizedPatch.worktreePreferenceCustomized;
+  if (('workingDir' in normalizedPatch || 'deviceLinkDeviceId' in normalizedPatch || 'remoteHostId' in normalizedPatch) && !('taskFolder' in normalizedPatch)) normalizedPatch.taskFolder = null;
   if ('workingDir' in normalizedPatch) {
     normalizedPatch.workingDir = normalizeDraftWorkingDir(normalizedPatch.workingDir);
   }

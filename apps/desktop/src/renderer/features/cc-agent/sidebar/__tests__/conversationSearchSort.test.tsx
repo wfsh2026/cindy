@@ -17,6 +17,8 @@ import { SearchFilterMenu, useConversationSearch } from '../ConversationSearchBo
 import { searchConversations } from '@/lib/conversationSearchService';
 import type { ProjectNode as ProjectNodeData } from '../../lib/projectGrouping';
 
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ dataOwnerId: null, dataOwnerGeneration: 0 }) }));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, args?: Record<string, unknown>) =>

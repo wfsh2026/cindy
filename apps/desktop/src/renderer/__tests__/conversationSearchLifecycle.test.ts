@@ -6,6 +6,8 @@ import { searchConversations } from '@/lib/conversationSearchService';
 import type { ConversationSearchResponse } from '../../shared/conversationSearch';
 import type { ProjectNode } from '@/features/cc-agent/lib/projectGrouping';
 
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ dataOwnerId: null, dataOwnerGeneration: 0 }) }));
+
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('@/lib/conversationSearchService', () => ({ searchConversations: vi.fn() }));
 

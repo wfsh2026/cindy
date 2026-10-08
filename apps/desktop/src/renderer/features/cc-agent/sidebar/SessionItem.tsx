@@ -1,3 +1,4 @@
+import { TaskFolderMoveItem } from './TaskFolderDialogs';
 import { TaskTagMenuSection, TaskTagEditor, TaskTagDots } from '@/features/task-tags/TaskTags';
 /**
  * SessionItem — 单条 CCS 会话行
@@ -1260,6 +1261,7 @@ export const SessionItem = withSidebarNavigation<SessionItemProps>(function Sess
             // (如「复制 SDK Session ID」)按 Radix 内容自适应,避免被截断。
             className={cn(MENU_CONTENT_CLASS, 'min-w-32 overflow-hidden')}
           >
+            <TaskFolderMoveItem session={session} />
             {isArchived ? (
               <>
                 {/* Archived 变体：Rename / Unarchive / [Copy Session ID submenu] / Delete */}

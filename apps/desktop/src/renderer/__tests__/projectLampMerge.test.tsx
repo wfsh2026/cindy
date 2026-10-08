@@ -7,6 +7,9 @@ import {
   type ProjectNodeProps,
 } from '../features/cc-agent/sidebar/sections/ProjectNode';
 
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ dataOwnerId: null, dataOwnerGeneration: 0 }) }));
+vi.mock('@/components/ui/confirm-dialog-provider', () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
+
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('@/components/ui/tooltip', () => ({
   Tip: ({ children }: { children: React.ReactNode }) => children,

@@ -41,7 +41,10 @@ import { toast } from '@/lib/toast';
 import { buildProjectDeepLink } from '@/lib/deepLink';
 import { createLogger } from '@/lib/logger';
 import { SectionCollapse } from '../SectionCollapse';
-import { SessionEntryList } from '../SessionEntryList';
+import { ProjectTaskFolders } from '../ProjectTaskFolders';
+import { useTaskFolders, folderProjectKey } from '../taskFoldersStore';
+import { openTaskFolderDialog } from '../taskFolderActions';
+import type { SessionEntryListProps } from '../SessionEntryList';
 import type { SessionClickHandler } from '../SessionItem';
 import type { ProjectNode as ProjectNodeData } from '../../lib/projectGrouping';
 import type {
@@ -172,6 +175,35 @@ export const ProjectNode = memo(function ProjectNode({
   onBrowseFiles,
   onArchiveAll,
 }: ProjectNodeProps) {
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const createFolder = () => {
+    if (isCollapsed) onToggle(project.projectKey);
+    setCreatingFolder(true);
+  };
+  const collapseLimit = getProjectSessionCollapseLimit();
+  const listProps: SessionEntryListProps = {
+    sessions: displaySessions ?? project.sessions,
+    activeSessionId,
+    runningSessionIds,
+    attachedSessionIds,
+    notifications,
+    scheduleSessionIndex,
+    selectedSessionIds,
+    collapsible: true,
+    collapseLimit,
+    disableCollapse: disableSessionCollapse,
+    foldExemptSessionIds,
+    sectionCollapsed: isCollapsed || parentSectionCollapsed,
+    onSessionClick,
+    onAction,
+    onRename,
+    onTogglePin,
+    onMoveSession,
+    projectOptions,
+    onScheduleAction,
+    indented: true,
+    sessionVariant,
+  };
   return (
     // 两个 data 属性各自服务不同消费者:
     //   - data-project-working-dir : Sortable drop-target 识别 (历史: ProjectsSection 手写拖拽热区,
@@ -184,6 +216,7 @@ export const ProjectNode = memo(function ProjectNode({
       className={cn('relative flex flex-col w-full select-none')}
     >
       <ProjectHeader
+        onCreateFolder={createFolder}
         project={project}
         currentProjectKey={currentProjectKey}
         statusFilter={statusFilter}
@@ -219,28 +252,13 @@ export const ProjectNode = memo(function ProjectNode({
             sessionVariant === 'list' ? 'pl-3' : 'pl-0',
           )}
         >
-          <SessionEntryList
-            sessions={displaySessions ?? project.sessions}
-            activeSessionId={activeSessionId}
-            runningSessionIds={runningSessionIds}
-            attachedSessionIds={attachedSessionIds}
-            notifications={notifications}
-            scheduleSessionIndex={scheduleSessionIndex}
-            selectedSessionIds={selectedSessionIds}
-            collapsible
-            collapseLimit={getProjectSessionCollapseLimit()}
-            disableCollapse={disableSessionCollapse}
-            foldExemptSessionIds={foldExemptSessionIds}
-            sectionCollapsed={isCollapsed || parentSectionCollapsed}
-            onSessionClick={onSessionClick}
-            onAction={onAction}
-            onRename={onRename}
-            onTogglePin={onTogglePin}
-            onMoveSession={onMoveSession}
-            projectOptions={projectOptions}
-            onScheduleAction={onScheduleAction}
-            indented
-            sessionVariant={sessionVariant}
+          <ProjectTaskFolders
+            project={project}
+            statusFilter={statusFilter}
+            creating={creatingFolder}
+            onCreatingChange={setCreatingFolder}
+            onCreateInProject={onCreateInProject}
+            listProps={listProps}
           />
         </div>
       </SectionCollapse>
@@ -269,9 +287,10 @@ type ProjectHeaderProps = Pick<
   | 'linkingCodexProject'
   | 'onBrowseFiles'
   | 'onArchiveAll'
->;
+> & { onCreateFolder: () => void };
 
 const ProjectHeader = memo(function ProjectHeader({
+  onCreateFolder,
   lamp,
   project,
   currentProjectKey,
@@ -293,6 +312,12 @@ const ProjectHeader = memo(function ProjectHeader({
   onArchiveAll,
 }: ProjectHeaderProps) {
   const { t } = useTranslation();
+  const taskFolders = useTaskFolders();
+  const manageFolders = () => {
+    const projectKey = folderProjectKey(project.projectKey);
+    const request = { kind: 'folders' as const, projectKey, projectName: project.displayName };
+    openTaskFolderDialog(request);
+  };
   const isCurrentProject = currentProjectKey === project.projectKey;
   // remote 项目复用本地专属入口（在文件管理器打开 / 复制深链 / 同步 Codex）会按本机
   // 路径误操作或丢失 host 身份，故这些入口对 remote 一律隐藏；host-aware 版本后续单独迭代。
@@ -621,6 +646,16 @@ const ProjectHeader = memo(function ProjectHeader({
           <MountedMenuContent>
             {() => (
               <>
+                {!project.deviceLinkDeviceId && (
+                  <>
+                    <DropdownMenuItem className={MENU_ITEM_CLASS} disabled={!taskFolders.ready} onSelect={onCreateFolder}>
+                      {t('ccAgent.sidebar.taskFolders.create')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className={MENU_ITEM_CLASS} disabled={!taskFolders.ready} onSelect={manageFolders}>
+                      {t('ccAgent.sidebar.taskFolders.moreFolders')}
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuItem
                   onClick={() => {
                     beginRename();

@@ -1,3 +1,5 @@
+import { useTaskFolders } from './taskFoldersStore';
+import { revealTaskFolder } from './taskFolderActions';
 import {
   Fragment,
   useCallback,
@@ -1188,6 +1190,14 @@ function SearchResultRow({
   onSelect: (item: ConversationSearchResultItem, hit?: ConversationSearchResultItem['contentHit']) => void;
 }) {
   const { t } = useTranslation();
+  const taskFolders = useTaskFolders();
+  const member = item.session.deviceLinkDeviceId || item.session.workspaceKind !== 'project'
+    ? null : taskFolders.memberships[item.session.id];
+  const currentProjectKey = projectKeyComparisonKey(item.session.workingDir, window.electronAPI.platform);
+  const matchesProject = member?.projectKey.startsWith('remote:') || member?.projectKey === currentProjectKey;
+  const taskFolder = matchesProject && member?.folderId
+    ? taskFolders.folders.find((folder) => folder.id === member.folderId && folder.projectKey === member.projectKey)
+    : null;
   const [expanded, setExpanded] = useState(false);
   // 与 main 的匹配串同源:未起名会话在结果行里也不能露出英文哨兵,且 titleMatchIndices
   // 就是按这个串算出来的,换成原始 title 会让高亮下标错位。
@@ -1208,6 +1218,7 @@ function SearchResultRow({
     activityText,
     deviceLabel,
     item.session.workingDir,
+    taskFolder?.name,
   ].filter(Boolean).join(' · ');
   const tooltip = (
     <div className="space-y-2">
@@ -1231,7 +1242,7 @@ function SearchResultRow({
       <Tip text={tooltip} side="right" delay={250} contentClassName="max-w-[500px] break-words">
         <button
           type="button"
-          onClick={() => { void onSelect(item); }}
+          onClick={() => { revealTaskFolder(item.session.id); void onSelect(item); }}
           className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left"
         >
           <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--surface-chip)] text-[var(--cmd-palette-item-icon)]">
@@ -1268,7 +1279,7 @@ function SearchResultRow({
               key={hit.messageId}
               hit={hit}
               query={query}
-              onSelect={() => { void onSelect(item, hit); }}
+              onSelect={() => { revealTaskFolder(item.session.id); void onSelect(item, hit); }}
             />
           ))}
           {hiddenHitCount > 0 && (
