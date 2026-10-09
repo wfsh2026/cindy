@@ -1199,7 +1199,7 @@ export function ModelEffortChip({
           // z-[10010]:本 chip 在 ScheduleFormDialog 内,弹层必须盖过对话框(沿用原
           // POPOVER_BASE 的层级——丢了它会渲染在对话框下层、点了"没反应")。
           'z-[10010] overflow-hidden rounded-[12px] p-0 shadow-lg',
-          'bg-[var(--model-dropdown-bg)] border border-[var(--model-dropdown-border)]',
+          'bg-[var(--surface-elevated)] border border-[var(--border-default)]',
           // 宽度由内容自适应(单栏 320;Edit 展开 ~517 向左加宽),与聊天选择器同口径。
           'w-auto',
         )}

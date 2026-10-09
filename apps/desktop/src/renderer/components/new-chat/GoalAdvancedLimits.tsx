@@ -92,8 +92,8 @@ function LimitSelect({
           style={{
             // 宽度严格跟随 trigger(radix popper 暴露的变量),避免 popup 按内容宽度自适应。
             width: 'var(--radix-select-trigger-width)',
-            backgroundColor: 'var(--model-dropdown-bg)',
-            borderColor: 'var(--model-dropdown-border)',
+            backgroundColor: 'var(--surface-elevated)',
+            borderColor: 'var(--border-default)',
           }}
         >
           <Select.Viewport>

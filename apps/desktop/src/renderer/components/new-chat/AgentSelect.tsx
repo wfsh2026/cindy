@@ -409,7 +409,7 @@ export function AgentSelect({
         className={cn(
           isField ? 'w-[var(--radix-popover-trigger-width)]' : 'w-[196px]',
           'overflow-hidden rounded-[12px] border p-2 shadow-[var(--shadow-menu)]',
-          'border-[var(--model-dropdown-border)] bg-[var(--model-dropdown-bg)]',
+          'border-[var(--border-default)] bg-[var(--surface-elevated)]',
           overlayContentClassName,
         )}
       >

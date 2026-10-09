@@ -410,8 +410,8 @@ export function PermissionSelector({
             // 控件更宽或更窄;Radix 语义即 --radix-popover-trigger-width)。行内容自带
             // truncate,窄字段下文案省略号收尾,描述仍有行级 tooltip 兜底。
             'w-[var(--radix-popover-trigger-width)] rounded-[12px] p-2',
-            'bg-[var(--model-dropdown-bg)]',
-            'border border-[var(--model-dropdown-border)]',
+            'bg-[var(--surface-elevated)]',
+            'border border-[var(--border-default)]',
             // 共享 PopoverContent 自带 shadow-md;DESIGN.md §4 面板无阴影(分离感来自
             // 层色/描边),显式压掉。
             'shadow-none',

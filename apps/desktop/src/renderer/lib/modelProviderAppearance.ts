@@ -40,8 +40,10 @@ function subscribePalette(listener: () => void): () => void {
 }
 
 function hasProviderPalette(): boolean {
-  const color = themeService.getColor('model-provider-xd');
-  return color !== null;
+  const selectedBackground = themeService.getColor('model-item-selected-bg');
+  const selectedBorder = themeService.getColor('model-item-selected-border');
+  const providerColor = themeService.getColor('model-provider-xd');
+  return selectedBackground !== null && selectedBorder !== null && providerColor !== null;
 }
 
 /** Only themes that opt into provider colors change; disabling the Mod palette restores Core. */
