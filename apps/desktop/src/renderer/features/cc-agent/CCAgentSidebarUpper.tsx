@@ -1,5 +1,5 @@
 import { TaskFolderCatalogueProvider } from './sidebar/taskFolderCatalogue';
-import { TaskFolderDialogs, TaskFolderBulkMove } from './sidebar/TaskFolderDialogs';
+import { TaskFolderBulkMove } from './sidebar/TaskFolderMenu';
 import { shouldShowOpenPathError } from '../../../shared/openPathResult';
 /**
  * CCAgentFeature 的 Sidebar 上半内容。
@@ -3620,7 +3620,6 @@ function ExpandedView({
     <TaskFolderCatalogueProvider sessions={allSessionsForAttention}>
       {/* 顶部动作(新建 / 搜索 / 自动任务)已上移到 shell 的 SidebarTopNav 常驻列表;
           这里直接从多选操作条 / 列表内容开始。 */}
-      <TaskFolderDialogs sessions={allSessionsForAttention} onSessionClick={handleSessionClick} attentionIds={sidebarNotifications} runningIds={displayRunningSessionIds} />
       {selectedSessionIds.size > 0 && (
         <div className="px-3 pb-2">
           <div

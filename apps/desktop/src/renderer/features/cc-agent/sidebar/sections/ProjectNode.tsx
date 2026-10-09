@@ -42,8 +42,7 @@ import { buildProjectDeepLink } from '@/lib/deepLink';
 import { createLogger } from '@/lib/logger';
 import { SectionCollapse } from '../SectionCollapse';
 import { ProjectTaskFolders } from '../ProjectTaskFolders';
-import { useTaskFolders, folderProjectKey } from '../taskFoldersStore';
-import { openTaskFolderDialog } from '../taskFolderActions';
+import { useTaskFolders } from '../taskFoldersStore';
 import type { SessionEntryListProps } from '../SessionEntryList';
 import type { SessionClickHandler } from '../SessionItem';
 import type { ProjectNode as ProjectNodeData } from '../../lib/projectGrouping';
@@ -313,11 +312,6 @@ const ProjectHeader = memo(function ProjectHeader({
 }: ProjectHeaderProps) {
   const { t } = useTranslation();
   const taskFolders = useTaskFolders();
-  const manageFolders = () => {
-    const projectKey = folderProjectKey(project.projectKey);
-    const request = { kind: 'folders' as const, projectKey, projectName: project.displayName };
-    openTaskFolderDialog(request);
-  };
   const isCurrentProject = currentProjectKey === project.projectKey;
   // remote 项目复用本地专属入口（在文件管理器打开 / 复制深链 / 同步 Codex）会按本机
   // 路径误操作或丢失 host 身份，故这些入口对 remote 一律隐藏；host-aware 版本后续单独迭代。
@@ -650,9 +644,6 @@ const ProjectHeader = memo(function ProjectHeader({
                   <>
                     <DropdownMenuItem className={MENU_ITEM_CLASS} disabled={!taskFolders.ready} onSelect={onCreateFolder}>
                       {t('ccAgent.sidebar.taskFolders.create')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className={MENU_ITEM_CLASS} disabled={!taskFolders.ready} onSelect={manageFolders}>
-                      {t('ccAgent.sidebar.taskFolders.moreFolders')}
                     </DropdownMenuItem>
                   </>
                 )}

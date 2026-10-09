@@ -36,7 +36,7 @@ import {
 } from './TaskMoveSubmenu';
 import { TaskMigrationDialog } from './TaskMigrationDialog';
 import { MENU_ITEM_CLASS, MENU_ROW_CLASS } from './menuStyles';
-import { TaskFolderMoveItem } from './TaskFolderDialogs';
+import { TaskFolderMoveItem } from './TaskFolderMenu';
 
 interface Props {
   session: Session;

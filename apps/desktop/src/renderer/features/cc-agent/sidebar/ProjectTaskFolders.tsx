@@ -22,11 +22,7 @@ import { patchDraft } from '@/state/newMakerDraft';
 import { cn } from '@/lib/utils';
 import { SessionEntryList, type SessionEntryListProps } from './SessionEntryList';
 import { folderProjectKey, taskFolderProject, useTaskFolders } from './taskFoldersStore';
-import {
-  dismissTaskFolderReveal,
-  openTaskFolderDialog,
-  useTaskFolderReveal,
-} from './taskFolderActions';
+import { dismissTaskFolderReveal, useTaskFolderReveal } from './taskFolderActions';
 import { useTaskFolderCatalogue } from './taskFolderCatalogue';
 import { useSessionAttentionKinds } from '@/lib/sessionAttentionStore';
 import { useSessionAttentionUrgencySet } from '../contexts/SessionAttentionUrgencyContext';
@@ -79,6 +75,8 @@ export function ProjectTaskFolders({
   );
   const [temporary, setTemporary] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const [pending, setPending] = useState(false);
   const [over, setOver] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
@@ -91,7 +89,7 @@ export function ProjectTaskFolders({
   }, [preferenceKey]);
   const projectFolders = folders.folders.filter((folder) => folder.projectKey === projectKey);
   const ordinary = listProps.sessions.filter((session) => taskFolderProject(session) !== null);
-  const special = listProps.sessions.filter((session) => taskFolderProject(session) === null);
+  const unfiled = listProps.sessions.filter((session) => folders.folderFor(session) === null);
   const allProjectSessions = catalogue.filter(
     (session) =>
       taskFolderProject(session) === projectKey &&
@@ -110,7 +108,7 @@ export function ProjectTaskFolders({
     lastReveal.current = reveal?.sequence ?? 0;
     if (!changed && !explicitlyRevealed) return;
     const active = ordinary.find((session) => session.id === listProps.activeSessionId);
-    const folderId = active ? (folders.folderFor(active) ?? 'inbox') : null;
+    const folderId = active ? folders.folderFor(active) : null;
     setTemporary(folderId);
   }, [listProps.activeSessionId, ordinary, folders, reveal]);
   const toggle = (id: string) => {
@@ -151,17 +149,16 @@ export function ProjectTaskFolders({
   };
   if (project.deviceLinkDeviceId || (!projectFolders.length && !creating))
     return <SessionEntryList {...listProps} />;
-  const nodes = [{ id: 'inbox', name: t('ccAgent.sidebar.taskFolders.inbox') }, ...projectFolders];
-  const visibleNodes = nodes.slice(0, 11);
-  if (temporary && !visibleNodes.some((item) => item.id === temporary)) {
-    const node = nodes.find((item) => item.id === temporary);
-    if (node) visibleNodes.push(node);
-  }
   const currentNode = ordinary.find((session) => session.id === listProps.activeSessionId);
-  const activeFolder = currentNode ? (folders.folderFor(currentNode) ?? 'inbox') : null;
-  const browseFolders = () => {
-    const request = { kind: 'folders' as const, projectKey, projectName: project.displayName };
-    openTaskFolderDialog(request);
+  const activeFolder = currentNode ? folders.folderFor(currentNode) : null;
+  const saveRename = async () => {
+    const trimmed = renameValue.trim();
+    if (!renaming || !trimmed || pending) return;
+    const command = { action: 'rename' as const, folderId: renaming, name: trimmed };
+    setPending(true);
+    const result = await folders.run(command);
+    setPending(false);
+    if (result) setRenaming(null);
   };
   const createForm = creating && (
     <form
@@ -205,8 +202,8 @@ export function ProjectTaskFolders({
   return (
     <div className="flex flex-col gap-0.5" data-no-drag>
       {createForm}
-      {visibleNodes.map((node) => {
-        const folderId = node.id === 'inbox' ? null : node.id;
+      {projectFolders.map((node, index) => {
+        const folderId = node.id;
         const sessions = ordinary.filter((session) => folders.folderFor(session) === folderId);
         const countedSessions = allProjectSessions.filter(
           (session) => folders.folderFor(session) === folderId,
@@ -220,27 +217,22 @@ export function ProjectTaskFolders({
         };
         const lamp = aggregateSessionLamps(countedSessions, lampContext);
         const status = lamp.dotTone ?? (lamp.running ? 'running' : null);
-        const visible = sessions.slice(0, 5);
-        const active = sessions.find((session) => session.id === listProps.activeSessionId);
-        if (active && !visible.includes(active)) visible[visible.length - 1] = active;
-        const browse = (attentionOnly = false) => {
-          const request = {
-            kind: 'browse' as const,
-            projectKey,
-            projectName: project.displayName,
-            folderId,
-            attentionOnly,
-          };
-          openTaskFolderDialog(request);
-        };
         const createTask = () => {
           onCreateInProject(project);
           const patch = { taskFolder: folderId ? { projectKey, folderId } : null };
           patchDraft(patch);
         };
         const rename = () => {
-          const request = { kind: 'rename' as const, projectKey, folderId, name: node.name };
-          openTaskFolderDialog(request);
+          setRenameValue(node.name);
+          setRenaming(node.id);
+        };
+        const shift = (offset: number) => {
+          const ids = projectFolders.map((folder) => folder.id);
+          const other = index + offset;
+          if (other < 0 || other >= ids.length) return;
+          [ids[index], ids[other]] = [ids[other], ids[index]];
+          const command = { action: 'reorder' as const, projectKey, folderIds: ids };
+          void folders.run(command);
         };
         const remove = async () => {
           const options = {
@@ -249,7 +241,8 @@ export function ProjectTaskFolders({
             confirmText: t('ccAgent.sidebar.taskFolders.delete'),
             cancelText: t('ccAgent.sidebar.taskFolders.cancel'),
           };
-          if (!(await confirm(options))) return;
+          const accepted = await confirm(options);
+          if (!accepted) return;
           const command = { action: 'delete' as const, folderId: node.id };
           await folders.run(command);
         };
@@ -326,32 +319,73 @@ export function ProjectTaskFolders({
                   }
                 />
               )}
-              <Tip text={node.name}>
-                <button
-                  type="button"
-                  draggable={!!folderId}
-                  onDragStart={(event) => {
-                    event.stopPropagation();
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.dataTransfer.setData(FOLDER_MIME, node.id);
+              {renaming === node.id ? (
+                <form
+                  className="flex min-w-0 flex-1 items-center gap-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveRename();
                   }}
-                  onClick={() => toggle(node.id)}
-                  aria-expanded={!!open}
-                  className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left text-sm"
                 >
-                  <Arrow size={12} className="shrink-0" />
-                  <Icon size={14} className="shrink-0 text-[var(--text-secondary)]" />
-                  <span className="truncate">{node.name}</span>
-                  <span className="ml-auto text-xs text-[var(--text-secondary)]">
-                    {countedSessions.length}
-                  </span>
-                </button>
-              </Tip>
+                  <Input
+                    autoFocus
+                    size="sm"
+                    value={renameValue}
+                    onChange={setRenameValue}
+                    maxLength={80}
+                    disabled={pending}
+                    aria-label={t('ccAgent.sidebar.taskFolders.name')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Escape') {
+                        event.stopPropagation();
+                        setRenaming(null);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={!renameValue.trim() || !folders.ready}
+                    loading={pending}
+                  >
+                    {t('ccAgent.sidebar.taskFolders.save')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={pending}
+                    onClick={() => setRenaming(null)}
+                  >
+                    {t('ccAgent.sidebar.taskFolders.cancel')}
+                  </Button>
+                </form>
+              ) : (
+                <Tip text={node.name}>
+                  <button
+                    type="button"
+                    draggable={!!folderId}
+                    onDragStart={(event) => {
+                      event.stopPropagation();
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData(FOLDER_MIME, node.id);
+                    }}
+                    onClick={() => toggle(node.id)}
+                    aria-expanded={!!open}
+                    className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left text-sm"
+                  >
+                    <Arrow size={12} className="shrink-0" />
+                    <Icon size={14} className="shrink-0 text-[var(--text-secondary)]" />
+                    <span className="truncate">{node.name}</span>
+                    <span className="ml-auto text-xs text-[var(--text-secondary)]">
+                      {countedSessions.length}
+                    </span>
+                  </button>
+                </Tip>
+              )}
               {status && (
                 <Tip text={t('ccAgent.sidebar.taskFolders.attention')}>
                   <button
                     type="button"
-                    onClick={() => browse(true)}
+                    onClick={() => setTemporary(node.id)}
                     aria-label={t('ccAgent.sidebar.taskFolders.attention')}
                     className="flex size-7 shrink-0 items-center justify-center rounded-full hover:bg-sidebar-item-hover"
                   >
@@ -375,8 +409,19 @@ export function ProjectTaskFolders({
                   <DropdownMenuItem className={MENU_ITEM_CLASS} onSelect={createTask}>
                     {t('ccAgent.sidebar.taskFolders.newTask')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem className={MENU_ITEM_CLASS} onSelect={() => browse()}>
-                    {t('ccAgent.sidebar.taskFolders.organize')}
+                  <DropdownMenuItem
+                    className={MENU_ITEM_CLASS}
+                    disabled={index === 0}
+                    onSelect={() => shift(-1)}
+                  >
+                    {t('ccAgent.sidebar.taskFolders.moveUp')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={MENU_ITEM_CLASS}
+                    disabled={index === projectFolders.length - 1}
+                    onSelect={() => shift(1)}
+                  >
+                    {t('ccAgent.sidebar.taskFolders.moveDown')}
                   </DropdownMenuItem>
                   {folderId && (
                     <>
@@ -393,7 +438,12 @@ export function ProjectTaskFolders({
             </div>
             {open && (
               <div className="pl-4">
-                <SessionEntryList {...listProps} sessions={visible} collapsible={false} />
+                <SessionEntryList
+                  {...listProps}
+                  sessions={sessions}
+                  collapsible
+                  sectionCollapsed={listProps.sectionCollapsed || !open}
+                />
                 {!sessions.length && (
                   <button
                     type="button"
@@ -404,26 +454,12 @@ export function ProjectTaskFolders({
                     {t('ccAgent.sidebar.taskFolders.newTask')}
                   </button>
                 )}
-                {(sessions.length > 5 || countedSessions.length > sessions.length) && (
-                  <button
-                    type="button"
-                    onClick={() => browse()}
-                    className="min-h-8 w-full rounded-full px-3 text-xs text-[var(--text-secondary)] hover:bg-sidebar-item-hover"
-                  >
-                    {t('ccAgent.sidebar.taskFolders.viewAll', { count: countedSessions.length })}
-                  </button>
-                )}
               </div>
             )}
           </div>
         );
       })}
-      {nodes.length > 11 && (
-        <Button variant="secondary" onClick={browseFolders}>
-          {t('ccAgent.sidebar.taskFolders.moreFolders')}
-        </Button>
-      )}
-      {special.length > 0 && <SessionEntryList {...listProps} sessions={special} />}
+      <SessionEntryList {...listProps} sessions={unfiled} />
     </div>
   );
 }

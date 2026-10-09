@@ -157,7 +157,7 @@ export function useTaskFolders() {
     const folderName =
       command.action === 'create'
         ? command.name
-        : (target?.name ?? t('ccAgent.sidebar.taskFolders.inbox'));
+        : (target?.name ?? t('ccAgent.sidebar.taskFolders.projectRoot'));
     const message = t('ccAgent.sidebar.taskFolders.moved', {
       count: sessionIds.length,
       name: folderName,
