@@ -349,9 +349,7 @@
     },
     "received": {
       "title": "分享给我的供应商",
-      "description": "别人分享给你的供应商会出现在模型列表的远程供应商里。",
-      "empty": "还没有人分享供应商给你。收到分享链接后，点开它或粘贴到这里。",
-      "paste": "粘贴分享链接",
+      "enterLink": "输入分享链接…",
       "fromOwner": "来自 {{name}} 的分享",
       "providerOnDevice": "{{provider}} · {{device}}",
       "statusActive": "正常",
@@ -367,18 +365,29 @@
       },
       "left": "已退出 {{name}} 分享的 {{provider}}",
       "pasteDialog": {
-        "title": "粘贴分享链接",
+        "title": "输入分享链接",
         "description": "把对方发给你的供应商分享链接粘贴到这里，看过说明后再决定是否申请。",
         "label": "分享链接",
         "placeholder": "在这里粘贴链接",
         "empty": "请先粘贴分享链接",
         "open": "打开链接",
         "cancel": "取消"
-      }
+      },
+      "detailNote": "Agent 在 {{name}} 的电脑上运行，用的是对方的登录和配额。新建任务时在模型列表里选择它就能用。",
+      "modelsTitle": "可用的模型",
+      "modelsLoading": "正在读取对方开放的模型…",
+      "modelsRefused": "对方电脑暂时不让读取这个分享：可能没有允许远程控制、关了这个供应商的「允许被远程调用」，也可能对方的 Cindy 刚启动、还没准备好。请稍后重试，或让对方检查这两项设置。",
+      "modelsFailedWithCode": "暂时读不到对方开放的模型，请稍后重试。（错误代码：{{code}}）",
+      "retryModels": "重新读取模型",
+      "modelsEmpty": "对方还没有开放可用的模型。",
+      "pausedNote": "对方暂停了这个分享，恢复后才能使用。",
+      "offlineNote": "对方电脑不在线，上线后就能继续使用。",
+      "needsUpdateNote": "对方的 Cindy 更新后才能使用这个分享。"
     },
     "picker": {
       "deviceName": "{{device}} · 来自 {{owner}} 的分享",
-      "unavailable": "已不可用的分享"
+      "unavailable": "已不可用的分享",
+      "hostOutdated": "分享者电脑上的 Cindy 版本太旧，读不到这些模型。请让对方更新 Cindy 后再试。"
     },
     "notification": {
       "requestTitle": "新的分享申请",
@@ -2706,6 +2715,13 @@
           "reset": "恢复默认选择",
           "connectionRequired": "连接后可用，已选模型会保留。"
         }
+      },
+      "remote": {
+        "rowLabel": "{{provider}} · {{device}}",
+        "statusReady": "可用",
+        "detailNote": "Agent 在 {{device}} 上运行，用的是那台电脑的登录和配额。新建任务时在模型列表里选择它就能用；要修改这个供应商，请到那台电脑的「设置 → 模型供应商」。",
+        "modelsTitle": "可用的模型",
+        "modelsEmpty": "这个供应商在那台电脑上还没有开放可用的模型。"
       },
       "genericOAuth": {
         "subtitle": "订阅账号",
@@ -10720,7 +10736,8 @@
         "automation": "自动化 ID：{{id}}",
         "plugin": "插件 ID：{{id}}",
         "device": "设备 ID：{{id}}",
-        "member": "成员 ID：{{id}}"
+        "member": "成员 ID：{{id}}",
+        "group": "群聊 ID：{{id}}"
       },
       "expandLongMessage": "展开全文",
       "collapseLongMessage": "收起",
@@ -10746,7 +10763,9 @@
         "sourceNeverRan": "原任务尚未运行，无法开启新任务",
         "codexStateUnavailable": "Codex Agent 会话状态不可用，无法开启新任务。{{detail}}",
         "generic": "无法开启新任务，请重试"
-      }
+      },
+      "groupSentNamed": "从群聊「{{name}}」发送",
+      "groupSent": "从群聊发送"
     },
     "threadContext": {
       "cindyFrom": "{{appName}} · 来自 {{platform}}",
@@ -11133,7 +11152,8 @@
       "sessionInactive": "任务已不再处于活跃状态",
       "remoteProjectBanner": "在 {{device}} 的 {{project}} 中新建任务",
       "remoteDialogueBanner": "在 {{device}} 上新建对话（不绑定项目）",
-      "agentDeviceBanner": "任务和文件留在本机，Agent 在 {{device}} 上运行"
+      "agentDeviceBanner": "任务和文件留在本机，Agent 在 {{device}} 上运行",
+      "agentDeviceElsewhereBanner": "Agent 在 {{device}} 上运行"
     },
     "jumpSession": {
       "emptyId": "请输入要跳转的任务 ID",
@@ -15013,5 +15033,15 @@
     "detail": "将此插件的 AI 权限设为“允许修改”，后续任务沿用此选择。独立作答目录不是系统沙箱；命令仍遵循 Cindy 的权限检查。你可以随时在插件 AI 设置中改回只读。",
     "allow": "允许并继续",
     "cancel": "暂不允许"
+  },
+  "groupTools": {
+    "authorizationRequired": "群内授权已失效或不允许此操作，请由伙伴主人在当前群重新发起。",
+    "localPeersOnly": "群内私聊只能发送给本机同账号伙伴。",
+    "ownerChanged": "账号已经切换，请重试。",
+    "invalidMessage": "消息或重试标识无效。",
+    "privateUnavailable": "当前伙伴私聊不可用，请稍后重试。",
+    "idempotencyConflict": "此重试标识已用于另一条消息。",
+    "privateUnconfirmed": "私聊未确认送达，请使用同一重试标识重试。",
+    "verificationUnavailable": "暂时无法核验群聊授权，请在连接恢复后重试。"
   }
 }

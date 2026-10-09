@@ -351,9 +351,7 @@
     },
     "received": {
       "title": "Providers Shared with Me",
-      "description": "Providers others share with you appear among the remote providers in the model list.",
-      "empty": "No one has shared a provider with you yet. When you get a share link, open it or paste it here.",
-      "paste": "Paste Share Link",
+      "enterLink": "Enter Share Link…",
       "fromOwner": "Shared by {{name}}",
       "providerOnDevice": "{{provider}} · {{device}}",
       "statusActive": "Active",
@@ -369,18 +367,29 @@
       },
       "left": "Left {{provider}} shared by {{name}}",
       "pasteDialog": {
-        "title": "Paste Share Link",
+        "title": "Enter Share Link",
         "description": "Paste the provider share link you received. You’ll see the details before deciding whether to send a request.",
         "label": "Share link",
         "placeholder": "Paste the link here",
         "empty": "Paste a share link first",
         "open": "Open Link",
         "cancel": "Cancel"
-      }
+      },
+      "detailNote": "The agent runs on {{name}}'s computer, using their sign-in and quota. To use it, choose it in the model list when you start a task.",
+      "modelsTitle": "Available Models",
+      "modelsLoading": "Loading the models they shared…",
+      "modelsRefused": "The owner’s computer isn’t allowing this share right now. It may not allow remote control, “Allow remote use” may be off for this provider, or their Cindy may still be starting. Try again shortly, or ask them to check both settings.",
+      "modelsFailedWithCode": "Couldn’t read the models they made available. Try again shortly. (Error code: {{code}})",
+      "retryModels": "Reload Models",
+      "modelsEmpty": "They haven't made any models available yet.",
+      "pausedNote": "They've paused this share. You can use it again once they resume it.",
+      "offlineNote": "Their computer is offline. You can use it again once it is back online.",
+      "needsUpdateNote": "They need to update Cindy before you can use this share."
     },
     "picker": {
       "deviceName": "{{device}} · Shared by {{owner}}",
-      "unavailable": "Unavailable share"
+      "unavailable": "Unavailable share",
+      "hostOutdated": "The Cindy version on the owner’s computer is too old to list these models. Ask them to update Cindy, then try again."
     },
     "notification": {
       "requestTitle": "New Share Request",
@@ -2710,6 +2719,13 @@
           "reset": "Restore default selection",
           "connectionRequired": "Connect to use these models. Your selections are saved."
         }
+      },
+      "remote": {
+        "rowLabel": "{{provider}} · {{device}}",
+        "statusReady": "Available",
+        "detailNote": "The agent runs on {{device}}, using that computer’s sign-in and quota. To use it, choose it in the model list when you start a task. To change this provider, go to Settings → Providers on that computer.",
+        "modelsTitle": "Available Models",
+        "modelsEmpty": "This provider has no models available on that computer yet."
       },
       "genericOAuth": {
         "subtitle": "Subscription account",
@@ -10740,7 +10756,8 @@
         "automation": "Automation ID: {{id}}",
         "plugin": "Plugin ID: {{id}}",
         "device": "Device ID: {{id}}",
-        "member": "Member ID: {{id}}"
+        "member": "Member ID: {{id}}",
+        "group": "Group ID: {{id}}"
       },
       "expandLongMessage": "Show full message",
       "collapseLongMessage": "Collapse",
@@ -10766,7 +10783,9 @@
         "sourceNeverRan": "The original session hasn't run yet, so a new session can't be started",
         "codexStateUnavailable": "The Codex session state is unavailable, so a new session can't be started. {{detail}}",
         "generic": "Couldn't start a new session. Try again."
-      }
+      },
+      "groupSentNamed": "Sent from group “{{name}}”",
+      "groupSent": "Sent from a group"
     },
     "threadContext": {
       "cindyFrom": "{{appName}} · from {{platform}}",
@@ -11162,7 +11181,8 @@
       "sessionInactive": "Session is no longer active",
       "remoteProjectBanner": "New session in {{project}} on {{device}}",
       "remoteDialogueBanner": "New chat on {{device}} (no project)",
-      "agentDeviceBanner": "Session and files stay on this computer — the Agent runs on {{device}}"
+      "agentDeviceBanner": "Session and files stay on this computer — the Agent runs on {{device}}",
+      "agentDeviceElsewhereBanner": "The Agent runs on {{device}}"
     },
     "jumpSession": {
       "emptyId": "Enter a sessionId to jump to",
@@ -15046,5 +15066,15 @@
     "detail": "This sets the plugin’s AI permission to Allow edits for future tasks too. A separate working directory is not a system sandbox; commands still follow Cindy permission checks. You can switch back to read-only in the plugin’s AI settings.",
     "allow": "Allow and continue",
     "cancel": "Not now"
+  },
+  "groupTools": {
+    "authorizationRequired": "Group authorization has expired or does not allow this action. Ask the teammate owner to make a new request in this group.",
+    "localPeersOnly": "Group messages can only target teammates on this device and account.",
+    "ownerChanged": "The account changed. Please try again.",
+    "invalidMessage": "The message or retry identifier is invalid.",
+    "privateUnavailable": "This teammate’s private chat is unavailable. Please try again later.",
+    "idempotencyConflict": "This retry identifier was already used for a different message.",
+    "privateUnconfirmed": "Private message delivery is unconfirmed. Retry with the same identifier.",
+    "verificationUnavailable": "Group authorization could not be verified. Try again when the connection recovers."
   }
 }

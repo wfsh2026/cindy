@@ -1,7 +1,7 @@
 {
   "edition": "personal",
-  "upstreamVersion": "0.1.97",
-  "upstreamCommit": "88e224475a6183f7b31218a7499be956a4bf2667",
+  "upstreamVersion": "0.1.101-beta",
+  "upstreamCommit": "9fb59bb93cd3953f870b37f405631d914928bb34",
   "changeKeys": [
     "subagentReader",
     "subagentLinks",
