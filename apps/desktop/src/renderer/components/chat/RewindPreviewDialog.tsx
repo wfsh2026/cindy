@@ -1,3 +1,5 @@
+import { FileTypeIcon } from '@/components/ui/file-type-icon';
+import { Button } from '@/components/ui/button';
 /**
  * RewindPreviewDialog
  * ---------------------------------------------------------------------------
@@ -188,24 +190,14 @@ export function RewindPreviewDialog({
       <AlertDialog.Portal>
         <AlertDialog.Overlay
           className={cn(
-            'fixed inset-0 z-[10000]',
-            'bg-[var(--overlay-modal)]',
-            'data-[state=open]:animate-confirm-overlay-in',
-            'data-[state=closed]:animate-confirm-overlay-out',
+            'modal-scrim fixed inset-0 z-[10000]',
           )}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         />
         <AlertDialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2',
-            'w-[640px] rounded-xl p-5',
-            // Card 层（同 confirm dialog 用项目变量）
-            'bg-[var(--confirm-bg)]',
-            // Dark 模式 1px Board 描边（设计稿要求）
-            'shadow-[var(--shadow-menu)]',
-            'dark:border dark:border-[var(--confirm-btn-secondary-border)]',
-            'data-[state=open]:animate-confirm-content-in',
-            'data-[state=closed]:animate-confirm-content-out',
+            'modal-panel fixed left-1/2 top-1/2 z-[10000] -translate-x-1/2 -translate-y-1/2',
+            'w-[640px] p-5',
           )}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
@@ -254,30 +246,18 @@ export function RewindPreviewDialog({
             {!isError ? (
               <>
                 <AlertDialog.Cancel asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      'inline-flex items-center justify-center rounded-full px-6 py-2.5 text-14',
-                      'border bg-transparent transition-colors',
-                      'border-[var(--confirm-btn-secondary-border)] text-[var(--confirm-btn-secondary-text)]',
-                      'hover:bg-[var(--confirm-btn-secondary-hover)]',
-                    )}
+                  <Button variant="secondary" size="lg" type="button"
                   >
                     {t('chat.rewind.dialog.cancel')}
-                  </button>
+                  </Button>
                 </AlertDialog.Cancel>
-                <button
+                <Button
+                  variant="cta"
+                  size="lg"
+                  loading={committing}
                   type="button"
                   onClick={handleConfirm}
                   disabled={!canConfirm}
-                  className={cn(
-                    'inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-2.5 text-14 font-medium',
-                    'transition-colors',
-                    // 主题反色（按设计稿，避开 ConfirmDialog 的 destructive 红）
-                    'bg-[var(--send-btn-bg)] text-[var(--send-btn-icon)]',
-                    'hover:bg-[var(--confirm-btn-primary-hover)]',
-                    'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50',
-                  )}
                 >
                   {committing ? (
                     <Spinner size={14} strokeWidth={2} />
@@ -295,21 +275,14 @@ export function RewindPreviewDialog({
                           ? 'chat.rewind.dialog.confirmRunning'
                           : 'chat.rewind.dialog.confirm',
                       )}
-                </button>
+                </Button>
               </>
             ) : (
               <AlertDialog.Cancel asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    'inline-flex items-center justify-center rounded-full px-6 py-2.5 text-14 font-medium',
-                    // Error 态：Cancel 升级为黑底主按钮
-                    'bg-[var(--send-btn-bg)] text-[var(--send-btn-icon)]',
-                    'hover:bg-[var(--confirm-btn-primary-hover)] transition-colors',
-                  )}
+                <Button variant="cta" size="lg" type="button"
                 >
                   {t('chat.rewind.dialog.acknowledge')}
-                </button>
+                </Button>
               </AlertDialog.Cancel>
             )}
           </div>
@@ -397,9 +370,8 @@ function BodyDefault({ files }: { files: string[] }) {
                 idx > 0 && 'border-t border-[var(--board)]',
               )}
             >
-              <FileText
+              <FileTypeIcon name={path}
                 size={14}
-                strokeWidth={1.75}
                 className="shrink-0 text-[var(--cmd-palette-item-meta)]"
               />
               <span

@@ -29,7 +29,7 @@ vi.mock('electron', () => ({
 }));
 
 // 同 providerOneShot.test:剪断 maker-core runtime 图,只保留 auth-adapters 需要的类型面。
-vi.mock('@cindy/maker-core', () => ({}));
+vi.mock('@cindy/maker-core', () => ({ NativeSubagentTranscriptReader: class {} }));
 
 describe('auth-adapters import purity', () => {
   // Keep the side-effect assertions intact while allowing the full auth graph's

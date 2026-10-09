@@ -10,7 +10,7 @@ import { buildSubagentConversation, lastAssistantItemId, subagentDisplayTitle, t
 import { remoteSessionStore } from '@/session/remoteSessionStore';
 import type { MobileMakerTransport } from '@/device-link/mobileMakerTransport';
 import { useTheme, useThemedStyles, type ThemeColors } from '@/theme';
-import { fontWeight, radius, spacing, typeScale } from '@/theme/tokens';
+import { fontWeight, lineHeight, radius, spacing, typeScale } from '@/theme/tokens';
 
 export type MobileSubagentSelection = Pick<SubagentRunDetailRequest, 'provider' | 'runIdOrAlias'>;
 interface ReaderProps {
@@ -226,9 +226,9 @@ function makeStyles(colors: ThemeColors) {
     wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
     content: { padding: spacing.md, gap: spacing.md },
     header: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
-    title: { fontSize: typeScale.body, color: colors.textPrimary, fontWeight: fontWeight.semibold },
-    text: { fontSize: typeScale.body, color: colors.textPrimary },
-    muted: { fontSize: typeScale.caption, color: colors.textTertiary },
+    title: { fontSize: typeScale.body, lineHeight: lineHeight.body, color: colors.textPrimary, fontWeight: fontWeight.semibold },
+    text: { fontSize: typeScale.body, lineHeight: lineHeight.body, color: colors.textPrimary },
+    muted: { fontSize: typeScale.caption, lineHeight: lineHeight.caption, color: colors.textTertiary },
     button: { minHeight: 44, paddingHorizontal: spacing.sm, justifyContent: 'center', borderRadius: radius.pill },
     selected: { backgroundColor: colors.surfaceElevated },
     section: { gap: spacing.md },

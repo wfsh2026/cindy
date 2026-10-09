@@ -70,7 +70,7 @@ export function useHomeMode() {
     });
   }, [entry, owner]);
   const setMode = useCallback((mode: HomeMode) => update({ mode }), [update]);
-  const rememberTeammate = useCallback((identity: LastTeammateIdentity | null) => update({ lastTeammate: identity }), [update]);
+  // The remembered teammate only preselects its computer when creating another; launch never reopens it.
   const selectTeammate = useCallback((identity: LastTeammateIdentity) => update({ mode: 'teammates', lastTeammate: identity }), [update]);
-  return { ...snapshot, owner, setMode, rememberTeammate, selectTeammate };
+  return { ...snapshot, owner, setMode, selectTeammate };
 }

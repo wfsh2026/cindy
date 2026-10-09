@@ -15,6 +15,7 @@ import { CODEX_RESUME_NOT_READY_WIRE_MESSAGE } from '@cindy/maker-shared/agent-i
 import { formatQuotesForSend, stripChatQuoteMarkerLines } from '@cindy/maker-shared/chat-quotes';
 import type { AgentInputQueuedMessage } from '../../../shared/agentInputQueue';
 import { describe, expect, it, vi } from 'vitest';
+import { AUTO_REVIEW_DELEGATED_CONTINUATION } from '../autoReviewUserIntent.js';
 import {
   createMakerSendTransaction,
   restoreTrustedDesktopQueuedOrigin,
@@ -30,6 +31,22 @@ import { CredentialModeSwitchBusyError } from '../../maker-host/codex-credential
 import path from 'node:path';
 import { createWorkingDirectoryRecovery } from '../workingDirectoryRecovery';
 import { createPreflightHarness, filesystemError } from './helpers/workingDirectoryPreflightHarness';
+import { buildCindyMakeTaskNote } from '../../cindy-make/taskNote';
+import { getResolvedMainLocale } from '../../i18n';
+import { buildMobileClientPromptNote } from '../mobileClientPromptNote';
+import { buildUiLanguageErrorNote } from '../uiLanguageErrorNote';
+
+function uiLanguageNote(): string {
+  return buildUiLanguageErrorNote(getResolvedMainLocale());
+}
+
+function withUiLanguageNote(content: string): string {
+  return `${uiLanguageNote()}\n\n${content}`;
+}
+
+function withUiLanguageUserMessage(content: string): { type: 'user'; content: string } {
+  return { type: 'user', content: withUiLanguageNote(content) };
+}
 
 function createSession(overrides: Partial<MakerSendTransactionSession> = {}): MakerSendTransactionSession {
   return {
@@ -277,7 +294,7 @@ describe('maker SEND transaction', () => {
     expect(deps.ensureRemoteReadyForSessionStart).toHaveBeenCalledWith({ session, createOpts: undefined });
     expect(deps.prepareSendUserMessage).toHaveBeenCalledWith('session-1', { type: 'user', content: 'hello' });
     expect(session.send).toHaveBeenCalledWith(
-      { type: 'user', content: 'hello' },
+      withUiLanguageUserMessage('hello'),
       expect.objectContaining({
         logTitle: '现有会话',
         messageUuid: 'message-uuid',
@@ -657,7 +674,7 @@ describe('maker SEND transaction', () => {
       .toBeUndefined();
   });
 
-  it('links attachment messages to the accepted Pi transcript entry only for Pi attachments', async () => {
+  it('links both attachment and text inputs to accepted Pi entries for exact retries', async () => {
     const { deps, session } = createDeps();
     session.agentKind = 'pi';
     const transaction = createMakerSendTransaction(deps);
@@ -696,7 +713,15 @@ describe('maker SEND transaction', () => {
         },
       },
     );
-    expect(deps.linkPiUserEntry).toHaveBeenCalledTimes(1);
+    expect(deps.linkPiUserEntry).toHaveBeenCalledTimes(2);
+    expect(deps.linkPiUserEntry).toHaveBeenLastCalledWith('session-1', 'plain-client', 'pi-user-entry');
+    deps.readPiUserEntry = vi.fn(async () => 'pi-user-entry');
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: 'Plain text' }, undefined, {
+      retryUserClientId: 'plain-client',
+      persistUserMessage: { clientId: 'retry-client', content: 'Plain text' },
+    });
+    expect(deps.readPiUserEntry).toHaveBeenCalledWith('session-1', 'plain-client');
+    expect(vi.mocked(session.send).mock.lastCall?.[1]?.retryTranscriptUserEntryId).toBe('pi-user-entry');
   });
 
   it('threads scheduler origin into session.send opts and persisted agentMeta', async () => {
@@ -723,7 +748,7 @@ describe('maker SEND transaction', () => {
     );
 
     expect(session.send).toHaveBeenCalledWith(
-      { type: 'user', content: 'hb prompt' },
+      withUiLanguageUserMessage('hb prompt'),
       expect.objectContaining({ origin }),
     );
     expect(vi.mocked(session.send).mock.calls[0]?.[1]?.[MAIN_OWNED_SEND_CONTEXT])
@@ -758,7 +783,7 @@ describe('maker SEND transaction', () => {
     );
 
     expect(session.send).toHaveBeenCalledWith(
-      { type: 'user', content: 'orca prompt' },
+      withUiLanguageUserMessage('orca prompt'),
       expect.not.objectContaining({ origin }),
     );
     expect(deps.createDbMessage).toHaveBeenCalledWith(
@@ -1819,7 +1844,7 @@ describe('maker SEND transaction', () => {
     }));
     expect(deps.broadcastSessionCreated).toHaveBeenCalledOnce();
     expect(lazySession.send).toHaveBeenCalledOnce();
-    expect(lazySession.send).toHaveBeenCalledWith('first fork message', expect.anything());
+    expect(lazySession.send).toHaveBeenCalledWith(withUiLanguageNote('first fork message'), expect.anything());
   });
 
   it('returns lazy-create failure without dispatching when bootstrap fails', async () => {
@@ -2378,8 +2403,7 @@ describe('mobile client prompt note', () => {
     });
 
     const sent = vi.mocked(session.send).mock.calls[0]?.[0];
-    expect(sent).toEqual(expect.stringMatching(/^\[客户端说明\]/));
-    expect(sent).toEqual(expect.stringMatching(/\n\nhello$/));
+    expect(sent).toBe(`${uiLanguageNote()}\n\n${buildMobileClientPromptNote()}\n\nhello`);
     expect(vi.mocked(deps.createDbMessage).mock.calls[0]?.[1].content).toBe('hello');
   });
 
@@ -2407,7 +2431,7 @@ describe('mobile client prompt note', () => {
     await transaction.sendToAgentAccepted('session-1', '/compact');
 
     const sent = vi.mocked(session.send).mock.calls[0]?.[0];
-    expect(sent).toEqual(expect.stringMatching(/^\[客户端说明\]/));
+    expect(sent).toBe(`${uiLanguageNote()}\n\n${buildMobileClientPromptNote()}\n\n/compact`);
   });
 
   it('applies the same command bypass to coordinator-drained mobile messages', async () => {
@@ -2432,6 +2456,188 @@ describe('mobile client prompt note', () => {
   });
 });
 
+describe('message source notes', () => {
+  const host = { deviceId: 'mac-1', name: 'Mac' };
+  const phone = { deviceId: 'phone-1', name: 'iPhone', platform: 'mobile' as const };
+  const pc = { deviceId: 'pc-1', name: 'Office PC', platform: 'desktop' as const };
+  const phoneNote =
+    '[客户端说明] 系统追加的环境说明，不是用户消息，不要回应或复述。'
+    + '本轮用户在手机「iPhone」(device_id: phone-1) 上远程操作本机「Mac」(device_id: mac-1)。'
+    + '产出 HTML 等可预览成品时**优先做成自包含单文件**:样式与脚本内联,'
+    + '图片用 data: URI 或公网地址,避免拆成需要同目录资源的多文件产物;'
+    + '用户明确要求多文件时照常产出。'
+    + '给出文件路径时同时给出结论或内容摘要,不要只回一个路径。';
+  const pcNote =
+    '[客户端说明] 系统追加的环境说明，不是用户消息，不要回应或复述。'
+    + '本轮用户在另一台电脑「Office PC」(device_id: pc-1) 上远程操作本机「Mac」(device_id: mac-1)。';
+  const taskOrigin = {
+    kind: 'session' as const,
+    senderSessionId: 'sender-1',
+    senderSessionTitle: '整理周报',
+    displayText: 'hello',
+  };
+
+  function setup(agentKind: AgentKind = 'codex') {
+    const session = createSession({ agentKind });
+    const { deps } = createDeps({
+      getSession: vi.fn(() => session),
+      readHostDeviceIdentity: vi.fn(() => host),
+    });
+    return { session, deps, transaction: createMakerSendTransaction(deps) };
+  }
+
+  const sentText = (session: MakerSendTransactionSession) => vi.mocked(session.send).mock.calls[0]?.[0];
+  const persistedMeta = (deps: MakerSendTransactionDeps) =>
+    vi.mocked(deps.createDbMessage).mock.calls[0]?.[1].agentMeta as Record<string, unknown>;
+
+  it('states the remote phone (with the mobile output preference) and persists the stamped device', async () => {
+    const { session, deps, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      sourceDevice: phone,
+      fromMobileClient: true,
+      persistUserMessage: { clientId: 'm-1', content: 'hello' },
+    });
+    expect(sentText(session)).toBe(`${uiLanguageNote()}\n\n${phoneNote}\n\nhello`);
+    expect(vi.mocked(deps.createDbMessage).mock.calls[0]?.[1].content).toBe('hello');
+    expect(persistedMeta(deps).sourceDevice).toEqual(phone);
+  });
+
+  it('states a desktop controller without the mobile output preference', async () => {
+    const { session, deps, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      sourceDevice: pc,
+      persistUserMessage: { clientId: 'm-1', content: 'hello' },
+    });
+    expect(sentText(session)).toBe(`${uiLanguageNote()}\n\n${pcNote}\n\nhello`);
+    expect(persistedMeta(deps).sourceDevice).toEqual(pc);
+  });
+
+  it('keeps the legacy mobile note when only the old mobile marker survives', async () => {
+    const { session, deps, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      fromMobileClient: true,
+      persistUserMessage: { clientId: 'm-1', content: 'hello' },
+    });
+    expect(sentText(session)).toBe(`${uiLanguageNote()}\n\n${buildMobileClientPromptNote()}\n\nhello`);
+    expect(persistedMeta(deps)).not.toHaveProperty('sourceDevice');
+  });
+
+  it('adds no device or source note for local input', async () => {
+    const { session, deps, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      persistUserMessage: { clientId: 'm-1', content: 'hello' },
+    });
+    expect(sentText(session)).toBe(withUiLanguageNote('hello'));
+    expect(persistedMeta(deps)).not.toHaveProperty('sourceDevice');
+    expect(persistedMeta(deps)).not.toHaveProperty('sourcePlugin');
+  });
+
+  it('prepends the task source note exactly once, before the handoff, and never persists it', async () => {
+    const { session, deps, transaction } = setup();
+    deps.peekPendingHandoff = vi.fn(async () => 'HANDOFF');
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      persistUserMessage: { clientId: 'm-1', content: 'hello', origin: taskOrigin },
+    });
+    const sourceNote = '[消息来源] 本条由任务「整理周报」(session_id: sender-1) 发送，不是用户本人输入。';
+    const sent = sentText(session) as string;
+    expect(sent).toBe(`${uiLanguageNote()}\n\n${sourceNote}\n\nHANDOFF\n\nhello`);
+    expect(sent.split('[消息来源]')).toHaveLength(2);
+    const row = vi.mocked(deps.createDbMessage).mock.calls[0]?.[1];
+    expect(row?.content).toBe('hello');
+    expect(row?.agentMeta.origin).toEqual(taskOrigin);
+    expect(JSON.stringify(row)).not.toContain('[消息来源]');
+  });
+
+  it('names the partner bot for partner-dispatched messages', async () => {
+    const { session, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      persistUserMessage: {
+        clientId: 'm-1',
+        content: 'hello',
+        origin: { ...taskOrigin, senderBotId: 'bot-7', senderBotName: '小助手' },
+      },
+    });
+    expect(sentText(session)).toBe(
+      `${uiLanguageNote()}\n\n[消息来源] 本条由伙伴「小助手」(bot_id: bot-7) 通过任务 (session_id: sender-1) 发送，不是用户本人输入。\n\nhello`,
+    );
+  });
+
+  it('notes and persists plugin sources without inventing an origin', async () => {
+    const { session, deps, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      persistUserMessage: { clientId: 'm-1', content: 'hello', sourcePlugin: { pluginId: 'gh-1', name: 'Reviewer' } },
+    });
+    expect(sentText(session)).toBe(
+      `${uiLanguageNote()}\n\n[消息来源] 本条由插件「Reviewer」(plugin_id: gh-1) 发送，不是用户本人输入。\n\nhello`,
+    );
+    expect(persistedMeta(deps).sourcePlugin).toEqual({ pluginId: 'gh-1', name: 'Reviewer' });
+    expect(persistedMeta(deps)).not.toHaveProperty('origin');
+  });
+
+  it('states shared-task member authorship', async () => {
+    const { session, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      persistUserMessage: {
+        clientId: 'm-1',
+        content: 'hello',
+        sharedTaskAuthor: { memberId: 'mem-1', displayName: 'Alice', accountId: 'acc', sharedTaskId: 'st', sessionId: 'session-1' } as never,
+      },
+    });
+    expect(sentText(session)).toBe(
+      `${uiLanguageNote()}\n\n[消息来源] 本条由共享任务成员「Alice」(member_id: mem-1) 发送，不是任务所有者本人。\n\nhello`,
+    );
+  });
+
+  it('skips the source note for hidden host instructions and automatic continuations', async () => {
+    const hidden = setup();
+    await hidden.transaction.sendToAgentAccepted('session-1', 'continue', undefined, {
+      persistUserMessage: { clientId: 'm-1', content: '[UI_ACTION_TRIGGER] continue', origin: taskOrigin },
+    });
+    expect(sentText(hidden.session)).toBe(withUiLanguageNote('continue'));
+    const auto = setup();
+    await auto.transaction.sendToAgentAccepted('session-1', 'continue', undefined, {
+      persistUserMessage: { clientId: 'm-2', content: 'continue', origin: taskOrigin, autoResume: true },
+    });
+    expect(sentText(auto.session)).toBe(withUiLanguageNote('continue'));
+  });
+
+  it('keeps native Claude commands first', async () => {
+    const { session, transaction } = setup('claude-code');
+    await transaction.sendToAgentAccepted('session-1', '/compact', undefined, {
+      sourceDevice: phone,
+      persistUserMessage: { clientId: 'm-1', content: '/compact', origin: taskOrigin },
+    });
+    expect(sentText(session)).toBe('/compact');
+  });
+
+  it('ignores malformed device stamps', async () => {
+    const { session, deps, transaction } = setup();
+    await transaction.sendToAgentAccepted('session-1', 'hello', undefined, {
+      sourceDevice: { deviceId: 'x', platform: 'tablet' },
+      persistUserMessage: { clientId: 'm-1', content: 'hello' },
+    });
+    expect(sentText(session)).toBe(withUiLanguageNote('hello'));
+    expect(persistedMeta(deps)).not.toHaveProperty('sourceDevice');
+  });
+
+  it('stamps only main-read device sources at the queue boundary', () => {
+    const forged = {
+      clientId: 'input-1',
+      text: 'hello',
+      sourceDevice: { deviceId: 'forged', platform: 'mobile' },
+      sourcePlugin: { pluginId: 'forged' },
+      agentOmitsTriggerPrefix: true,
+    } as unknown as AgentInputQueuedMessage;
+    const local = stampTrustedDeviceLinkQueuedOrigin(forged, false, phone);
+    expect(local).not.toHaveProperty('sourceDevice');
+    expect(local).not.toHaveProperty('sourcePlugin');
+    expect(local).not.toHaveProperty('agentOmitsTriggerPrefix');
+    expect(stampTrustedDeviceLinkQueuedOrigin(forged, true)).not.toHaveProperty('sourceDevice');
+    expect(stampTrustedDeviceLinkQueuedOrigin(forged, true, phone).sourceDevice).toEqual(phone);
+    expect(forged.sourceDevice).toEqual({ deviceId: 'forged', platform: 'mobile' });
+  });
+});
+
 describe('Cindy Make task note', () => {
   it('annotates the wire message of a cindy-make task but persists the original text', async () => {
     const session = createSession({ agentKind: 'claude-code' });
@@ -2446,9 +2652,7 @@ describe('Cindy Make task note', () => {
     });
 
     const sent = vi.mocked(session.send).mock.calls[0]?.[0];
-    expect(sent).toEqual(expect.stringMatching(/^\[任务说明\]/));
-    expect(sent).toEqual(expect.stringContaining('report_complete'));
-    expect(sent).toEqual(expect.stringMatching(/\n\n修复消息流闪烁$/));
+    expect(sent).toBe(`${uiLanguageNote()}\n\n${buildCindyMakeTaskNote()}\n\n修复消息流闪烁`);
     expect(vi.mocked(deps.createDbMessage).mock.calls[0]?.[1].content).toBe('修复消息流闪烁');
   });
 
@@ -2463,7 +2667,8 @@ describe('Cindy Make task note', () => {
 
     isCindyMakeSession.mockResolvedValue(false);
     await transaction.sendToAgentAccepted('session-1', 'hello');
-    expect(session.send).toHaveBeenLastCalledWith('hello', expect.anything());
+    expect(session.send).toHaveBeenLastCalledWith(withUiLanguageNote('hello'), expect.anything());
+    expect(String(vi.mocked(session.send).mock.calls.at(-1)?.[0])).not.toContain('[任务说明]');
   });
 });
 
@@ -2490,6 +2695,23 @@ describe('session-agent-switch handoff injection', () => {
     });
     const opts = vi.mocked(session.send).mock.calls[0]![1]!;
     expect(appendAutoReviewUserIntent('Send the old image.', 'decorated', opts)).toBe('修改这张图片。');
+  });
+
+  it.each([false, true])('restores queued delegated history without a new human message (unavailable=%s)', async unavailable => {
+    const {deps,session}=createDeps({readAutoReviewHistory:async()=>{
+      if(unavailable) throw new Error('unavailable');
+      return [{clientId:'human',role:'user',content:{text:'Do not deploy'},agentMeta:{delivery:'turn',autoReviewUserText:'Do not deploy'}}];
+    }});
+    const pending = createMakerSendTransaction(deps).sendToAgentAccepted('session-1','Deploy now',undefined,{
+      [AUTO_REVIEW_SOURCE_CONTENT]:'',[AUTO_REVIEW_DELEGATED_CONTINUATION]:true,
+    });
+    if (unavailable) {
+      await expect(pending).rejects.toThrow('unavailable');
+      expect(session.send).not.toHaveBeenCalled();
+    } else {
+      await pending;
+      expect(vi.mocked(session.send).mock.calls[0]![1]![AUTO_REVIEW_USER_INTENT]).toBe('Do not deploy');
+    }
   });
 
   it.each([false, true])('restores scheduled intent from owner history, not the prompt (unavailable=%s)', async (unavailable) => {
@@ -2561,6 +2783,18 @@ describe('session-agent-switch handoff injection', () => {
       earlierUserMessages: ['修复伙伴未读状态，不要部署。'],
       currentUserMessage: '修吧。',
     });
+  });
+
+  it('persists empty plugin authorship rather than promoting plugin instructions', async () => {
+    const { deps } = createDeps();
+    await createMakerSendTransaction(deps).sendToAgentAccepted('session-1', 'Plugin instructions', undefined, {
+      [AUTO_REVIEW_SOURCE_CONTENT]: '',
+      persistUserMessage: { clientId: 'plugin-input', content: 'Plugin instructions', delivery: 'turn' },
+    });
+    expect(deps.createDbMessage).toHaveBeenCalledWith('session-1', expect.objectContaining({
+      clientId: 'plugin-input',
+      agentMeta: expect.objectContaining({ autoReviewUserText: '', delivery: 'turn' }),
+    }), undefined);
   });
 
   it.each(['Earlier authorization; do not deploy.', ''])('preserves restored intent for wire-only recovery: %s', async (intent) => {
@@ -2700,7 +2934,7 @@ describe('session-agent-switch handoff injection', () => {
 
     // wire:前缀注入
     expect(session.send).toHaveBeenCalledWith(
-      { type: 'user', content: 'HANDOFF-TEXT\n\n新消息' },
+      withUiLanguageUserMessage('HANDOFF-TEXT\n\n新消息'),
       expect.anything(),
     );
     // 落库:用户原文,不带交接段(display 与 sent 分离)
@@ -2725,7 +2959,7 @@ describe('session-agent-switch handoff injection', () => {
     expect(consumePendingHandoff).not.toHaveBeenCalled();
   });
 
-  it('无 pending 时 wire payload 原样透传', async () => {
+  it('无 pending 时不注入交接段', async () => {
     const consumePendingHandoff = vi.fn();
     const { deps, session } = createDeps({
       peekPendingHandoff: vi.fn(async () => null),
@@ -2734,7 +2968,7 @@ describe('session-agent-switch handoff injection', () => {
     const transaction = createMakerSendTransaction(deps);
 
     await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '新消息' }, undefined, {});
-    expect(session.send).toHaveBeenCalledWith({ type: 'user', content: '新消息' }, expect.anything());
+    expect(session.send).toHaveBeenCalledWith(withUiLanguageUserMessage('新消息'), expect.anything());
     expect(consumePendingHandoff).not.toHaveBeenCalled();
   });
 
@@ -2749,7 +2983,7 @@ describe('session-agent-switch handoff injection', () => {
     });
 
     expect(session.send).toHaveBeenCalledWith(
-      { type: 'user', content: 'RECONCILE-NOTE\n\n新消息' },
+      withUiLanguageUserMessage('RECONCILE-NOTE\n\n新消息'),
       expect.anything(),
     );
     const persisted = vi.mocked(deps.createDbMessage).mock.calls[0]?.[1];
@@ -2768,7 +3002,7 @@ describe('session-agent-switch handoff injection', () => {
       persistUserMessage: { clientId: 'client-1', content: '{"text":"新消息","images":[],"files":[]}' },
     });
     expect(session.send).toHaveBeenCalledWith(
-      { type: 'user', content: 'RECONCILE-NOTE\n\nHANDOFF-TEXT\n\n新消息' },
+      withUiLanguageUserMessage('RECONCILE-NOTE\n\nHANDOFF-TEXT\n\n新消息'),
       expect.anything(),
     );
   });
@@ -2783,7 +3017,7 @@ describe('session-agent-switch handoff injection', () => {
       origin: { kind: 'scheduler', scheduleId: 's1', scheduleName: 'n' },
     });
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: '定时活' },
+      withUiLanguageUserMessage('定时活'),
       expect.anything(),
     );
 
@@ -2792,7 +3026,7 @@ describe('session-agent-switch handoff injection', () => {
       persistUserMessage: { clientId: 'c2', content: '继续', autoResume: true },
     });
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: '继续' },
+      withUiLanguageUserMessage('继续'),
       expect.anything(),
     );
 
@@ -2801,7 +3035,7 @@ describe('session-agent-switch handoff injection', () => {
       persistUserMessage: { clientId: 'c3', content: '{"text":"/compact","images":[],"files":[]}' },
     });
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: '/compact' },
+      withUiLanguageUserMessage('/compact'),
       expect.anything(),
     );
 
@@ -2810,14 +3044,14 @@ describe('session-agent-switch handoff injection', () => {
       persistUserMessage: { clientId: 'c4', content: '{"text":"[UI_ACTION_TRIGGER]Continue"}' },
     });
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: '[UI_ACTION_TRIGGER]Continue' },
+      withUiLanguageUserMessage('[UI_ACTION_TRIGGER]Continue'),
       expect.anything(),
     );
 
     // 不落可显示 user 行的派发(无 persistUserMessage)
     await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '内部控制' }, undefined, {});
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: '内部控制' },
+      withUiLanguageUserMessage('内部控制'),
       expect.anything(),
     );
 
@@ -2844,7 +3078,7 @@ describe('session-agent-switch handoff injection', () => {
       },
     );
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: 'RECONCILE-NOTE\n\n/tmp/build.log 为什么失败' },
+      withUiLanguageUserMessage('RECONCILE-NOTE\n\n/tmp/build.log 为什么失败'),
       expect.anything(),
     );
 
@@ -2861,7 +3095,7 @@ describe('session-agent-switch handoff injection', () => {
       },
     );
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: '/compact' },
+      withUiLanguageUserMessage('/compact'),
       expect.anything(),
     );
 
@@ -2878,7 +3112,7 @@ describe('session-agent-switch handoff injection', () => {
       },
     );
     expect(session.send).toHaveBeenLastCalledWith(
-      { type: 'user', content: 'RECONCILE-NOTE\n\n解释一下 /compact 做了什么' },
+      withUiLanguageUserMessage('RECONCILE-NOTE\n\n解释一下 /compact 做了什么'),
       expect.anything(),
     );
   });
@@ -2912,7 +3146,75 @@ describe('session-agent-switch handoff injection', () => {
     const transaction = createMakerSendTransaction(deps);
 
     await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '新消息' }, undefined, {});
-    expect(session.send).toHaveBeenCalledWith({ type: 'user', content: '新消息' }, expect.anything());
+    expect(session.send).toHaveBeenCalledWith(withUiLanguageUserMessage('新消息'), expect.anything());
+  });
+
+  it('目标状态说明在计划对账外层前置进 wire payload,落库内容保持用户原文', async () => {
+    const { deps, session } = createDeps({
+      peekPlanReconcileNote: vi.fn(async () => ({ note: 'RECONCILE-NOTE' })),
+      peekGoalInactiveNote: vi.fn(async () => 'GOAL-NOTE'),
+    });
+    const transaction = createMakerSendTransaction(deps);
+
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '新消息' }, undefined, {
+      persistUserMessage: { clientId: 'client-1', content: '{"text":"新消息","images":[],"files":[]}' },
+    });
+
+    expect(session.send).toHaveBeenCalledWith(
+      withUiLanguageUserMessage('GOAL-NOTE\n\nRECONCILE-NOTE\n\n新消息'),
+      expect.anything(),
+    );
+    const persisted = vi.mocked(deps.createDbMessage).mock.calls[0]?.[1];
+    expect(persisted?.content).toBe('{"text":"新消息","images":[],"files":[]}');
+  });
+
+  it('目标状态说明覆盖自动任务轮次,不进自动续跑、斜杠指令与 steer', async () => {
+    const peekGoalInactiveNote = vi.fn(async () => 'GOAL-NOTE');
+    const { deps, session } = createDeps({ peekGoalInactiveNote });
+    const transaction = createMakerSendTransaction(deps);
+
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '定时活' }, undefined, {
+      origin: { kind: 'scheduler', scheduleId: 's1', scheduleName: 'n' },
+    });
+    expect(session.send).toHaveBeenLastCalledWith(
+      withUiLanguageUserMessage('GOAL-NOTE\n\n定时活'),
+      expect.anything(),
+    );
+    expect(peekGoalInactiveNote).toHaveBeenCalledTimes(1);
+
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '继续' }, undefined, {
+      persistUserMessage: { clientId: 'c2', content: '继续', autoResume: true },
+    });
+    expect(session.send).toHaveBeenLastCalledWith(withUiLanguageUserMessage('继续'), expect.anything());
+
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '/compact' }, undefined, {
+      persistUserMessage: {
+        clientId: 'c3',
+        content: '{"text":"/compact","images":[],"files":[],"slashCommandRanges":[{"start":0,"end":8}]}',
+      },
+    });
+    expect(session.send).toHaveBeenLastCalledWith(withUiLanguageUserMessage('/compact'), expect.anything());
+
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '顺便看下' }, undefined, {
+      persistUserMessage: { clientId: 'c4', content: '{"text":"顺便看下"}', delivery: 'steer' },
+    });
+    expect(session.send).toHaveBeenLastCalledWith(withUiLanguageUserMessage('顺便看下'), expect.anything());
+
+    expect(peekGoalInactiveNote).toHaveBeenCalledTimes(1);
+  });
+
+  it('目标状态说明读取抛错时静默跳过,不挡发送', async () => {
+    const { deps, session } = createDeps({
+      peekGoalInactiveNote: vi.fn(async () => {
+        throw new Error('db unavailable');
+      }),
+    });
+    const transaction = createMakerSendTransaction(deps);
+
+    await transaction.sendToAgentAccepted('session-1', { type: 'user', content: '新消息' }, undefined, {
+      persistUserMessage: { clientId: 'client-1', content: '{"text":"新消息","images":[],"files":[]}' },
+    });
+    expect(session.send).toHaveBeenCalledWith(withUiLanguageUserMessage('新消息'), expect.anything());
   });
 
   it('仅在 sealed 保护已被 vendor accepted 后消费', async () => {
@@ -3072,8 +3374,10 @@ describe('session-agent-switch handoff injection', () => {
     const newSend = vi.mocked((newEngineSession as unknown as MakerSendTransactionSession).send);
     expect(newSend).toHaveBeenCalledTimes(1);
     const [sentMessage, sentOpts] = newSend.mock.calls[0];
-    expect((sentMessage as { content: string }).content.startsWith('[切换交接]')).toBe(true);
-    expect((sentMessage as { content: string }).content).toContain('PR #193 heartbeat prompt');
+    const sentContent = (sentMessage as { content: string }).content;
+    expect(sentContent.startsWith(uiLanguageNote())).toBe(true);
+    expect(sentContent.indexOf('[切换交接]')).toBeGreaterThan(uiLanguageNote().length);
+    expect(sentContent.indexOf('PR #193 heartbeat prompt')).toBeGreaterThan(sentContent.indexOf('[切换交接]'));
     expect((sentOpts as { origin?: unknown })?.origin).toEqual(schedulerOrigin);
     // 4. 落库是用户原文,不含交接段(display 与 sent 分离)。
     const persisted = vi.mocked(deps.createDbMessage).mock.calls[0]?.[1];

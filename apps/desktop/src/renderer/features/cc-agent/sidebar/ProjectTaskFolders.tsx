@@ -33,7 +33,7 @@ import { useSessionAttentionUrgencySet } from '../contexts/SessionAttentionUrgen
 import { aggregateSessionLamps } from '../lib/sessionLampAggregation';
 import { SidebarRightStatusIndicator } from './SidebarRightStatusIndicator';
 import { SPLIT_GROUP_SESSION_MIME } from '../splitGroupDnd';
-import { MENU_CONTENT_CLASS, MENU_ITEM_CLASS } from './menuStyles';
+import { MENU_ITEM_CLASS } from './menuStyles';
 import type { ProjectNode } from '../lib/projectGrouping';
 
 const FOLDER_MIME = 'application/x-cindy-task-folder';
@@ -371,7 +371,7 @@ export function ProjectTaskFolders({
                     </button>
                   </Tip>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className={MENU_CONTENT_CLASS}>
+                <DropdownMenuContent>
                   <DropdownMenuItem className={MENU_ITEM_CLASS} onSelect={createTask}>
                     {t('ccAgent.sidebar.taskFolders.newTask')}
                   </DropdownMenuItem>

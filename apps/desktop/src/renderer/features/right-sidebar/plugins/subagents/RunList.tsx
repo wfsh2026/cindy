@@ -1,3 +1,13 @@
+import { Button } from '@/components/ui/button';
+/**
+ * RunList — the Subagent panel's list view.
+ *
+ * One card per durable run, grouped Running / Finished. A row is a 12px
+ * container (DESIGN.md §5) that fills on hover; status is icon-only per the
+ * product ruling, so the row's three text lines are title / summary / meta and
+ * the corner carries the last-update time.
+ */
+
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SubagentRun } from '@cindy/maker-shared/subagent-workspace';
@@ -71,16 +81,18 @@ export function RunList({ runs, nextCursor, loadingMore, onOpen, onLoadMore }: R
           </section>
         ) : null}
         {nextCursor ? (
-          <button
+          <Button
+            variant="secondary"
+            size="md"
+            compact
+            loading={loadingMore}
             type="button"
             disabled={loadingMore}
             onClick={onLoadMore}
-            className="mx-3 mt-3 flex h-8 items-center justify-center rounded-full border border-[var(--border-default)] px-3 text-12 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+            className="mx-3 mt-3"
           >
-            {loadingMore
-              ? t('rightSidebar.subagents.loading')
-              : t('rightSidebar.subagents.loadEarlier')}
-          </button>
+            {t('rightSidebar.subagents.loadEarlier')}
+          </Button>
         ) : null}
       </div>
     </div>

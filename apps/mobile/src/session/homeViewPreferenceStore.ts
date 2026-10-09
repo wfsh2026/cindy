@@ -30,7 +30,7 @@ export interface HomeViewPreferencePatch {
 }
 
 export async function readHomeViewPreferences(): Promise<HomeViewPreferences> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyPreferences();
   try {
     return normalizeStoredPreferences(JSON.parse(raw));
@@ -51,7 +51,11 @@ export function saveHomeViewPreferences(patch: HomeViewPreferencePatch): Promise
 }
 
 async function writeHomeViewPreferences(patch: HomeViewPreferencePatch): Promise<void> {
-  const current = await readHomeViewPreferences();
+  // A failed read (disk/lock) must reject so we do not replace a still-valid
+  // blob with defaults. Corrupt JSON is different: keeping it makes every
+  // computer switch alert "couldn't save" forever.
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  const current = raw === null ? emptyPreferences() : parseStoredPreferences(raw);
   const next: HomeViewPreferences = {
     groupByProject: patch.groupByProject ?? current.groupByProject,
     groupDialogue: patch.groupDialogue ?? current.groupDialogue,
@@ -64,7 +68,7 @@ async function writeHomeViewPreferences(patch: HomeViewPreferencePatch): Promise
       ? normalizeDevice(patch.selectedDevice)
       : current.selectedDevice,
   };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(serializePreferences(next))).catch(() => undefined);
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(serializePreferences(next)));
 }
 
 export async function clearHomeViewPreferences(): Promise<void> {
@@ -105,13 +109,22 @@ function normalizeStoredPreferences(value: unknown): HomeViewPreferences {
   };
 }
 
+function parseStoredPreferences(raw: string): HomeViewPreferences {
+  try {
+    return normalizeStoredPreferences(JSON.parse(raw));
+  } catch {
+    return emptyPreferences();
+  }
+}
+
 function normalizeDevice(device: { deviceId: string; name: string } | null): HomeViewPreferences['selectedDevice'] {
   if (!device) return null;
-  const deviceId = device.deviceId.trim();
+  const deviceId = typeof device.deviceId === 'string' ? device.deviceId.trim() : '';
   if (!deviceId) return null;
+  const name = typeof device.name === 'string' ? device.name.trim() : '';
   return {
     deviceId,
-    name: device.name.trim() || deviceId,
+    name: name || deviceId,
   };
 }
 

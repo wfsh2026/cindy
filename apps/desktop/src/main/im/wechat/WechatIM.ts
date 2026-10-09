@@ -25,6 +25,8 @@ import {
   type WechatTransport,
 } from '@cindy/wechat-ilink';
 import type { InteractionDecision, InteractionRequest } from '@cindy/maker-core';
+import type { SharedPermission } from '../../maker-ipc/sharedPermission';
+import { INTERACTION_CHOICE_RECEIVED_TEXT, permissionOutcomeText } from '../shared/permissionPresentation';
 
 import { autoReviewUnavailablePromptLine } from '../shared/autoReviewUnavailablePrompt';
 import type { ImSessionRepo } from '../shared/sessionRepo';
@@ -485,8 +487,10 @@ export class WechatIM extends BaseIM implements RichChannelIM {
   async handleTextInteraction(
     userId: string,
     request: InteractionRequest,
-    options?: { timeoutMs?: number },
+    options?: { timeoutMs?: number; sharedPermission?: SharedPermission },
   ): Promise<InteractionDecision> {
+    const shared = options?.sharedPermission;
+    if (shared?.decision) return shared.result;
     const previous = this.#pendingInteractions.get(userId);
     if (previous) {
       clearTimeout(previous.timer);
@@ -497,14 +501,24 @@ export class WechatIM extends BaseIM implements RichChannelIM {
     const result = new Promise<InteractionDecision>((resolve) => {
       resolvePending = resolve;
     });
+    const settle = (decision: InteractionDecision) => shared ? shared.decide(decision) : resolvePending(decision);
     const timer = setTimeout(() => {
       this.#pendingInteractions.delete(userId);
-      resolvePending(defaultWechatInteractionDecision(request, 'wechat_interaction_timeout'));
+      settle(defaultWechatInteractionDecision(request, 'wechat_interaction_timeout'));
     }, options?.timeoutMs ?? WECHAT_INTERACTION_CONFIRM_TIMEOUT_MS);
     timer.unref?.();
-    this.#pendingInteractions.set(userId, { request, resolve: resolvePending, timer });
+    const entry = { request, resolve: settle, timer };
+    this.#pendingInteractions.set(userId, entry);
+    if (shared) void shared.result.then((decision) => {
+      if (this.#pendingInteractions.get(userId) === entry) this.#pendingInteractions.delete(userId);
+      clearTimeout(timer);
+      resolvePending(decision);
+    });
     try {
       await this.sendText(userId, formatWechatInteractionPrompt(request));
+      if (shared) void shared.result.then((decision) => this.sendText(userId,
+        permissionOutcomeText(decision, request.kind === 'permission' ? request.toolName : undefined),
+      )).catch(() => {});
     } catch {
       const pending = this.#pendingInteractions.get(userId);
       if (pending?.request.requestId === request.requestId) {
@@ -513,7 +527,7 @@ export class WechatIM extends BaseIM implements RichChannelIM {
       }
       // Denial reasons are classified by exact/prefix match. Raw Error.message
       // is not a system code and would be presented as a user rejection.
-      return defaultWechatInteractionDecision(request, 'wechat_interaction_send_failed');
+      return shared ? shared.result : defaultWechatInteractionDecision(request, 'wechat_interaction_send_failed');
     }
     return result;
   }
@@ -1051,6 +1065,8 @@ export class WechatIM extends BaseIM implements RichChannelIM {
         botContextId: this.#epoch?.credentials.ilinkBotId ?? '',
         userId: task.peerId,
         userMessageId: task.id,
+        // 个人微信只有私聊; 渠道说明只进模型正文, 落库仍是 prompt。
+        channelNoteSource: { chatKind: 'direct', chatId: task.peerId },
         text: prompt,
         attachments: payload.attachments,
         queueMode: 'external',
@@ -1124,7 +1140,7 @@ export class WechatIM extends BaseIM implements RichChannelIM {
     clearTimeout(pending.timer);
     this.#pendingInteractions.delete(task.peerId);
     pending.resolve(decision);
-    await this.#commitAcceptedReply(task, '已收到你的选择，继续处理。');
+    await this.#commitAcceptedReply(task, INTERACTION_CHOICE_RECEIVED_TEXT);
     await this.#flushCurrentOutbox(task.bindingEpoch);
   }
 
@@ -1146,7 +1162,7 @@ export class WechatIM extends BaseIM implements RichChannelIM {
         {
           peerId: message.senderId,
           text: decision
-            ? '已收到你的选择，继续处理。'
+            ? INTERACTION_CHOICE_RECEIVED_TEXT
             : '回复格式不正确。请按上一条消息提示回复；权限确认只支持“允许”或“拒绝”。',
           contextToken: message.contextToken,
           clientId: randomUUID(),
@@ -1937,6 +1953,7 @@ function formatWechatInteractionPrompt(request: InteractionRequest): string {
   if (request.kind === 'permission') {
     const unavailable = autoReviewUnavailablePromptLine(request);
     return `需要确认工具“${request.displayName ?? request.toolName}”。
+${request.description ?? ''}
 ${unavailable ? `${unavailable}\n` : ''}回复“允许”执行一次，或回复“拒绝”取消本次操作。微信内不支持永久授权。`;
   }
   if (request.kind === 'plan_review') {

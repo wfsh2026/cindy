@@ -44,6 +44,7 @@ vi.mock('electron', () => ({
 
 // 只取 toSdkModelString,避免在 vitest 里加载整个 maker-core runtime(含 agent SDK 图)。
 vi.mock('@cindy/maker-core', () => ({
+  NativeSubagentTranscriptReader: class {},
   toSdkModelString: (m: string) => (m === 'claude-haiku-4-5' ? 'claude-haiku-4-5-20251001' : m),
 }));
 
@@ -884,7 +885,7 @@ describe('generateTitleViaProvider — xd(网关 chat-completions)', () => {
       expect(init.headers.authorization).toBe('Bearer gk-1');
       expect(JSON.parse(init.body)).toMatchObject({
         model: 'deepseek/deepseek-v4-flash',
-        max_tokens: 32,
+        max_tokens: 160,
         thinking: { type: 'disabled' },
         reasoning_effort: 'low',
       });

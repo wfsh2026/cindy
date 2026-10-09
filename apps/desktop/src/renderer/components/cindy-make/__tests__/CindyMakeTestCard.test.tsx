@@ -44,6 +44,29 @@ afterEach(() => {
 });
 
 describe('completion card in the input area', () => {
+  it.each(['conflict', 'resolving', 'failed'] as const)(
+    'blocks generation while source update is %s and unlocks after resolution',
+    async (status) => {
+      h.merge = {
+        id: 'source-update',
+        status,
+        ref: 'main',
+        upstreamCommit: 'a'.repeat(40),
+        hasWorkspace: true,
+      };
+      const { rerender } = view();
+      await waitFor(() => expect(h.api).toHaveBeenCalledOnce());
+      const generate = screen.getByRole('button', { name: 'cindyMake.personal.generate' });
+      expect(generate.hasAttribute('disabled')).toBe(true);
+      fireEvent.click(generate);
+      expect(h.api).toHaveBeenCalledExactlyOnceWith('session', 'completion', 'status');
+      h.merge = { ...h.merge, status: 'merged', hasWorkspace: false };
+      rerender(<CindyMakeTestCard sessionId="session" completionId="completion" meta={meta} />);
+      expect(generate.hasAttribute('disabled')).toBe(false);
+      fireEvent.click(generate);
+      await waitFor(() => expect(h.api).toHaveBeenCalledWith('session', 'completion', 'build'));
+    },
+  );
   it.each(['matching', 'other-task', 'other-round', 'other-account'])(
     'does not restore a legacy merge button in the build progress area: %s',
     async (binding) => {
@@ -569,7 +592,34 @@ describe('completion card in the input area', () => {
         .disabled,
     ).toBe(false);
   });
-  it('replaces the generation action with the shared version switch for a runnable snapshot', async () => {
+  it('offers personal regeneration after a personal version is ready', async () => {
+    render(
+      <CindyMakeTestCard
+        sessionId="session"
+        completionId="completion"
+        meta={{
+          ...meta,
+          lastAction: 'build',
+          personal: { status: 'ready', versionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' },
+        }}
+      />,
+    );
+    const regenerate = await screen.findByRole('button', {
+      name: 'cindyMake.history.regeneratePersonal',
+    });
+    fireEvent.click(regenerate);
+    await waitFor(() => expect(h.api).toHaveBeenCalledWith('session', 'completion', 'build'));
+  });
+  it('uses the single personal version from an old completion instead of switching to its historical build', async () => {
+    let releaseVersions!: () => void;
+    const versionsReady = new Promise<void>((resolve) => { releaseVersions = resolve; });
+    h.merge = {
+      id: 'source-update',
+      status: 'conflict',
+      ref: 'main',
+      upstreamCommit: 'a'.repeat(40),
+      hasWorkspace: true,
+    };
     const switchVersion = vi.fn().mockResolvedValue({
       currentId: 'original',
       selectedId: 'original',
@@ -578,11 +628,14 @@ describe('completion card in the input area', () => {
     });
     vi.stubGlobal('electronAPI', {
       cindyMakeTest: h.api,
-      getCindyVersions: vi.fn().mockResolvedValue({
-        currentId: 'original',
-        selectedId: 'original',
-        versions: [],
-        switching: false,
+      getCindyVersions: vi.fn(async () => {
+        await versionsReady;
+        return {
+          currentId: 'original',
+          selectedId: 'original',
+          versions: [{ id: 'personal', kind: 'personal', available: true, compatible: true }],
+          switching: false,
+        };
       }),
       actCindyVersion: switchVersion,
     });
@@ -597,12 +650,125 @@ describe('completion card in the input area', () => {
         }}
       />,
     );
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'cindyMake.versions.switchPersonal' }),
-    );
-    await waitFor(() =>
-      expect(switchVersion).toHaveBeenCalledWith('switch', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-    );
+    const switchPersonal = await screen.findByRole('button', { name: 'cindyMake.versions.switchPersonal' });
+    // The label is visible before the asynchronous version list enables it.
+    expect((switchPersonal as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(switchPersonal);
+    expect(switchVersion).not.toHaveBeenCalled();
+    await act(async () => { releaseVersions(); });
+    await waitFor(() => expect((switchPersonal as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(switchPersonal);
+    await waitFor(() => expect(switchVersion).toHaveBeenCalledWith('switch', 'personal'));
     expect(h.api.mock.calls.some(([, , action]) => action === 'open-build')).toBe(false);
+  });
+  it('keeps switching to an updated personal version available while an isolated test is starting', async () => {
+    const switchVersion = vi.fn().mockResolvedValue({
+      currentId: 'original',
+      selectedId: 'original',
+      versions: [],
+      switching: true,
+    });
+    vi.stubGlobal('electronAPI', {
+      cindyMakeTest: h.api,
+      getCindyVersions: vi.fn().mockResolvedValue({
+        currentId: 'original',
+        selectedId: 'original',
+        personalUpdateAvailable: true,
+        switching: false,
+        versions: [
+          { id: 'original', kind: 'original', available: true, compatible: true },
+          { id: 'personal', kind: 'personal', available: true, compatible: true },
+        ],
+      }),
+      actCindyVersion: switchVersion,
+    });
+    render(
+      <CindyMakeTestCard
+        sessionId="session"
+        completionId="completion"
+        meta={{
+          ...meta,
+          test: { status: 'starting', step: 'dependencies' },
+          personal: { status: 'ready', versionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' },
+        }}
+      />,
+    );
+    const update = await screen.findByRole('button', {
+      name: 'cindyMake.versions.updatePersonal',
+    });
+    expect((update as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(update);
+    await waitFor(() => expect(switchVersion).toHaveBeenCalledWith('switch', 'personal'));
+  });
+  it('offers regeneration after the personal version was deleted instead of reviving a historical build', async () => {
+    vi.stubGlobal('electronAPI', {
+      cindyMakeTest: h.api,
+      getCindyVersions: vi.fn().mockResolvedValue({
+        currentId: 'original',
+        selectedId: 'original',
+        switching: false,
+        versions: [{ id: 'original', kind: 'original', available: true, compatible: true }],
+      }),
+      actCindyVersion: vi.fn(),
+    });
+    render(
+      <CindyMakeTestCard
+        sessionId="session"
+        completionId="completion"
+        meta={{
+          ...meta,
+          lastAction: 'build',
+          personal: { status: 'ready', versionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' },
+        }}
+      />,
+    );
+    const generate = await screen.findByRole('button', { name: 'cindyMake.personal.generate' });
+    expect(screen.getByText('cindyMake.versions.empty')).toBeTruthy();
+    fireEvent.click(generate);
+    await waitFor(() => expect(h.api).toHaveBeenCalledWith('session', 'completion', 'build'));
+    expect(window.electronAPI.actCindyVersion).not.toHaveBeenCalled();
+  });
+  it('allows a new completion to generate after the previous personal build is already in use', async () => {
+    vi.stubGlobal('electronAPI', {
+      cindyMakeTest: h.api,
+      getCindyVersions: vi.fn().mockResolvedValue({
+        currentId: 'personal',
+        selectedId: 'personal',
+        personalUpdateAvailable: false,
+        switching: false,
+        versions: [{ id: 'personal', kind: 'personal', available: true, compatible: true }],
+      }),
+      actCindyVersion: vi.fn(),
+    });
+    const { rerender } = render(
+      <CindyMakeTestCard
+        sessionId="session"
+        completionId="completion"
+        meta={{
+          ...meta,
+          lastAction: 'build',
+          personal: { status: 'ready', versionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' },
+        }}
+      />,
+    );
+    expect(
+      (
+        (await screen.findByRole('button', {
+          name: 'cindyMake.versions.using',
+        })) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    rerender(
+      <CindyMakeTestCard
+        sessionId="session"
+        completionId="next-completion"
+        meta={{ ...meta, commit: 'b'.repeat(40) }}
+      />,
+    );
+    const generate = screen.getByRole('button', { name: 'cindyMake.personal.generate' });
+    expect((generate as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(generate);
+    await waitFor(() => expect(h.api).toHaveBeenCalledWith('session', 'next-completion', 'build'));
+    expect(window.electronAPI.actCindyVersion).not.toHaveBeenCalled();
   });
 });

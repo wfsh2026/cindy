@@ -61,12 +61,6 @@ export interface ComposerDraft {
   /** Plugin-page handoff consumed by ChatInput after its editor hydration. */
   pendingGhostId?: string;
   /**
-   * Host-capability Plugin handoff. Kept separate from `pendingGhostId`
-   * because command Plugins expand through `ghost_call`, while capability
-   * Plugins are represented by a trusted composer atom and stay Host-owned.
-   */
-  pendingHostCapabilityGhostId?: string;
-  /**
    * One-shot routed-entry intent: hydrate this draft, then place the caret at
    * the final editable position. ChatInput consumes and clears the flag so a
    * later ordinary remount does not steal focus.
@@ -132,8 +126,10 @@ const ATTACHED_FILE_SNAPSHOT_KEYS = [
   'textContent',
   'truncated',
   'annotated',
+  'baseAnnotated',
   'annotationSourceUrl',
   'cacheUrlShared',
+  'stagedPathShared',
 ] as const;
 
 /**
@@ -696,9 +692,6 @@ export function saveComposerTextAfterAsyncTransition(
       ...(existing?.experience ? { experience: existing.experience } : {}),
       ...(existing?.experienceCleared ? { experienceCleared: true } : {}),
       ...(existing?.pendingGhostId ? { pendingGhostId: existing.pendingGhostId } : {}),
-      ...(existing?.pendingHostCapabilityGhostId
-        ? { pendingHostCapabilityGhostId: existing.pendingHostCapabilityGhostId }
-        : {}),
       ...(existing?.focusAtEnd ? { focusAtEnd: true } : {}),
     },
     { silent: true, preserveRemoteOptimisticRecovery: true },
@@ -756,9 +749,6 @@ export function restoreRemoteOptimisticDraft(
     ...(restoredExperience.experience ? { experience: restoredExperience.experience } : {}),
     ...(restoredExperience.cleared ? { experienceCleared: true } : {}),
     ...(existing?.pendingGhostId ? { pendingGhostId: existing.pendingGhostId } : {}),
-    ...(existing?.pendingHostCapabilityGhostId
-      ? { pendingHostCapabilityGhostId: existing.pendingHostCapabilityGhostId }
-      : {}),
     ...(existing?.focusAtEnd ? { focusAtEnd: true } : {}),
   };
   const rememberBatchSnapshot = (draft: ComposerDraft): void => {
